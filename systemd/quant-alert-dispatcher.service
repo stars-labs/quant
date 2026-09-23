@@ -13,10 +13,10 @@ After=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/freeman.xiong/Documents/github/public/quant
-Environment=PATH=/run/current-system/sw/bin:/home/freeman.xiong/Documents/github/public/quant/.venv-bots/bin:/etc/profiles/per-user/freeman.xiong/bin:/usr/bin:/bin
+WorkingDirectory=/home/freeman.xiong/Documents/github/stars-labs/quant
+Environment=PATH=/run/current-system/sw/bin:/home/freeman.xiong/Documents/github/stars-labs/quant/.venv-bots/bin:/etc/profiles/per-user/freeman.xiong/bin:/usr/bin:/bin
 Environment=GNUPGHOME=/home/freeman.xiong/.gnupg
-ExecStart=/home/freeman.xiong/Documents/github/public/quant/start_alert_dispatcher.sh
+ExecStart=/home/freeman.xiong/Documents/github/stars-labs/quant/start_alert_dispatcher.sh
 Restart=on-failure
 RestartSec=15
 

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-30T00:00:08Z",
+  "generated_at": "2026-09-07T00:00:07Z",
   "min_trades_for_kelly": 30,
   "wilson_z": 1.96,
   "strategies": [

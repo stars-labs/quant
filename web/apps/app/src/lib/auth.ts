@@ -120,7 +120,11 @@ function client(): Promise<Auth0Client> {
  * localStorage session + qt_authed/qt_jwt cookies. */
 async function syncFromAuth0(): Promise<Session> {
 	const c = await client();
-	const { access_token, expires_in } = await c.getTokenSilently({ detailedResponse: true });
+	const token = await c.getTokenSilently({ detailedResponse: true });
+	if (!token) {
+		throw new Error('Auth0 returned no token during silent authentication');
+	}
+	const { access_token, expires_in } = token;
 	const payload = decodeJwt<Record<string, string>>(access_token) ?? {};
 	const expiresIn = expires_in ?? 3600;
 	const s: Session = {

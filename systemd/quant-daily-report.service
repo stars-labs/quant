@@ -4,9 +4,9 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-WorkingDirectory=/home/freeman.xiong/Documents/github/public/quant
-ExecStart=/home/freeman.xiong/Documents/github/public/quant/start_daily_report.sh
-Environment=PATH=/run/current-system/sw/bin:/home/freeman.xiong/Documents/github/public/quant/.venv-bots/bin:/etc/profiles/per-user/freeman.xiong/bin:/usr/bin:/bin
+WorkingDirectory=/home/freeman.xiong/Documents/github/stars-labs/quant
+ExecStart=/home/freeman.xiong/Documents/github/stars-labs/quant/start_daily_report.sh
+Environment=PATH=/run/current-system/sw/bin:/home/freeman.xiong/Documents/github/stars-labs/quant/.venv-bots/bin:/etc/profiles/per-user/freeman.xiong/bin:/usr/bin:/bin
 Environment=GNUPGHOME=/home/freeman.xiong/.gnupg
 
 [Install]

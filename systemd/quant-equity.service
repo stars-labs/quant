@@ -21,13 +21,13 @@ After=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/freeman.xiong/Documents/github/public/quant
+WorkingDirectory=/home/freeman.xiong/Documents/github/stars-labs/quant
 # IB connection + DB creds (mode 0600, not committed). Required keys:
 #   IB_HOST IB_PORT IB_CLIENT_ID IB_ACCOUNT IB_TRADING_MODE=paper NAUTILUS_ENV=paper
 #   NAUTILUS_ASSET_CLASS=equity EQ_QUOTE_PER_BASE_FX EQ_RISK_FRAC TIMESCALE_URL
 EnvironmentFile=%h/.config/quant/equity.env
-Environment=PATH=/home/freeman.xiong/Documents/github/public/quant/nautilus_equity/.venv/bin:/etc/profiles/per-user/freeman.xiong/bin:/run/current-system/sw/bin:/usr/bin:/bin
-ExecStart=/home/freeman.xiong/Documents/github/public/quant/nautilus_equity/.venv/bin/python /home/freeman.xiong/Documents/github/public/quant/nautilus_equity/live_honest_equity.py
+Environment=PATH=/home/freeman.xiong/Documents/github/stars-labs/quant/nautilus_equity/.venv/bin:/etc/profiles/per-user/freeman.xiong/bin:/run/current-system/sw/bin:/usr/bin:/bin
+ExecStart=/home/freeman.xiong/Documents/github/stars-labs/quant/nautilus_equity/.venv/bin/python /home/freeman.xiong/Documents/github/stars-labs/quant/nautilus_equity/live_honest_equity.py
 # IB sessions drop/reconnect; let systemd restart on failure. RestartSec gives the Gateway
 # time to free the client id between attempts.
 Restart=on-failure

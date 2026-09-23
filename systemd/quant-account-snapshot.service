@@ -7,7 +7,7 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-WorkingDirectory=/home/freeman.xiong/Documents/github/public/quant
+WorkingDirectory=/home/freeman.xiong/Documents/github/stars-labs/quant
 EnvironmentFile=%h/.config/quant/backtest-runner.env
 Environment=PATH=/run/current-system/sw/bin:/usr/bin:/bin
-ExecStart=/home/freeman.xiong/Documents/github/public/quant/nautilus_equity/.venv/bin/python strategies/account_snapshot.py
+ExecStart=/home/freeman.xiong/Documents/github/stars-labs/quant/nautilus_equity/.venv/bin/python strategies/account_snapshot.py

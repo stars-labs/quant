@@ -18,11 +18,11 @@ After=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/freeman.xiong/Documents/github/public/quant
+WorkingDirectory=/home/freeman.xiong/Documents/github/stars-labs/quant
 # TIMESCALE_URL (required) lives here, mode 0600 (DB credentials, not committed):
 EnvironmentFile=%h/.config/quant/backtest-runner.env
-Environment=PATH=/home/freeman.xiong/Documents/github/public/quant/nautilus_equity/.venv/bin:/etc/profiles/per-user/freeman.xiong/bin:/run/current-system/sw/bin:/usr/bin:/bin
-ExecStart=/home/freeman.xiong/Documents/github/public/quant/nautilus_equity/.venv/bin/python /home/freeman.xiong/Documents/github/public/quant/nautilus_equity/backtest_runner.py
+Environment=PATH=/home/freeman.xiong/Documents/github/stars-labs/quant/nautilus_equity/.venv/bin:/etc/profiles/per-user/freeman.xiong/bin:/run/current-system/sw/bin:/usr/bin:/bin
+ExecStart=/home/freeman.xiong/Documents/github/stars-labs/quant/nautilus_equity/.venv/bin/python /home/freeman.xiong/Documents/github/stars-labs/quant/nautilus_equity/backtest_runner.py
 Restart=on-failure
 RestartSec=10
 
