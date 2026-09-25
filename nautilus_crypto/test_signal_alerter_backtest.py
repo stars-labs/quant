@@ -72,7 +72,9 @@ def _run():
     engine.add_data(_build_path(bar_type))
 
     notifier = _RecordingNotifier()
-    alerter = SignalAlerter([instrument], bar_spec="1-MINUTE-LAST-EXTERNAL", notifier=notifier)
+    alerter = SignalAlerter(
+        [instrument], bar_spec="1-MINUTE-LAST-EXTERNAL", notifier=notifier
+    )
     engine.add_actor(alerter)
     engine.run()
     engine.dispose()

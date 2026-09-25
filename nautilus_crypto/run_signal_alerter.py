@@ -38,6 +38,7 @@ from nautilus_trader.live.node import TradingNode
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from signal_alerter import SignalAlerter  # noqa: E402
+from signal_context import MarketContextFetcher  # noqa: E402
 from telegram_notifier import TelegramNotifier  # noqa: E402
 
 DEFAULT_INSTRUMENTS = "BTCUSDT.BINANCE ETHUSDT.BINANCE SOLUSDT.BINANCE"
@@ -86,7 +87,12 @@ def build_node() -> TradingNode:
 
     bar_spec = os.environ.get("SIGNAL_BAR", "1-MINUTE-LAST-EXTERNAL")
     notifier = TelegramNotifier()
-    alerter = SignalAlerter(_instruments(), bar_spec=bar_spec, notifier=notifier)
+    alerter = SignalAlerter(
+        _instruments(),
+        bar_spec=bar_spec,
+        notifier=notifier,
+        context_fetcher=MarketContextFetcher(),
+    )
     node.trader.add_actor(alerter)
     return node
 
