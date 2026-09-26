@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This repository is a quant trading research and operations workspace centered on NautilusTrader. Core engines live in `nautilus_crypto/`, `nautilus_equity/`, and `nautilus_options/`. Shared standalone bots and helpers live in `strategies/`, while operational scripts live in `scripts/`. Database changes are in `migrations/` for TimescaleDB/PostgREST and `supabase/` for Supabase schemas. Static dashboards are in `dashboard/`; the active SvelteKit/Cloudflare dashboard is in `web/apps/app/`, with docs in `web/apps/docs/`. Tests are in `tests/` and some module-local `test_*` files.
+This repository is a quant trading research and operations workspace centered on NautilusTrader. Core engines live in `nautilus_crypto/`, `nautilus_equity/`, and `nautilus_options/`. Shared standalone bots and helpers live in `strategies/`, while operational scripts live in `scripts/`. The public strategy track record (`/record`, Telegram topic `strategy_signals`) is computed from `quant.strategy_signals` via the `quant.strategy_record` view — see CLAUDE.md "Strategy track record"; `quant.nautilus_trades` is only the testnet execution ledger. Database changes are in `migrations/` for TimescaleDB/PostgREST and `supabase/` for Supabase schemas. Static dashboards are in `dashboard/`; the active SvelteKit/Cloudflare dashboard is in `web/apps/app/`, with docs in `web/apps/docs/`. Tests are in `tests/` and some module-local `test_*` files.
 
 ## Build, Test, and Development Commands
 
@@ -14,10 +14,16 @@ $P nautilus_crypto/run_accumulation.py
 $P nautilus_crypto/download_binance.py
 ```
 
-Tests are pytest-style, but `pytest` may not be installed. Run modules directly with a small harness:
+`pytest` is not installed in the venvs. Plain `test_*` modules run with a small harness:
 
 ```bash
-$P -c "import sys; sys.path.insert(0,'strategies'); import tests.test_kelly_sizer as t; [getattr(t,n)() for n in dir(t) if n.startswith('test_')]; print('ok')"
+$P -c "import sys; sys.path.insert(0,'nautilus_crypto'); import test_signal_detect as t; [getattr(t,n)() for n in dir(t) if n.startswith('test_')]; print('ok')"
+```
+
+Modules that `import pytest` (`tests/test_kelly_sizer.py`, `nautilus_crypto/test_crypto_accumulator.py`, `nautilus_equity/test_regime_gate.py`) need pytest layered on via uv:
+
+```bash
+uv run --no-project --python $P --with pytest -m pytest -q tests/test_kelly_sizer.py
 ```
 
 For the web app:

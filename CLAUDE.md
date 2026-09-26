@@ -1,4 +1,8 @@
-# CLAUDE.md — quant
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## quant
 
 Crypto + (planned) US-equity quant trading on **NautilusTrader**. Formerly `freqtrade-strategies`;
 freqtrade is fully removed (single-stack migration done 2026-06-08). See `IMPLEMENTATION_PLAN.md`
@@ -15,6 +19,7 @@ for stage status and `STRATEGY_LEADERBOARD.md` for the strategy research log.
   `telegram_alerts.py`, `kelly_sizer.py`, `risk_manager.py`, `dca_executor.py`, `deribit_monitor.py`,
   plus the collectors/evaluators the services run (`news_collector.py`, `stress_index.py`,
   `market_collector.py`, `alert_dispatcher.py`, `signal_evaluator.py`, `quant_lab.py`, …).
+  `strategy_record.py` is the pure Donchian state machine behind the public track record (below).
 - `scripts/` — `sync_local_state_to_timescale.py` (wf → TimescaleDB), `md_http_server.py`
   (localhost :3001 dashboard), `testnet_usdt_recycler.py`, misc backtest/sync/report helpers.
   (`download_binance.py` lives in `nautilus_crypto/`, not here.)
@@ -27,6 +32,8 @@ for stage status and `STRATEGY_LEADERBOARD.md` for the strategy research log.
   (auth + Realtime), not the trade DB.
 - `systemd/` — source copies of the game-box user units (`quant-*.{service,timer}` incl.
   `quant-equity-watchdog.*`); the installed copies live in `~/.config/systemd/user/` — keep in sync.
+  They hard-code the checkout path: moving the repo breaks every unit (203/EXEC) until the installed
+  copies are re-pointed + `systemctl --user daemon-reload`.
 - `docs/` — runbooks/checklists (`GO_LIVE_CHECKLIST.md`, `DRYRUN_HANDBOOK.md`,
   `RETIRED_STRATEGIES.md`) and `docs/research/` (AI-semis research data behind `/research`, `/semis`).
 - Legacy, do-not-touch: `web-vanilla/`, `dashboard/`, `configs/`, `user_data/`, `freqaimodels/`,
@@ -39,8 +46,9 @@ for stage status and `STRATEGY_LEADERBOARD.md` for the strategy research log.
   nautilus_trader.
 - `nautilus_equity/.venv` — has nautilus_trader 1.227.0 (+ ib). Used to run crypto AND equity
   Nautilus backtests/tests (`sys.path.insert(0, <module dir>)` is how tests import siblings).
-- pytest is NOT installed; tests are pytest-style but run via the venv directly. Pure modules can be
-  exercised with a small stdlib harness if needed.
+- pytest is NOT installed in either venv. Most tests are plain `test_*` funcs; three modules
+  (`tests/test_kelly_sizer.py`, `nautilus_crypto/test_crypto_accumulator.py`,
+  `nautilus_equity/test_regime_gate.py`) `import pytest` (fixtures/raises) and need the overlay below.
 
 ## Commands
 Python (no Makefile/pytest — invoke the venv interpreter directly; `P=nautilus_equity/.venv/bin/python`):
@@ -50,9 +58,12 @@ Python (no Makefile/pytest — invoke the venv interpreter directly; `P=nautilus
 - Run one test module (no pytest collector — drive the `test_*` funcs with a one-liner):
   `$P -c "import sys; sys.path.insert(0,'nautilus_crypto'); import test_signal_detect as t; [getattr(t,n)() for n in dir(t) if n.startswith('test_')]; print('ok')"`
   (swap the dir/module to target another file; run a single test by naming just that one function).
-- `tests/` (`test_kelly_sizer.py`, `test_quant_models.py`) imports from `strategies/` via
-  `sys.path`; same harness pattern. Other tests sit next to their module
-  (`nautilus_crypto/test_*.py`, `nautilus_equity/test_*.py`).
+- Modules that `import pytest` (or any test, by node id) — layer pytest on without installing it:
+  `uv run --no-project --python $P --with pytest -m pytest -q tests/test_kelly_sizer.py`
+  (append `::test_name` for one test). `tests/*` add `strategies/` to `sys.path` themselves; other
+  tests sit next to their module (`nautilus_crypto/test_*.py`, `nautilus_equity/test_*.py`).
+  Known pre-existing failure: `test_crypto_accumulator.py`'s module fixture errors with
+  `ValueError: buffer source array is read-only` (6 errors; the rest pass).
 
 Web dashboard (`cd web/apps/app`, pnpm):
 - `pnpm run dev` — local dev server.   `pnpm run check` — svelte-check typecheck.
@@ -78,17 +89,32 @@ mainland browsers, so a SvelteKit `load` that hit Binance directly would fail in
   `ssh oracle-arm-002 "sudo runuser -u postgres -- psql -d api -v ON_ERROR_STOP=1" < migrations/NNN.sql`
   then `psql … -c "NOTIFY pgrst, 'reload schema'"` so PostgREST picks up the new view.
 
+## Strategy track record (the user-facing "wealth effect" loop)
+Users follow **rule signals**, not our testnet fills. `quant.nautilus_trades` is the execution ledger and
+is NOT a track record: node restarts re-open a position under the same `position_id` (TradeLedger now
+closes the stale row as `exit_reason='superseded'`, no price/PnL).
+- `signal_evaluator.py` `sweep_house` replays the house rule (Donchian 1h 168/72, same as
+  `nautilus_crypto/donchian.py`; BTC/ETH/SOL) on closed Binance 1h bars every sweep → `quant.strategy_signals`
+  (one row per trade, `live=false` = backfilled via `--backfill 2026-01-01`, never pushed) and
+  `quant.strategy_assets` (last close + entry/exit trigger levels). Migration `032`.
+- Views `quant.strategy_trades` / `quant.strategy_record` (+ `api.*`, anon) are the ONLY place stats are
+  computed (net of 0.1%/side fees, vs buy-and-hold). Telegram, the daily report and `/record` all read them.
+- `alert_dispatcher.py` pushes live entries/exits to topic `strategy_signals` + a Monday scorecard; topics
+  are `strategy_signals` and `equity_trades` (`dca_events` is gone). Web: `/record`.
+
 ## Deploy (oracle-arm-002, NixOS)
 - Live crypto runs as **system services on oracle-arm-002**: `nautilus-accumulator`, `nautilus-trend`,
   `nautilus-signal` (all testnet/data-only). Packaged in `github:xiongchenyu6/nur-packages`
   (`modules/nautilus-*`, `pkgs/nautilus-trader`), wired in `dotfiles/nixos-configurations/oracle-arm-002/nautilus.nix`.
 - Also on arm-002 (nur `modules/quant-collectors`, vendored copies of the `strategies/*.py` sources —
-  keep both copies in sync when editing): timers `quant-news-collector`, `quant-stress-index`,
+  keep both copies in sync when editing; `default.nix` copies an explicit file list, so a new module
+  the evaluator/dispatcher imports — e.g. `strategy_record.py` — must be added there too): timers `quant-news-collector`, `quant-stress-index`,
   `quant-market-collector`; long-running `quant-signal-evaluator` + `quant-alert-dispatcher`
   (dispatcher = the ONLY Telegram getUpdates consumer — never start a second copy). market/signal/alert
   moved off the game box 2026-07-29; `findata.py` is vendored too (cache at
   `/var/lib/quant-collectors/findata-cache` via `FINDATA_CACHE_DIR`).
-- Module changes need: commit+push nur-packages → `nix flake update xiongchenyu6` in dotfiles →
+- `trade_ledger.py` is also vendored into nur `modules/nautilus-{trend,accumulator,equity-trend}/`.
+- Module changes need: commit+push nur-packages (`git add` new files — flakes ignore untracked ones) → `nix flake update xiongchenyu6` in dotfiles →
   `NIXPKGS_ALLOW_INSECURE=1 nixos-rebuild switch --flake .#oracle-arm-002 --build-host root@oracle-arm-002 --target-host root@oracle-arm-002 --impure`.
 - The nur overlay is NOT global on hosts → reference packages as
   `inputs.xiongchenyu6.packages.${system}.nautilus-trader`.
@@ -102,6 +128,9 @@ mainland browsers, so a SvelteKit `load` that hit Binance directly would fail in
   over WireGuard (`IB_HOST=172.22.240.97 IB_PORT=4002`). Config:
   `dotfiles/nixos-configurations/oracle-amd-002/ib-gateway.nix`; runbook + 2FA/sops steps:
   `nautilus_equity/deploy/ib-gateway-headless.md`. Disable 2FA on the paper login first.
+  Known failure: the nightly 23:59 auto-restart can stall at a "Gateway" dialog (LOGGED_OUT; port
+  4002 refused inside the container, node logs "Failed to receive server version") — fix with
+  `sudo systemctl restart podman-ib-gateway` on amd-002 (cold start does a full login, ~40 s).
 - **Equity EXECUTION runs on the game box, NOT amd-002** (decided 2026-06-10). The amd-002 nix
   node `services.nautilus-equity-trend` traded but didn't persist (stale nur copy) + under-sized;
   it is **RETIRED** (`enable = false`). amd-002 hosts ONLY the IB Gateway now. The single equity

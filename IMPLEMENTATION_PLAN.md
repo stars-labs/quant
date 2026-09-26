@@ -188,3 +188,14 @@ panels (WF/strategies/archive/factors) — **regenerate them with Nautilus** ins
 - **R4 — Regenerate analytical pages with Nautilus**: WF (Nautilus walk-forward), strategies
   (current Nautilus strategies + their real params/results), archive (Nautilus runs); factors/hyperopt
   → honest current state (repoint or "建设中" rather than fake freqtrade content).
+
+## Stage 10 — Strategy signals + public track record (the "wealth effect" loop, 2026-09-26)
+**Goal**: users get the house trend rule's buy/sell calls in Telegram and can see its honest record.
+Feedback: "Telegram data is meaningless, no buy/sell points, the bull came and we made nothing" — the
+Donchian 1h rule caught the Aug-18/19 rally (+21–30%) but nothing pushed it (dca_events dead since 06-07).
+**Success Criteria**: backfill replay == reference (38 closed, 37% win, +~5% vs hold −~5% YTD, net of fees);
+live entry/exit pushed exactly once; Monday scorecard; `/record` page; daily report reads the same view.
+**Tests**: tests/test_strategy_record.py, tests/test_house_sweep.py, tests/test_alert_dispatcher.py,
+nautilus_crypto/test_trade_ledger.py; local PG+PostgREST integration (32 checks); svelte-check/build.
+**Status**: Implemented + verified locally. Deploy pending: migration 032 → `--backfill 2026-01-01` on
+prod → nur (quant-collectors + nautilus-* trade_ledger) → nixos-rebuild arm-002 → `pnpm run deploy`.
