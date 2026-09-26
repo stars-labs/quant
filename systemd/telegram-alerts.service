@@ -8,10 +8,6 @@ WorkingDirectory=/home/freeman.xiong/Documents/github/stars-labs/quant
 ExecStart=/home/freeman.xiong/Documents/github/stars-labs/quant/start_telegram_alerts.sh
 Environment=PATH=/run/current-system/sw/bin:/home/freeman.xiong/Documents/github/stars-labs/quant/.venv-bots/bin:/etc/profiles/per-user/freeman.xiong/bin:/usr/bin:/bin
 Environment=GNUPGHOME=/home/freeman.xiong/.gnupg
-# Crypto execution + signal run on oracle-arm-002 (systemd Restart=always); no always-on
-# crypto bot remains on this host, so the local health watchdog is disabled to avoid false
-# "bot down" alerts on the retired event-dca/reactor. Set to a space-separated unit list to re-enable.
-Environment=HEALTH_CHECK_SERVICES=
 
 [Install]
 WantedBy=default.target

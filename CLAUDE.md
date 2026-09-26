@@ -102,6 +102,15 @@ closes the stale row as `exit_reason='superseded'`, no price/PnL).
 - `alert_dispatcher.py` pushes live entries/exits to topic `strategy_signals` + a Monday scorecard; topics
   are `strategy_signals` and `equity_trades` (`dca_events` is gone). Web: `/record`.
 
+## Health checks (operator alerts)
+`strategies/health_check.py` runs every 10 min in two roles that watch each other via
+`quant.health_heartbeats` (migration 033): `--role server` on arm-002 (nur `quant-health-check` timer:
+any failed system unit, required nautilus/quant units, stale `quant.*` tables, public API + `/record`,
+desk heartbeat) and `--role desk` on the game box (`quant-health-check.timer`: failed/stopped `quant-*`
+user units, a real IB API handshake, server heartbeat). Alerts go to the operator chat
+(`TELEGRAM_CHAT_ID`) after 2 consecutive failing runs, recoveries once, reminders every 6 h. Add a
+new service/table to its lists when you add one. `--dry-run` prints results and writes nothing.
+
 ## Deploy (oracle-arm-002, NixOS)
 - Live crypto runs as **system services on oracle-arm-002**: `nautilus-accumulator`, `nautilus-trend`,
   `nautilus-signal` (all testnet/data-only). Packaged in `github:xiongchenyu6/nur-packages`

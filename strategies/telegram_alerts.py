@@ -3,8 +3,7 @@ Telegram Alert System
 
 1. KOL real-time alerts — when Trump/Musk/BlackRock moves, get notified fast
 2. Sentiment shift alerts — when combined_score changes significantly
-3. Bot health watchdog — alert if a live signal-bot systemd unit dies
-4. Daily report — market + house strategy record (quant.strategy_record) + Kelly verdicts
+3. Daily report — market + house strategy record (quant.strategy_record) + Kelly verdicts
 
 Run every 30 min via systemd timer (separate from the 4-hour pipeline).
 """
@@ -14,7 +13,6 @@ import logging
 import os
 import subprocess
 import sys
-import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -197,86 +195,6 @@ def check_sentiment_shift():
 
     state["last_combined_score"] = current_score
     save_state(state)
-
-
-# --------------------------------------------------------------------------
-# Alert 3: Bot Health (auto-restart + cooldown)
-# --------------------------------------------------------------------------
-#
-# Old behavior: pgrep a `freqtrade trade` process and shell-restart it. Dead
-# since the freqtrade core was removed — the process never exists, so every
-# cycle false-alarmed "Bot Down". New behavior (single-stack era):
-#  - Execution runs on Nautilus (remote, testnet); this machine hosts the
-#    signal/alert bots as systemd --user services with Restart=always.
-#  - systemd owns restart, so we no longer shell one out — we just detect a
-#    sustained outage of the watched units and alert with a cooldown.
-#  - Only re-alert if (a) this is the first time we've seen it down since the
-#    last healthy check, OR (b) at least HEALTH_RE_ALERT_HOURS have elapsed.
-HEALTH_RE_ALERT_HOURS = 6
-
-# Watched systemd --user units (opt-in via env, space-separated). Empty by default:
-# crypto execution + signal now run as system services on oracle-arm-002 with
-# Restart=always, so there is no always-on crypto bot to watch on this host. Set
-# HEALTH_CHECK_SERVICES to a space-separated unit list to re-enable a local watchdog.
-HEALTH_SERVICES = os.environ.get("HEALTH_CHECK_SERVICES", "").split()
-
-
-def _service_active(unit: str) -> bool:
-    """True if a systemd --user unit is active. Best-effort: a probe failure
-    returns True so a flaky systemctl call never triggers a false outage."""
-    try:
-        r = subprocess.run(
-            ["systemctl", "--user", "is-active", unit],
-            capture_output=True, text=True, timeout=10,
-        )
-        return r.stdout.strip() == "active"
-    except Exception as e:
-        logger.warning(f"is-active {unit} failed: {e}")
-        return True
-
-
-def check_bot_health() -> bool:
-    """Alert if any live single-stack signal bot is down, with a cooldown.
-
-    systemd Restart=always recovers the units on its own; this only surfaces a
-    sustained outage to Telegram. Returns True when all watched units are up."""
-    down = [u for u in HEALTH_SERVICES if not _service_active(u)]
-    state = load_state()
-    now = time.time()
-
-    if not down:
-        logger.info(f"Bots healthy: {', '.join(HEALTH_SERVICES)}")
-        # Clear the down-state so the next outage alerts immediately.
-        if state.get("bot_down_since") or state.get("last_health_alert_ts"):
-            state["bot_down_since"] = 0
-            state["last_health_alert_ts"] = 0
-            save_state(state)
-        return True
-
-    # --- one or more bots down ---
-    if not state.get("bot_down_since"):
-        state["bot_down_since"] = now
-
-    last_alert = state.get("last_health_alert_ts", 0)
-    cooldown_s = HEALTH_RE_ALERT_HOURS * 3600
-    if last_alert and (now - last_alert) < cooldown_s:
-        next_in_min = int((cooldown_s - (now - last_alert)) / 60)
-        logger.info(
-            f"Bots DOWN {down}; suppressed (next alert in ~{next_in_min}m)"
-        )
-        return False
-
-    down_for_min = int((now - state["bot_down_since"]) / 60)
-    send_telegram(
-        "*Bot Down* ⚠️\n"
-        f"Signal bot(s) not active: `{', '.join(down)}`\n"
-        f"Down for: {down_for_min}m\n"
-        "systemd `Restart=always` should recover them — investigate if persistent."
-    )
-    state["last_health_alert_ts"] = now
-    save_state(state)
-    logger.warning(f"Bots DOWN — alert sent: {down}")
-    return False
 
 
 # --------------------------------------------------------------------------
@@ -676,7 +594,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--kol", action="store_true", help="Check KOL alerts only")
     parser.add_argument("--sentiment", action="store_true", help="Check sentiment shift only")
-    parser.add_argument("--health", action="store_true", help="Check bot health only")
     parser.add_argument("--daily", action="store_true", help="Send daily report")
     parser.add_argument("--kelly", action="store_true",
                         help="Print Kelly verdict per strategy (does not send Telegram)")
@@ -700,7 +617,7 @@ if __name__ == "__main__":
             print(format_kelly_report() or "(no Kelly data)")
         sys.exit(0)
 
-    run_all = args.all or not (args.kol or args.sentiment or args.health or args.daily)
+    run_all = args.all or not (args.kol or args.sentiment or args.daily)
 
     if args.kol or run_all:
         n = check_kol_alerts()
@@ -709,10 +626,6 @@ if __name__ == "__main__":
     if args.sentiment or run_all:
         check_sentiment_shift()
         print("Sentiment shift: checked")
-
-    if args.health or run_all:
-        ok = check_bot_health()
-        print(f"Bot health: {'OK' if ok else 'DOWN'}")
 
     if args.daily:
         send_daily_report()

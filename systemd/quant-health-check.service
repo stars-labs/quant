@@ -1,0 +1,11 @@
+[Unit]
+Description=Quant health check (desk role) — alerts the operator chat when something silently stops
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/freeman.xiong/Documents/github/stars-labs/quant
+# systemctl (unit probes) and sops live in the system profile on NixOS.
+Environment=PATH=/run/current-system/sw/bin:/etc/profiles/per-user/freeman.xiong/bin:/usr/bin:/bin
+Environment=GNUPGHOME=/home/freeman.xiong/.gnupg
+ExecStart=/etc/profiles/per-user/freeman.xiong/bin/sops exec-env secrets.env '/home/freeman.xiong/Documents/github/stars-labs/quant/.venv-bots/bin/python strategies/health_check.py --role desk'
