@@ -449,6 +449,10 @@ export default {
 	'record.metaTitle': '策略战绩',
 	'record.metaDesc':
 		'趋势突破策略在 BTC、ETH、SOL 上的每一笔买卖:扣费后收益、胜率、与买入持有对比,亏损照样公开。规则模拟信号,不构成投资建议。',
+	'record.metaDescLive':
+		'{start} 起 $1,000 跟随全部信号 → {follow},同期买入持有 → {hold};已平仓 {n} 笔,胜率 {win},已扣手续费,亏损照样公开。规则模拟信号,不构成投资建议。',
+	'record.share': '分享战绩',
+	'record.shareCopied': '已复制链接',
 	'record.eyebrow': '规则模拟信号 · 公开战绩',
 	'record.title': '策略战绩',
 	'record.subtitle':

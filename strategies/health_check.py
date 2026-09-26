@@ -54,6 +54,8 @@ SERVER_FRESHNESS = [
      "SELECT max(ts) FROM quant.market_stress", 180),
     ("fresh:market_snapshots", "行情快照(quant-market-collector)",
      "SELECT max(ts) FROM quant.market_snapshots", 120),
+    ("fresh:dca_boost_days", "定投加倍日计算(quant-signal-evaluator)",
+     "SELECT max(computed_at) FROM quant.dca_boost_days", 26 * 60),
     ("fresh:account_snapshots", "IB 账户快照(游戏机 quant-account-snapshot)",
      "SELECT max(ts) FROM quant.account_snapshots", 30 * 60),
 ]

@@ -27,6 +27,11 @@
 			en: 'Strategy buy/sell signals — BTC/ETH/SOL trend breakouts and exits + weekly scorecard'
 		},
 		{
+			id: 'dca_boost',
+			zh: '定投加倍日提醒 — 市场恐慌或 BTC 大跌时,按规则提醒加倍定投',
+			en: 'DCA boost days — when fear is extreme or BTC is deep off its high, the rule says buy more'
+		},
+		{
 			id: 'equity_trades',
 			zh: '美股模拟盘交易 — 开仓/平仓通知',
 			en: 'US-equity paper trades — open/close notifications'

@@ -284,6 +284,7 @@ def run_fan_out(rows: list[dict], chats: list[int], reachable=lambda chat: True)
                  subscribers=lambda conn, topic: chats,
                  send=lambda chat, text: sent.append((chat, text)) or reachable(chat),
                  mark_notified=lambda conn, tid, leg: marked.append((tid, leg)),
+                 render_card=lambda *a: None,  # text path; the photo path has its own tests
                  log=lambda msg: None):
         ad.fan_out_strategy_signals(None, now=NOW)
     return sent, marked
@@ -350,6 +351,7 @@ def run_weekly(state: dict, now: datetime, record: list[dict] | None = None,
                  backfilled_at=lambda conn: BACKFILLED_AT,
                  subscribers=lambda conn, topic: [1],
                  send=lambda chat, text: sent.append(text) or reachable,
+                 render_card=lambda *a: None,
                  log=lambda msg: None):
         ad.fan_out_weekly_scorecard(None, state, now=now)
     return sent
@@ -415,3 +417,166 @@ def test_daily_strategy_block_is_empty_without_rows():
 
 def test_daily_strategy_block_needs_a_dsn():
     assert ta.strategy_record_block("") == ""
+
+
+# ---------- share cards: broadcast (photo once, file_id reuse, text fallback) ----------
+
+def run_broadcast(chats, text, card, caption=None, photo_ok=lambda chat: True,
+                  text_ok=lambda chat: True):
+    calls = []
+
+    def fake_photo(chat, photo, cap):
+        calls.append(("photo", chat, photo if isinstance(photo, str) else "<png>", cap))
+        return f"fid-{chat}" if photo_ok(chat) else None
+
+    def fake_send(chat, t):
+        calls.append(("text", chat, t))
+        return text_ok(chat)
+
+    with patched(ad, send_photo=fake_photo, send=fake_send, log=lambda msg: None):
+        n = ad.broadcast(chats, text, card, caption)
+    return n, calls
+
+
+def test_broadcast_uploads_card_once_then_reuses_file_id():
+    n, calls = run_broadcast([1, 2], "T", b"png")
+    assert n == 2
+    assert calls == [("photo", 1, "<png>", "T"), ("photo", 2, "fid-1", "T")]
+
+
+def test_broadcast_falls_back_to_text_when_photo_fails():
+    n, calls = run_broadcast([1], "T", b"png", photo_ok=lambda chat: False)
+    assert n == 1 and calls == [("photo", 1, "<png>", "T"), ("text", 1, "T")]
+
+
+def test_broadcast_with_caption_sends_photo_then_full_text():
+    n, calls = run_broadcast([1], "LONG", b"png", caption="C")
+    assert n == 1 and calls == [("photo", 1, "<png>", "C"), ("text", 1, "LONG")]
+
+
+def test_broadcast_without_card_is_plain_text():
+    n, calls = run_broadcast([1, 2], "T", None, text_ok=lambda chat: chat == 2)
+    assert n == 1 and calls == [("text", 1, "T"), ("text", 2, "T")]
+
+
+def test_exit_leg_goes_out_as_card_with_the_exit_text_as_caption():
+    rows = [trade("BTC", LAST - timedelta(hours=9), 88000.0, 87395.67,
+                  exit_ts=LAST, exit_price=86000.0, exit_level=86500.0, id=3,
+                  entry_notified=True)]
+    photos = []
+    with patched(ad, pending_strategy_trades=lambda conn: rows,
+                 load_record=lambda conn: record_now(),
+                 subscribers=lambda conn, topic: [7],
+                 render_card=lambda fn, *a: fn.encode(),
+                 send_photo=lambda chat, photo, cap: photos.append((photo, cap)) or "fid",
+                 send=lambda chat, text: False,
+                 mark_notified=lambda conn, tid, leg: None,
+                 log=lambda msg: None):
+        ad.fan_out_strategy_signals(None, now=NOW)
+    assert photos == [(b"render_exit_card", ad.format_exit(rows[0]))]
+
+
+# ---------- smart-DCA boost days ----------
+
+def boost_row(day, units=4.0, fng=20, fear_add=3.0, dip_add=0.0, drawdown=-0.12):
+    from datetime import date
+    return {"day": date.fromisoformat(day), "fng": fng, "units": units, "fear_add": fear_add,
+            "dip_add": dip_add, "btc_close": 70000.0, "high_30d": 79545.45,
+            "drawdown": drawdown, "ytd_days": 268, "ytd_boosted_days": 137,
+            "ytd_plain_cost": 71884.76, "ytd_smart_cost": 68943.48}
+
+
+def test_boost_not_due_on_a_plain_day():
+    assert not ad.boost_push_due(boost_row("2026-09-27", units=1.0, fear_add=0.0), None)
+
+
+def test_boost_due_when_never_pushed():
+    assert ad.boost_push_due(boost_row("2026-09-27"), None)
+
+
+def test_boost_suppressed_within_seven_days_at_same_multiple():
+    assert not ad.boost_push_due(boost_row("2026-09-27"), boost_row("2026-09-21"))
+
+
+def test_boost_due_again_after_seven_days():
+    assert ad.boost_push_due(boost_row("2026-09-28"), boost_row("2026-09-21"))
+
+
+def test_boost_due_when_multiple_goes_up():
+    assert ad.boost_push_due(boost_row("2026-09-23", units=6.0, fng=12, fear_add=5.0),
+                             boost_row("2026-09-21"))
+
+
+def test_format_dca_boost_fear_only():
+    text = ad.format_dca_boost(boost_row("2026-09-27"))
+    assert text.startswith("🟢 <b>今天是定投加倍日 · BTC</b>\n恐惧贪婪指数 20(恐慌)\n")
+    assert "按规则,今天这笔定投 ×4(基础 1 份 + 恐慌加 3 份)" in text
+    assert "平均成本 $68,943,比每天固定金额定投($71,885)低 4.1%;268 天里有 137 天是加倍日" in text
+    assert "https://starslab.qzz.io/dca" in text and text.endswith(DISCLAIMER)
+
+
+def test_format_dca_boost_deep_fear_and_dip():
+    text = ad.format_dca_boost(boost_row("2026-09-27", units=8.0, fng=10, fear_add=5.0,
+                                         dip_add=2.0, drawdown=-0.25))
+    assert "(极度恐慌)" in text
+    assert "×8(基础 1 份 + 极度恐慌加 5 份 + 大跌加 2 份)" in text
+
+
+def run_boost(rows, last_pushed, chats, now, reachable=True):
+    sent, updates = [], []
+
+    class Cur:
+        def __init__(self):
+            self.q = None
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def execute(self, sql, params=None):
+            self.q = sql
+            if sql.startswith("UPDATE"):
+                updates.append(params)
+
+        def fetchall(self):
+            return rows
+
+        def fetchone(self):
+            return last_pushed
+
+    class Conn:
+        def cursor(self, cursor_factory=None):
+            return Cur()
+
+    with patched(ad, subscribers=lambda conn, topic: chats,
+                 send=lambda chat, text: sent.append(text) or reachable,
+                 log=lambda msg: None):
+        ad.fan_out_dca_boost(Conn(), now=now)
+    return sent, updates
+
+
+def test_fan_out_boost_pushes_today_and_marks_pushed():
+    from datetime import date
+    sent, updates = run_boost([boost_row("2026-09-27")], None, [1], NOW.replace(day=27))
+    assert len(sent) == 1 and updates == [(True, date(2026, 9, 27))]
+
+
+def test_fan_out_boost_never_pushes_stale_rows():
+    from datetime import date
+    sent, updates = run_boost([boost_row("2026-09-20")], None, [1], NOW.replace(day=27))
+    assert sent == [] and updates == [(False, date(2026, 9, 20))]
+
+
+def test_fan_out_boost_retries_when_nobody_reachable():
+    sent, updates = run_boost([boost_row("2026-09-27")], None, [1], NOW.replace(day=27),
+                              reachable=False)
+    assert len(sent) == 1 and updates == []
+
+
+def test_fan_out_boost_marks_plain_days_without_sending():
+    from datetime import date
+    sent, updates = run_boost([boost_row("2026-09-27", units=1.0, fear_add=0.0)], None, [1],
+                              NOW.replace(day=27))
+    assert sent == [] and updates == [(False, date(2026, 9, 27))]

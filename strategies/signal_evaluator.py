@@ -29,6 +29,11 @@ pre-marked notified, so history is never pushed to Telegram. The same goes for t
 while catching up after an outage longer than the fetched window (~35 days): the missed bars
 are fetched and replayed exactly, but written as backfill, never as late live calls.
 
+Smart-DCA boost days (sweep_dca): once per FNG day, the accumulator's rule
+(strategies/dca_boost.py) on today's Fear & Greed + the latest closed BTC daily bar →
+quant.dca_boost_days, with the rule replayed from 2026-01-01 vs a plain DCA. The alert
+dispatcher turns boosted days into the "定投加倍日" push.
+
 Env: TIMESCALE_URL (sops). EVAL_INTERVAL seconds between sweeps (default 300).
 Run: .venv-bots/bin/python strategies/signal_evaluator.py [--once]
      .venv-bots/bin/python strategies/signal_evaluator.py --backfill 2026-01-01 [--dry-run]
@@ -49,6 +54,7 @@ import psycopg2
 import psycopg2.extras
 import requests
 
+import dca_boost
 import strategy_record as sr
 
 DSN = os.environ.get("TIMESCALE_URL", "")
@@ -591,6 +597,59 @@ def backfill(start: str, dry_run: bool) -> int:
     return 0
 
 
+# ---------- smart-DCA boost days ----------
+
+DCA_FROM = "2026-01-01"
+
+
+def btc_days(start: str) -> list[tuple[str, float, float]]:
+    """Closed BTC daily bars opening on/after `start` (≤1000, one request): (day, high, close)."""
+    start_ms = _dt_to_ms(datetime.fromisoformat(start).replace(tzinfo=timezone.utc))
+    r = requests.get(_KLINES, params={"symbol": "BTCUSDT", "interval": "1d",
+                                      "startTime": start_ms, "limit": 1000}, timeout=20)
+    r.raise_for_status()
+    return [(f"{_ms_to_dt(int(k[0])):%Y-%m-%d}", h, c)
+            for k, (_ts, h, _l, c) in zip(r.json(), _closed_hlc(r.json()))]
+
+
+def fng_days(limit: int = 400) -> dict[str, int]:
+    """Fear & Greed by UTC date, newest first as published by alternative.me."""
+    r = requests.get("https://api.alternative.me/fng/", params={"limit": limit}, timeout=15)
+    r.raise_for_status()
+    return {f"{_ms_to_dt(int(d['timestamp']) * 1000):%Y-%m-%d}": int(d["value"])
+            for d in r.json()["data"]}
+
+
+def sweep_dca(conn) -> bool:
+    """One quant.dca_boost_days row per FNG day; returns True when a new row was written.
+    Cheap when today's row exists: a single FNG request, no BTC fetch."""
+    fng = fng_days()
+    today = max(fng)
+    with conn.cursor() as cur:
+        cur.execute("SELECT 1 FROM quant.dca_boost_days WHERE day = %s", (today,))
+        if cur.fetchone():
+            return False
+    warm = f"{datetime.fromisoformat(DCA_FROM) - timedelta(days=dca_boost.DIP_LOOKBACK + 5):%Y-%m-%d}"
+    bars = btc_days(warm)
+    # Days without a published FNG are neutral (50), matching FngSeries' default.
+    days = [(d, fng.get(d, 50), h, c) for d, h, c in bars]
+    bar_day, _f, _h, close = days[-1]
+    u = dca_boost.units(fng[today], close, [d[2] for d in days[-dca_boost.DIP_LOOKBACK:]])
+    sim = dca_boost.simulate(days, DCA_FROM) or {}
+    with conn.cursor() as cur:
+        cur.execute(
+            """INSERT INTO quant.dca_boost_days
+                 (day, fng, bar_day, btc_close, high_30d, drawdown, units, fear_add, dip_add,
+                  ytd_days, ytd_boosted_days, ytd_plain_cost, ytd_smart_cost)
+               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+               ON CONFLICT (day) DO NOTHING""",
+            (today, fng[today], bar_day, close, u["high_30d"], u["drawdown"], u["units"],
+             u["fear_add"], u["dip_add"], sim.get("days"), sim.get("boosted_days"),
+             sim.get("plain_cost"), sim.get("smart_cost")))
+    log(f"DCA day {today}: FNG {fng[today]}, BTC {close:,.0f} ({bar_day}) → ×{u['units']:g}")
+    return True
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="User-signal + house-strategy evaluator.")
     ap.add_argument("--once", action="store_true", help="run a single sweep and exit")
@@ -624,6 +683,12 @@ def main() -> int:
                 h = sweep_house(conn)
                 if h:
                     log(f"house sweep complete: {h} new event(s)")
+            except Exception as e:
+                log(f"house sweep error (continuing): {e!r}")
+            try:
+                sweep_dca(conn)
+            except Exception as e:
+                log(f"dca sweep error (continuing): {e!r}")
             finally:
                 conn.close()
         if args.once:

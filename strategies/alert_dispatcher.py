@@ -8,7 +8,11 @@ Two jobs, one loop:
   2. FAN OUT: watch for new events and push them to subscribed chats:
        'strategy_signals' — the house trend rule's buy/sell calls on BTC/ETH/SOL
                             (quant.strategy_signals, written by signal_evaluator.py)
-                            + a Monday (UTC) scorecard from quant.strategy_record
+                            + a Monday (UTC) scorecard from quant.strategy_record;
+                            exits and the scorecard go out as share-card images
+                            (share_card.py), falling back to text
+       'dca_boost'        — smart-DCA "定投加倍日" from quant.dca_boost_days, at most once
+                            per 7 days unless the multiple goes up
        'equity_trades'    — quant.nautilus_trades asset_class='equity' opens/closes
      plus per-user pushes (fires of the user's own signals, monthly DCA-plan reminder).
 
@@ -55,6 +59,7 @@ RECORD_URL = f"{DASH}/record"
 
 TOPIC_ZH = {
     "strategy_signals": "策略买卖信号 + 每周战绩",
+    "dca_boost": "定投加倍日提醒",
     "equity_trades": "美股模拟盘交易",
 }
 
@@ -98,6 +103,55 @@ def send(chat_id: int, text: str) -> bool:
     except Exception as e:
         log(f"send to {chat_id} failed: {e!r}")
         return False
+
+
+def send_photo(chat_id: int, photo: bytes | str, caption: str) -> str | None:
+    """photo = PNG bytes (first chat) or the file_id Telegram returned for it (the rest —
+    uploaded once, reused). Returns the file_id, or None on failure."""
+    url = f"https://api.telegram.org/bot{TOKEN}/sendPhoto"
+    data = {"chat_id": chat_id, "caption": caption, "parse_mode": "HTML"}
+    try:
+        if isinstance(photo, bytes):
+            r = requests.post(url, data=data, timeout=60,
+                              files={"photo": ("card.png", photo, "image/png")})
+        else:
+            r = requests.post(url, data={**data, "photo": photo}, timeout=35)
+        d = r.json()
+        if not d.get("ok"):
+            raise RuntimeError(d.get("description"))
+        return d["result"]["photo"][-1]["file_id"]
+    except Exception as e:
+        # requests puts the full URL (bot token included) in its message — never log it.
+        log(f"send photo to {chat_id} failed: {str(e).replace(TOKEN, '<token>')}")
+        return None
+
+
+def render_card(fn: str, *args) -> bytes | None:
+    """A share card, or None (Pillow/font missing, render bug) — callers fall back to text."""
+    try:
+        import share_card
+        return getattr(share_card, fn)(*args)
+    except Exception as e:
+        log(f"share card {fn} failed (sending text): {e!r}")
+        return None
+
+
+def broadcast(chats: list[int], text: str, card: bytes | None = None,
+              caption: str | None = None) -> int:
+    """Send `text` to every chat — as the caption of `card` when there is one (or `caption`
+    on the photo followed by `text` as a message, for texts over Telegram's caption limit).
+    A chat whose photo fails still gets the text. Returns how many chats got the text."""
+    delivered = 0
+    photo: bytes | str | None = card
+    for chat in chats:
+        ok = False
+        if photo is not None:
+            fid = send_photo(chat, photo, caption or text)
+            if fid:
+                photo = fid
+                ok = True if caption is None else send(chat, text)
+        delivered += ok or send(chat, text)
+    return delivered
 
 
 def db():
@@ -387,8 +441,11 @@ def fan_out_strategy_signals(conn, now: datetime | None = None) -> None:
     legs.sort(key=lambda x: (x[0], x[1]))
     log(f"strategy fan-out: {len(legs)} signal(s) -> {len(chats)} subscriber(s)")
     for _ts, _order, leg, t in legs:
-        text = format_entry(t, record, now) if leg == "entry" else format_exit(t)
-        delivered = sum(send(chat, text) for chat in chats)
+        if leg == "entry":
+            delivered = broadcast(chats, format_entry(t, record, now))
+        else:
+            card = render_card("render_exit_card", t, record) if chats else None
+            delivered = broadcast(chats, format_exit(t), card)
         if chats and not delivered:
             log(f"strategy {leg} {t['asset']} (trade {t['id']}): 0/{len(chats)} delivered, "
                 "left pending for the next tick")
@@ -433,12 +490,76 @@ def fan_out_weekly_scorecard(conn, state: dict, now: datetime | None = None) -> 
     text = format_weekly_scorecard(record, recent_closed(conn, now - timedelta(days=7)),
                                    backfilled_at(conn))
     chats = subscribers(conn, "strategy_signals")
-    delivered = sum(send(chat, text) for chat in chats)
+    card = render_card("render_scorecard", record, now) if chats else None
+    delivered = broadcast(chats, text, card, caption="📊 <b>趋势突破策略 · 每周战绩</b>(明细见下条)")
     if chats and not delivered:
         log(f"weekly scorecard {week}: 0/{len(chats)} delivered, retrying next tick")
         return
     state["last_scorecard_week"] = week
     log(f"weekly scorecard {week} -> {delivered}/{len(chats)} subscriber(s)")
+
+
+# ---------- smart-DCA boost days ----------
+
+def boost_push_due(row: dict, last_pushed: dict | None) -> bool:
+    """Push a boosted day unless one went out in the last 7 days at the same or a higher
+    multiple — FNG hovers around 25, so boosts flicker on and off day to day."""
+    if row["units"] <= 1:
+        return False
+    if last_pushed is None:
+        return True
+    return (row["day"] - last_pushed["day"]).days >= 7 or row["units"] > last_pushed["units"]
+
+
+def format_dca_boost(row: dict) -> str:
+    parts = ["基础 1 份"]
+    if row["fear_add"]:
+        parts.append(f"{'极度恐慌' if row['fng'] <= 15 else '恐慌'}加 {row['fear_add']:g} 份")
+    if row["dip_add"]:
+        parts.append(f"大跌加 {row['dip_add']:g} 份")
+    lines = [f"🟢 <b>今天是定投加倍日 · BTC</b>"]
+    mood = "极度恐慌" if row["fng"] <= 15 else "恐慌" if row["fng"] <= 25 else "中性"
+    lines.append(f"恐惧贪婪指数 {row['fng']}({mood})")
+    if row["drawdown"] is not None:
+        lines.append(f"BTC {_money(row['btc_close'])},距 30 天高点 {_money(row['high_30d'])} "
+                     f"{_pct(row['drawdown'])}")
+    lines.append(f"按规则,今天这笔定投 ×{row['units']:g}({' + '.join(parts)})")
+    lines.append("规则:恐惧贪婪 ≤25 加 3 份、≤15 加 5 份;比 30 天高点低 20% 以上再加 2 份。"
+                 "恐慌可能持续很久,加倍不代表马上反弹。")
+    if row["ytd_smart_cost"] and row["ytd_plain_cost"]:
+        diff = row["ytd_smart_cost"] / row["ytd_plain_cost"] - 1
+        lines.append(f"2026 年至今按这条规则每天定投,平均成本 ${row['ytd_smart_cost']:,.0f},"
+                     f"比每天固定金额定投(${row['ytd_plain_cost']:,.0f}){'低' if diff < 0 else '高'} "
+                     f"{abs(diff) * 100:.1f}%;{row['ytd_days']} 天里有 {row['ytd_boosted_days']} 天是加倍日。")
+    lines.append(f"👉 记一笔、看你的真实均价:{DASH}/dca")
+    return "\n".join(lines) + SIM_DISCLAIMER
+
+
+def fan_out_dca_boost(conn, now: datetime | None = None) -> None:
+    """Push due boost days to 'dca_boost' subscribers. Every processed row gets notified_at
+    (pushed = whether a message went out); a row that reached no subscriber at all stays
+    pending for the next tick. Rows older than yesterday are never pushed ("今天" would lie)."""
+    now = now or datetime.now(timezone.utc)
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT * FROM quant.dca_boost_days WHERE notified_at IS NULL ORDER BY day")
+        rows = cur.fetchall()
+        if not rows:
+            return
+        cur.execute("SELECT * FROM quant.dca_boost_days WHERE pushed ORDER BY day DESC LIMIT 1")
+        last_pushed = cur.fetchone()
+    chats = subscribers(conn, "dca_boost")
+    for row in rows:
+        due = boost_push_due(row, last_pushed) and (now.date() - row["day"]).days <= 1
+        if due:
+            delivered = broadcast(chats, format_dca_boost(row))
+            if chats and not delivered:
+                log(f"dca boost {row['day']}: 0/{len(chats)} delivered, retrying next tick")
+                return
+            last_pushed = row
+            log(f"dca boost {row['day']} ×{row['units']:g} -> {delivered}/{len(chats)} chat(s)")
+        with conn.cursor() as cur:
+            cur.execute("UPDATE quant.dca_boost_days SET notified_at = now(), pushed = %s "
+                        "WHERE day = %s", (due, row["day"]))
 
 
 def fan_out_equity(conn, state: dict) -> None:
@@ -587,6 +708,7 @@ def main() -> int:
                 # One failing stream (e.g. a missing grant) must not starve the others.
                 for job, args in ((fan_out_strategy_signals, (conn,)),
                                   (fan_out_weekly_scorecard, (conn, state)),
+                                  (fan_out_dca_boost, (conn,)),
                                   (fan_out_equity, (conn, state)),
                                   (fan_out_user_fires, (conn,)),
                                   (fan_out_plan_reminders, (conn, state))):

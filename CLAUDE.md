@@ -99,8 +99,13 @@ closes the stale row as `exit_reason='superseded'`, no price/PnL).
   `quant.strategy_assets` (last close + entry/exit trigger levels). Migration `032`.
 - Views `quant.strategy_trades` / `quant.strategy_record` (+ `api.*`, anon) are the ONLY place stats are
   computed (net of 0.1%/side fees, vs buy-and-hold). Telegram, the daily report and `/record` all read them.
-- `alert_dispatcher.py` pushes live entries/exits to topic `strategy_signals` + a Monday scorecard; topics
-  are `strategy_signals` and `equity_trades` (`dca_events` is gone). Web: `/record`.
+- `alert_dispatcher.py` pushes live entries/exits to topic `strategy_signals` + a Monday scorecard; exits
+  and the scorecard go out as PNG share cards (`share_card.py`, Pillow + Noto Sans CJK via
+  `SHARE_CARD_FONT`/fc-match; text fallback). Topics: `strategy_signals`, `dca_boost`, `equity_trades`.
+  Web: `/record` (link previews carry the live numbers; share button).
+- Smart-DCA boost days: `sweep_dca` (evaluator) writes one `quant.dca_boost_days` row per FNG day using
+  `dca_boost.py`, a mirror of `nautilus_crypto/accumulator.py`'s rule — change both together. The
+  dispatcher pushes 定投加倍日 to `dca_boost` at most once per 7 days unless the multiple rises. Migration `034`.
 
 ## Health checks (operator alerts)
 `strategies/health_check.py` runs every 10 min in two roles that watch each other via

@@ -8,7 +8,7 @@ import { getToken } from './auth';
 
 // Valid quant.telegram_links topics (migration 032): the house trend rule's buy/sell signals +
 // weekly scorecard, and US-equity paper trades.
-export type TelegramTopic = 'strategy_signals' | 'equity_trades';
+export type TelegramTopic = 'strategy_signals' | 'dca_boost' | 'equity_trades';
 
 export interface TelegramLink {
 	link_token: string;

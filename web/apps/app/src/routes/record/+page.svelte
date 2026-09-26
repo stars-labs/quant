@@ -55,6 +55,37 @@
 	const day = (ts: string | null | undefined) => utc(ts).slice(0, 10) || '—';
 	const minute = (ts: string | null | undefined) => utc(ts).slice(0, 16).replace('T', ' ') || '—';
 	const winRate = (v: number | null) => (v == null ? '—' : `${Math.round(v * 100)}%`);
+
+	const usd1k = (ret: number) => `$${Math.round(1000 * (1 + ret)).toLocaleString('en-US')}`;
+	// Link previews (Telegram/WeChat/X) carry the live numbers, so a forwarded link sells itself.
+	const metaDesc = $derived(
+		s
+			? fmt('record.metaDescLive', {
+					start: day(s.startTs),
+					follow: usd1k(s.portfolioRet),
+					hold: usd1k(s.holdRet),
+					n: s.nClosed,
+					win: winRate(s.winRate)
+				})
+			: t(lang, 'record.metaDesc')
+	);
+
+	let copied = $state(false);
+	async function share() {
+		const url = window.location.origin + window.location.pathname;
+		const title = t(lang, 'record.metaTitle');
+		try {
+			if (navigator.share) {
+				await navigator.share({ title, text: metaDesc, url });
+				return;
+			}
+			await navigator.clipboard.writeText(`${metaDesc}\n${url}`);
+			copied = true;
+			setTimeout(() => (copied = false), 2000);
+		} catch {
+			// user dismissed the share sheet / clipboard blocked — nothing to do
+		}
+	}
 	const dist = (level: number | null, last: number | null) =>
 		level != null && last ? level / last - 1 : null;
 	const tone = (v: number | null | undefined) =>
@@ -99,15 +130,25 @@
 
 <svelte:head>
 	<title>{t(lang, 'record.metaTitle')} · BearDawnVerse Quant</title>
-	<meta name="description" content={t(lang, 'record.metaDesc')} />
+	<meta name="description" content={metaDesc} />
 	<meta property="og:title" content="{t(lang, 'record.metaTitle')} · BearDawnVerse Quant" />
-	<meta property="og:description" content={t(lang, 'record.metaDesc')} />
+	<meta property="og:description" content={metaDesc} />
 </svelte:head>
 
 <main class="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
 	<header>
 		<div class="bdv-eyebrow mb-2 text-[var(--gold-500)]">{t(lang, 'record.eyebrow')}</div>
-		<h1 class="text-2xl font-bold tracking-tight sm:text-3xl">{t(lang, 'record.title')}</h1>
+		<div class="flex flex-wrap items-center justify-between gap-3">
+			<h1 class="text-2xl font-bold tracking-tight sm:text-3xl">{t(lang, 'record.title')}</h1>
+			{#if s}
+				<button
+					type="button"
+					onclick={share}
+					class="rounded-md border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground transition-colors hover:bg-accent"
+					>{t(lang, copied ? 'record.shareCopied' : 'record.share')}</button
+				>
+			{/if}
+		</div>
 		{#if s}
 			<p class="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
 				{fmt('record.subtitle', { start: day(s.startTs) })}

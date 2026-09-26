@@ -466,6 +466,10 @@ export default {
 	'record.metaTitle': 'Track record',
 	'record.metaDesc':
 		'Every trade of our trend-breakout rule on BTC, ETH and SOL — net of fees, with win rate and a buy-and-hold comparison, losses included. Rule-based simulated signals, not investment advice.',
+	'record.metaDescLive':
+		'Since {start}, $1,000 following every signal → {follow} vs {hold} buying and holding; {n} closed trades, {win} win rate, net of fees, losses included. Rule-based simulated signals, not investment advice.',
+	'record.share': 'Share',
+	'record.shareCopied': 'Link copied',
 	'record.eyebrow': 'Rule-based simulated signals · public record',
 	'record.title': 'Track record',
 	'record.subtitle':
