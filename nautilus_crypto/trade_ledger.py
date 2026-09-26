@@ -5,6 +5,10 @@ route to the owning strategy.
 
 Connection: TIMESCALE_URL env (sops-provided). All DB errors are swallowed + logged — a DB
 hiccup must NEVER break trading. Disabled (no-op) if TIMESCALE_URL is unset (e.g. backtest).
+
+One open row per (trader_id, position_id): a node restart re-opens the position with a new
+ts_opened, so record_open closes older unclosed incarnations as exit_reason='superseded', and
+record_close only ever touches the still-open row.
 """
 
 from __future__ import annotations
@@ -57,7 +61,22 @@ class TradeLedger:
             return
         try:
             iid = str(e.instrument_id)
+            tid, pid, ts_opened = str(e.trader_id), str(e.position_id), int(e.ts_opened)
             with self._cursor() as cur:
+                # A node restart re-opens the same position_id with a new ts_opened, so the
+                # older incarnation would stay "open" forever. Close it out as superseded at the
+                # new open time. Strict `<` keeps on_position_changed (same ts_opened) from
+                # superseding its own row.
+                cur.execute(
+                    """
+                    UPDATE quant.nautilus_trades
+                       SET close_date = to_timestamp(%s/1e9), exit_reason = 'superseded',
+                           synced_at = now()
+                     WHERE trader_id = %s AND position_id = %s AND close_date IS NULL
+                       AND open_date < to_timestamp(%s/1e9)
+                    """,
+                    (ts_opened, tid, pid, ts_opened),
+                )
                 cur.execute(
                     """
                     INSERT INTO quant.nautilus_trades
@@ -68,10 +87,10 @@ class TradeLedger:
                       SET quantity = EXCLUDED.quantity, open_rate = EXCLUDED.open_rate,
                           synced_at = now()
                     """,
-                    (str(e.trader_id), str(e.position_id), str(e.strategy_id), iid,
+                    (tid, pid, str(e.strategy_id), iid,
                      iid.split(".")[-1], self._env, self._asset_class,
                      e.side == PositionSide.SHORT,
-                     int(e.ts_opened), float(e.avg_px_open), float(e.quantity)),
+                     ts_opened, float(e.avg_px_open), float(e.quantity)),
                 )
         except Exception as ex:  # never break trading on a DB error
             self._warn(f"TradeLedger.record_open failed: {ex!r}")
@@ -86,7 +105,7 @@ class TradeLedger:
                     UPDATE quant.nautilus_trades
                        SET close_date = to_timestamp(%s/1e9), close_rate = %s,
                            realized_pnl = %s, profit_pct = %s, exit_reason = %s, synced_at = now()
-                     WHERE trader_id = %s AND position_id = %s
+                     WHERE trader_id = %s AND position_id = %s AND close_date IS NULL
                     """,
                     (int(e.ts_closed), float(e.avg_px_close), float(e.realized_pnl),
                      float(e.realized_return), "signal", str(e.trader_id), str(e.position_id)),
