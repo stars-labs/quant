@@ -3,28 +3,8 @@
 	import { realtimeStatus } from '$lib/realtime';
 	import { t, type Lang } from '$lib/i18n';
 	import bearMark from '$lib/assets/bear-mark.svg';
-	import {
-		Home,
-		Compass,
-		Radio,
-		Cpu,
-		Boxes,
-		Coins,
-		Globe,
-		LineChart,
-		Layers,
-		Archive,
-		Wallet,
-		CandlestickChart,
-		Repeat2,
-		Sparkles,
-		Network,
-		FileText,
-		FlaskConical,
-		Skull,
-		BookOpen
-	} from 'lucide-svelte';
-	import type { ComponentType } from 'svelte';
+	import { BookOpen } from 'lucide-svelte';
+	import { PRIMARY_NAV, SECONDARY_NAV as SECONDARY_BASE, isActive, type NavItem } from '$lib/nav';
 
 	let {
 		open = $bindable(false),
@@ -34,40 +14,10 @@
 
 	const lang = $derived<Lang>($page.data.lang ?? 'zh');
 
-	type NavItem = {
-		href: string;
-		labelKey: string;
-		icon?: ComponentType;
-		external?: boolean;
-	};
-
-	// Single flat nav, primary group then secondary group, separated by a divider.
-	// `nav.live` deliberately has no icon — its dot doubles as a connection
-	// status indicator and would conflict with a static glyph.
-	const PRIMARY_NAV = $derived<NavItem[]>([
-		{ href: '/', labelKey: 'nav.home', icon: Home },
-		{ href: '/start', labelKey: 'nav.start', icon: Compass },
-		{ href: '/live', labelKey: 'nav.live' },
-		{ href: '/nautilus', labelKey: 'nav.nautilus', icon: Cpu },
-		{ href: '/signals', labelKey: 'nav.signals', icon: Radio },
-		{ href: '/market', labelKey: 'nav.market', icon: LineChart },
-		{ href: '/semis', labelKey: 'nav.semis', icon: Boxes },
-		{ href: '/research/ai-semis-liquidity', labelKey: 'nav.aiSemisResearch', icon: FileText },
-		{ href: '/commodities', labelKey: 'nav.commodities', icon: Coins },
-		{ href: '/globe', labelKey: 'nav.globe', icon: Globe },
-		{ href: '/strategies', labelKey: 'nav.strategies', icon: Layers },
-		{ href: '/backtest', labelKey: 'nav.backtest', icon: FlaskConical },
-		{ href: '/quant-lab', labelKey: 'nav.quantLab', icon: Sparkles },
-		{ href: '/archive', labelKey: 'nav.archive', icon: Archive }
-	]);
+	// Single flat nav (tables in $lib/nav, shared with the topbar label), primary group then
+	// secondary group, separated by a divider.
 	const SECONDARY_NAV = $derived<NavItem[]>([
-		{ href: '/dca', labelKey: 'nav.dca', icon: Wallet },
-		{ href: '/chart', labelKey: 'nav.chart', icon: CandlestickChart },
-		{ href: '/wf', labelKey: 'nav.wf', icon: Repeat2 },
-		{ href: '/hyperopt', labelKey: 'nav.hyperopt', icon: Sparkles },
-		{ href: '/factors', labelKey: 'nav.factors', icon: Network },
-		{ href: '/reports', labelKey: 'nav.reports', icon: FileText },
-		{ href: '/graveyard', labelKey: 'nav.graveyard', icon: Skull },
+		...SECONDARY_BASE,
 		{
 			href: lang === 'en' ? '/docs/en/' : '/docs/',
 			labelKey: 'nav.docs',
@@ -83,17 +33,8 @@
 	);
 	const liveDotPulse = $derived($realtimeStatus === 'open' ? 'animate-pulse' : '');
 	const liveLabel = $derived(
-		$realtimeStatus === 'open'
-			? 'Realtime · Connected'
-			: lang === 'en'
-				? 'Data · Scheduled'
-				: '数据 · 定时更新'
+		t(lang, $realtimeStatus === 'open' ? 'nav.realtimeOn' : 'nav.realtimeOff')
 	);
-
-	function isActive(href: string, pathname: string): boolean {
-		if (href === '/') return pathname === '/';
-		return pathname === href || pathname.startsWith(href + '/');
-	}
 </script>
 
 <!-- eslint-disable svelte/no-navigation-without-resolve -->
@@ -167,7 +108,7 @@
 		</ul>
 
 		<div class="px-3 pt-5 pb-2 {collapsed ? 'md:px-0 md:pt-3 md:pb-3' : ''}">
-			<div class="bdv-eyebrow text-[9px] {collapsed ? 'md:hidden' : ''}">More</div>
+			<div class="bdv-eyebrow text-[9px] {collapsed ? 'md:hidden' : ''}">{t(lang, 'nav.more')}</div>
 			{#if collapsed}
 				<div class="mx-auto hidden w-6 border-t border-border md:block"></div>
 			{/if}

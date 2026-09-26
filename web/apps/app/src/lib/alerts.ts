@@ -6,7 +6,9 @@
 import { CONFIG } from './config';
 import { getToken } from './auth';
 
-export type TelegramTopic = 'dca_events' | 'equity_trades';
+// Valid quant.telegram_links topics (migration 032): the house trend rule's buy/sell signals +
+// weekly scorecard, and US-equity paper trades.
+export type TelegramTopic = 'strategy_signals' | 'equity_trades';
 
 export interface TelegramLink {
 	link_token: string;
@@ -19,7 +21,11 @@ export const TELEGRAM_BOT_URL = 'https://t.me/freemanXbtc_bot';
 function authHeaders(): HeadersInit {
 	const t = getToken();
 	if (!t) throw new Error('not authenticated');
-	return { Authorization: `Bearer ${t}`, 'Content-Type': 'application/json', Accept: 'application/json' };
+	return {
+		Authorization: `Bearer ${t}`,
+		'Content-Type': 'application/json',
+		Accept: 'application/json'
+	};
 }
 
 /** The current user's link row (RLS scopes to them), or null if not created yet. */

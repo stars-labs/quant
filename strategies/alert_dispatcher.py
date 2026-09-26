@@ -5,15 +5,22 @@ Two jobs, one loop:
      quant.telegram_links.link_token and bind that chat_id (web UI shows 已绑定).
      This process is the ONLY getUpdates consumer for @freemanXbtc_bot (the other
      services send only) — do not add a second poller.
-  2. FAN OUT: watch for new signal events and push them to subscribed chats:
-       'dca_events'    — new quant.event_dca_triggers rows (FLASH/FAST/SUSTAIN/CAPITUL)
-       'equity_trades' — quant.nautilus_trades asset_class='equity' opens/closes
+  2. FAN OUT: watch for new events and push them to subscribed chats:
+       'strategy_signals' — the house trend rule's buy/sell calls on BTC/ETH/SOL
+                            (quant.strategy_signals, written by signal_evaluator.py)
+                            + a Monday (UTC) scorecard from quant.strategy_record
+       'equity_trades'    — quant.nautilus_trades asset_class='equity' opens/closes
+     plus per-user pushes (fires of the user's own signals, monthly DCA-plan reminder).
 
 Messages are plain-Chinese (glossary tone from /start), always carry a
-"不构成投资建议" line, and link back to the dashboard. Tool, not advice.
+"不构成投资建议" line, and link back to the dashboard. Tool, not advice. House
+strategy messages are "规则模拟信号": returns are net of 0.1% fee per side, the stats
+come only from quant.strategy_record, and backfilled history (live=false) is labelled
+回溯计算 and never pushed as a call.
 
-State (telegram offset + last-seen event timestamps) lives in
-~/.config/quant/alert-dispatcher.json so restarts neither replay nor skip.
+State (telegram offset, equity watermark, once-per-period gates) lives in
+~/.config/quant/alert-dispatcher.json so restarts neither replay nor skip. Strategy
+signals need no watermark: entry_notified_at / exit_notified_at mark delivery.
 
 Env (via sops exec-env secrets.env + EnvironmentFile, mirroring quant-alerts):
   TELEGRAM_BOT_TOKEN   bot token (sops)
@@ -30,26 +37,29 @@ import json
 import os
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import psycopg2
+import psycopg2.extras
 import requests
+
+from strategy_record import STRATEGY
 
 TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 DSN = os.environ.get("TIMESCALE_URL", "")
 INTERVAL = int(os.environ.get("DISPATCH_INTERVAL", "60"))
 STATE_PATH = Path.home() / ".config" / "quant" / "alert-dispatcher.json"
-DASH = "https://quant.panda.qzz.io"
+DASH = "https://starslab.qzz.io"
+RECORD_URL = f"{DASH}/record"
 
-KIND_ZH = {
-    "FLASH": "闪崩",
-    "FAST": "快速下跌",
-    "SUSTAIN": "持续阴跌",
-    "CAPITUL": "投降式抛售",
+TOPIC_ZH = {
+    "strategy_signals": "策略买卖信号 + 每周战绩",
+    "equity_trades": "美股模拟盘交易",
 }
 
 DISCLAIMER = "\n\n⚠️ 自动信号,不构成投资建议。"
+SIM_DISCLAIMER = "\n\n⚠️ 规则模拟信号,不构成投资建议。"
 
 
 def log(msg: str) -> None:
@@ -60,7 +70,7 @@ def load_state() -> dict:
     try:
         return json.loads(STATE_PATH.read_text())
     except Exception:
-        return {"tg_offset": 0, "last_dca_ts": None, "last_eq_synced": None}
+        return {"tg_offset": 0, "last_eq_synced": None}
 
 
 def save_state(state: dict) -> None:
@@ -69,7 +79,11 @@ def save_state(state: dict) -> None:
 
 
 def tg(method: str, **params):
-    r = requests.post(f"https://api.telegram.org/bot{TOKEN}/{method}", json=params, timeout=35)
+    try:
+        r = requests.post(f"https://api.telegram.org/bot{TOKEN}/{method}", json=params, timeout=35)
+    except requests.RequestException as e:
+        # requests puts the full URL (bot token included) in its message — never log it.
+        raise RuntimeError(f"telegram {method}: {str(e).replace(TOKEN, '<token>')}") from None
     d = r.json()
     if not d.get("ok"):
         raise RuntimeError(f"telegram {method}: {d.get('description')}")
@@ -112,7 +126,7 @@ def poll_bindings(conn, state: dict) -> None:
         parts = text.split(maxsplit=1)
         token = parts[1].strip() if len(parts) > 1 else ""
         if not token:
-            send(chat_id, "你好!请从 quant.panda.qzz.io 的订阅页面点「绑定 Telegram」进入,"
+            send(chat_id, "你好!请从 starslab.qzz.io 的订阅页面点「绑定 Telegram」进入,"
                           "这样我才知道你是谁。")
             continue
         try:
@@ -130,13 +144,10 @@ def poll_bindings(conn, state: dict) -> None:
             continue
         if row:
             topics = row[1] or []
-            topic_zh = "、".join(
-                {"dca_events": "DCA 信号事件", "equity_trades": "美股模拟盘交易"}.get(t, t)
-                for t in topics
-            ) or "(暂未选择)"
+            topic_zh = "、".join(TOPIC_ZH.get(t, t) for t in topics) or "(暂未选择)"
             send(chat_id,
                  f"✅ 绑定成功!已订阅:{topic_zh}\n\n"
-                 f"信号触发时会在这里通知你。看不懂信号?先读 {DASH}/start 的信号词典。"
+                 f"信号触发时会在这里通知你。策略规则与全部历史战绩:{RECORD_URL}"
                  f"{DISCLAIMER}")
             log(f"bound chat {chat_id} to user {row[0]}")
         else:
@@ -154,48 +165,300 @@ def subscribers(conn, topic: str) -> list[int]:
         return [r[0] for r in cur.fetchall()]
 
 
-def fan_out_dca(conn, state: dict) -> None:
-    last = state.get("last_dca_ts")
+# ---------- house strategy: 趋势突破策略 (migration 032) ----------
+#
+# Formatters are pure (row dicts in → HTML text out) so they're unit-testable without a
+# DB or Telegram. Every stat comes from quant.strategy_record / strategy_trades; the only
+# math done here is the cross-asset roll-up in portfolio(). Bar timestamps are Binance
+# close times (hh:59:59.999) and are shown as the round hour they close at, in UTC.
+
+def _utc(ts: datetime) -> datetime:
+    return (ts + timedelta(milliseconds=1)).astimezone(timezone.utc)
+
+
+def _md(ts: datetime) -> str:
+    d = _utc(ts)
+    return f"{d.month}/{d.day}"
+
+
+def _when(ts: datetime) -> str:
+    return f"{_md(ts)} {_utc(ts):%H:%M} UTC"
+
+
+def _money(x: float) -> str:
+    return f"${x:,.2f}"
+
+
+def _pct(x: float) -> str:
+    return f"{x * 100:+.1f}%"
+
+
+def _days(d) -> str:
+    return f"{float(d):g}"
+
+
+def portfolio(record: list[dict]) -> dict:
+    """Cross-asset roll-up of quant.strategy_record rows — the only stats math consumers do:
+    equal-weight averages (1/N per asset, no rebalancing), pooled win rate, best trade."""
+    priced = [r for r in record if r["sleeve_ret"] is not None and r["hold_ret"] is not None]
+    n_closed = sum(r["n_closed"] for r in record)
+    n_wins = sum(r["n_wins"] for r in record)
+    best = max((r for r in record if r["best_ret"] is not None),
+               key=lambda r: r["best_ret"], default=None)
+    return {
+        "ret": sum(r["sleeve_ret"] for r in priced) / len(priced) if priced else None,
+        "hold_ret": sum(r["hold_ret"] for r in priced) / len(priced) if priced else None,
+        "n_closed": n_closed,
+        "n_wins": n_wins,
+        "win_rate": n_wins / n_closed if n_closed else None,
+        "best_ret": best["best_ret"] if best else None,
+        "best_asset": best["asset"] if best else None,
+        "start_ts": min((r["start_ts"] for r in record if r["start_ts"]), default=None),
+        "last_ts": max((r["last_ts"] for r in record if r["last_ts"]), default=None),
+    }
+
+
+def _since(start_ts: datetime | None, now: datetime) -> str:
+    if start_ts is None:
+        return "记录中"
+    s = _utc(start_ts)
+    if s.year == now.year and (s.month, s.day) == (1, 1):
+        return "今年"
+    return f"{s:%Y-%m-%d} 以来"
+
+
+def _hint(record: list[dict], now: datetime) -> str | None:
+    """The honest expectation line: most trend trades lose; a few big trends pay."""
+    p = portfolio(record)
+    if not p["n_closed"]:
+        return None
+    best = f"{_since(p['start_ts'], now)}最大一笔 {p['best_asset']} {_pct(p['best_ret'])}"
+    loss_share = 1 - p["win_rate"]
+    if loss_share >= 0.5:
+        return f"提示:趋势信号约 {round(loss_share * 10)} 成会亏损离场,赚钱靠少数大行情({best})。"
+    return f"提示:历史上约 {round(p['win_rate'] * 10)} 成信号盈利离场({best})。"
+
+
+def format_entry(t: dict, record: list[dict], now: datetime) -> str:
+    """Entry card for one quant.strategy_trades row."""
+    lines = [
+        f"🟢 <b>策略信号 · {t['asset']} 突破买入</b>",
+        f"1 小时收盘 {_money(t['entry_price'])}({_when(t['entry_ts'])}),"
+        f"突破过去 7 天最高点 {_money(t['entry_level'])}",
+    ]
+    exit_rule = "离场规则:1 小时收盘跌破过去 3 天最低点"
+    rec = next((r for r in record if r["asset"] == t["asset"]), None)
+    # The current exit line only means something while this trade is still open.
+    if t["exit_ts"] is None and rec and rec["channel_low"] is not None and rec["last_close"]:
+        dist = rec["channel_low"] / rec["last_close"] - 1
+        exit_rule += f"(当前 {_money(rec['channel_low'])},距现价 {_pct(dist)})"
+    lines.append(exit_rule)
+    hint = _hint(record, now)
+    if hint:
+        lines.append(hint)
+    lines.append(f"👉 全部信号与实时持仓:{RECORD_URL}")
+    return "\n".join(lines) + SIM_DISCLAIMER
+
+
+def format_exit(t: dict) -> str:
+    """Exit card for one closed quant.strategy_trades row (net_ret already net of fees)."""
+    lines = [
+        f"🔴 <b>策略信号 · {t['asset']} 跌破离场</b>",
+        f"1 小时收盘 {_money(t['exit_price'])}({_when(t['exit_ts'])}),"
+        f"跌破过去 3 天最低点 {_money(t['exit_level'])}",
+        f"本次 {_md(t['entry_ts'])} {_money(t['entry_price'])} → "
+        f"{_md(t['exit_ts'])} {_money(t['exit_price'])},{_pct(t['net_ret'])}(已扣手续费),"
+        f"持有 {_days(t['hold_days'])} 天",
+    ]
+    if not t["live"]:
+        lines.append("(这笔的买入在服务上线前,是按规则回溯计算的,当时没有推送)")
+    lines.append(f"👉 全部信号与实时持仓:{RECORD_URL}")
+    return "\n".join(lines) + SIM_DISCLAIMER
+
+
+def format_weekly_scorecard(record: list[dict], recent: list[dict],
+                            backfilled_at: datetime | None) -> str:
+    """Monday scorecard: open positions, flat assets, last-7-day closes, since-start totals.
+    recent = strategy_trades rows closed in the last 7 days; backfilled_at = when the
+    pre-launch history was computed (None if there is none)."""
+    p = portfolio(record)
+    lines = ["📊 <b>趋势突破策略 · 每周战绩</b>"]
+    if p["last_ts"]:
+        lines.append(f"数据截至 {_when(p['last_ts'])}")
+
+    held = [r for r in record if r["open_entry_ts"] is not None]
+    if held:
+        lines.append("\n<b>当前持有</b>")
+        for r in held:
+            tag = "" if r["open_live"] else "(回溯计算)"
+            lines.append(f"{r['asset']}:{_md(r['open_entry_ts'])} {_money(r['open_entry_price'])} 买入"
+                         f" → 现价 {_money(r['last_close'])},浮动 {_pct(r['open_ret'])}{tag}")
+            if r["channel_low"] is not None:
+                dist = r["channel_low"] / r["last_close"] - 1
+                lines.append(f"  离场线 {_money(r['channel_low'])}(距现价 {_pct(dist)})")
+
+    flat = [r for r in record if r["open_entry_ts"] is None]
+    if flat:
+        lines.append("\n<b>空仓等待</b>")
+        for r in flat:
+            if r["channel_high"] is not None:
+                dist = r["channel_high"] / r["last_close"] - 1
+                lines.append(f"{r['asset']}:现价 {_money(r['last_close'])},1 小时收盘突破 "
+                             f"{_money(r['channel_high'])}(距现价 {_pct(dist)})触发买入信号")
+            else:
+                lines.append(f"{r['asset']}:空仓")
+
+    lines.append("\n<b>近 7 天平仓</b>")
+    for t in recent:
+        tag = "" if t["live"] else "(回溯计算)"
+        lines.append(f"{t['asset']}:{_md(t['entry_ts'])} → {_md(t['exit_ts'])},"
+                     f"{_pct(t['net_ret'])}{tag}")
+    if not recent:
+        lines.append("无")
+
+    start = f"{_utc(p['start_ts']):%Y-%m-%d}" if p["start_ts"] else "开始记录"
+    lines.append(f"\n<b>{start} 至今</b>")
+    if p["ret"] is not None:
+        assets = "/".join(r["asset"] for r in record)
+        lines.append(f"$1,000 平均分给 {assets} 跟随全部信号 → "
+                     f"${1000 * (1 + p['ret']):,.0f}({_pct(p['ret'])})")
+        lines.append(f"同期买入持有 → ${1000 * (1 + p['hold_ret']):,.0f}({_pct(p['hold_ret'])})")
+    if p["n_closed"]:
+        lines.append(f"已平仓 {p['n_closed']} 笔,胜率 {p['win_rate'] * 100:.0f}%,"
+                     f"最大一笔 {p['best_asset']} {_pct(p['best_ret'])}")
+    else:
+        lines.append("暂无已平仓交易")
+    note = "收益已扣买卖各 0.1% 手续费"
+    if backfilled_at:
+        note += f";{_md(backfilled_at)} 服务上线前的记录是按规则回溯计算的,不是当时的实时推送"
+    lines.append(note + "。")
+    lines.append(f"\n👉 全部信号与实时持仓:{RECORD_URL}")
+    return "\n".join(lines) + SIM_DISCLAIMER
+
+
+def load_record(conn) -> list[dict]:
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT * FROM quant.strategy_record WHERE strategy = %s ORDER BY asset",
+                    (STRATEGY,))
+        return cur.fetchall()
+
+
+def pending_strategy_trades(conn) -> list[dict]:
+    """Trades with an undelivered leg. Entries: live only (backfill is pre-notified anyway).
+    Exits: any row — a position opened in the backfilled history but closed after launch
+    is a real-time exit (format_exit labels its entry as 回溯)."""
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            """SELECT * FROM quant.strategy_trades
+                WHERE strategy = %s
+                  AND ((live AND entry_notified_at IS NULL)
+                       OR (exit_ts IS NOT NULL AND exit_notified_at IS NULL))
+                ORDER BY coalesce(exit_ts, entry_ts)""",
+            (STRATEGY,),
+        )
+        return cur.fetchall()
+
+
+def mark_notified(conn, trade_id: int, leg: str) -> None:
+    col = {"entry": "entry_notified_at", "exit": "exit_notified_at"}[leg]
     with conn.cursor() as cur:
-        if last:
-            cur.execute(
-                "SELECT ts, kind, price, severity, fng, amount_usdt, mode "
-                "FROM quant.event_dca_triggers WHERE ts > %s ORDER BY ts", (last,))
-        else:
-            # First run: don't replay history — just set the high-water mark.
-            cur.execute("SELECT max(ts) FROM quant.event_dca_triggers")
-            mx = cur.fetchone()[0]
-            state["last_dca_ts"] = mx.isoformat() if mx else datetime.now(timezone.utc).isoformat()
-            return
-        rows = cur.fetchall()
+        cur.execute(f"UPDATE quant.strategy_signals SET {col} = now() WHERE id = %s", (trade_id,))
+
+
+def fan_out_strategy_signals(conn, now: datetime | None = None) -> None:
+    """Push pending house-strategy entries/exits to 'strategy_signals' subscribers, oldest
+    first (a row with both legs pending: entry, then exit). Each leg is marked notified right
+    after its send — restart-safe, no double send — and ALSO with zero subscribers, so a
+    later first subscriber isn't flooded with a backlog. A leg that reached no subscriber at
+    all (Telegram down) stays pending, and so does every later leg: the next tick retries
+    them in order. One chat that blocked the bot doesn't hold up the others."""
+    rows = pending_strategy_trades(conn)
     if not rows:
         return
-    chats = subscribers(conn, "dca_events")
-    log(f"dca fan-out: {len(rows)} event(s) -> {len(chats)} subscriber(s)")
-    for ts, kind, price, severity, fng, amount, mode in rows:
-        kz = KIND_ZH.get(kind, kind)
-        lines = [f"🔔 <b>DCA 信号:{kz} ({kind})</b>"]
-        if price is not None:
-            lines.append(f"BTC 价格:${price:,.0f}")
-        if fng is not None:
-            lines.append(f"恐惧贪婪指数:{fng}(越低越恐慌)")
-        if amount is not None:
-            lines.append(f"系统响应:计划买入 ${amount:,.0f}({mode or 'dry_run'})")
-        lines.append(f"\n这是什么信号?👉 {DASH}/start")
-        text = "\n".join(lines) + DISCLAIMER
-        for chat in chats:
-            send(chat, text)
-        state["last_dca_ts"] = ts.isoformat()
+    now = now or datetime.now(timezone.utc)
+    record = load_record(conn)
+    chats = subscribers(conn, "strategy_signals")
+    legs = []
+    for t in rows:
+        if t["live"] and t["entry_notified_at"] is None:
+            legs.append((t["entry_ts"], 0, "entry", t))
+        if t["exit_ts"] is not None and t["exit_notified_at"] is None:
+            legs.append((t["exit_ts"], 1, "exit", t))
+    legs.sort(key=lambda x: (x[0], x[1]))
+    log(f"strategy fan-out: {len(legs)} signal(s) -> {len(chats)} subscriber(s)")
+    for _ts, _order, leg, t in legs:
+        text = format_entry(t, record, now) if leg == "entry" else format_exit(t)
+        delivered = sum(send(chat, text) for chat in chats)
+        if chats and not delivered:
+            log(f"strategy {leg} {t['asset']} (trade {t['id']}): 0/{len(chats)} delivered, "
+                "left pending for the next tick")
+            return
+        mark_notified(conn, t["id"], leg)
+        log(f"strategy {leg} {t['asset']} (trade {t['id']}) -> {delivered}/{len(chats)} chat(s), "
+            "marked notified")
+
+
+def recent_closed(conn, since: datetime) -> list[dict]:
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            """SELECT asset, entry_ts, exit_ts, net_ret, live FROM quant.strategy_trades
+                WHERE strategy = %s AND exit_ts >= %s ORDER BY exit_ts""",
+            (STRATEGY, since),
+        )
+        return cur.fetchall()
+
+
+def backfilled_at(conn) -> datetime | None:
+    with conn.cursor() as cur:
+        cur.execute("SELECT max(created_at) FROM quant.strategy_signals "
+                    "WHERE strategy = %s AND NOT live", (STRATEGY,))
+        return cur.fetchone()[0]
+
+
+def fan_out_weekly_scorecard(conn, state: dict, now: datetime | None = None) -> None:
+    """Monday (UTC) scorecard to 'strategy_signals' subscribers, once per ISO week
+    (state['last_scorecard_week']). Nothing is sent — and the week stays open — while
+    quant.strategy_record is empty, and the week also stays open (retried next tick) when
+    no subscriber could be reached."""
+    now = now or datetime.now(timezone.utc)
+    if now.weekday() != 0:
+        return
+    iso = now.isocalendar()
+    week = f"{iso[0]}-W{iso[1]:02d}"
+    if state.get("last_scorecard_week") == week:
+        return
+    record = load_record(conn)
+    if not record:
+        return
+    text = format_weekly_scorecard(record, recent_closed(conn, now - timedelta(days=7)),
+                                   backfilled_at(conn))
+    chats = subscribers(conn, "strategy_signals")
+    delivered = sum(send(chat, text) for chat in chats)
+    if chats and not delivered:
+        log(f"weekly scorecard {week}: 0/{len(chats)} delivered, retrying next tick")
+        return
+    state["last_scorecard_week"] = week
+    log(f"weekly scorecard {week} -> {delivered}/{len(chats)} subscriber(s)")
 
 
 def fan_out_equity(conn, state: dict) -> None:
     last = state.get("last_eq_synced")
     with conn.cursor() as cur:
         if last:
+            # 'superseded' = TradeLedger closing a stale incarnation after a node restart:
+            # bookkeeping, not a trade — no fill, no close price, nothing to announce. The
+            # incarnation that replaced it (open_date = the superseded row's close_date) is the
+            # same holding re-opened by the restart, so its "open" isn't announced either.
             cur.execute(
                 "SELECT instrument, is_short, open_date, close_date, open_rate, close_rate, "
-                "profit_pct, synced_at FROM quant.nautilus_trades "
-                "WHERE asset_class='equity' AND synced_at > %s ORDER BY synced_at", (last,))
+                "profit_pct, synced_at FROM quant.nautilus_trades t "
+                "WHERE asset_class='equity' AND synced_at > %s "
+                "AND exit_reason IS DISTINCT FROM 'superseded' "
+                "AND NOT (close_date IS NULL AND EXISTS ("
+                "  SELECT 1 FROM quant.nautilus_trades p "
+                "   WHERE p.trader_id = t.trader_id AND p.position_id = t.position_id "
+                "     AND p.exit_reason = 'superseded' AND p.close_date = t.open_date)) "
+                "ORDER BY synced_at", (last,))
         else:
             cur.execute("SELECT max(synced_at) FROM quant.nautilus_trades WHERE asset_class='equity'")
             mx = cur.fetchone()[0]
@@ -321,10 +584,16 @@ def main() -> int:
                 conn = db()
             poll_bindings(conn, state)  # ~20s long-poll = the loop's natural tick
             if time.time() - last_fan >= INTERVAL:
-                fan_out_dca(conn, state)
-                fan_out_equity(conn, state)
-                fan_out_user_fires(conn)
-                fan_out_plan_reminders(conn, state)
+                # One failing stream (e.g. a missing grant) must not starve the others.
+                for job, args in ((fan_out_strategy_signals, (conn,)),
+                                  (fan_out_weekly_scorecard, (conn, state)),
+                                  (fan_out_equity, (conn, state)),
+                                  (fan_out_user_fires, (conn,)),
+                                  (fan_out_plan_reminders, (conn, state))):
+                    try:
+                        job(*args)
+                    except Exception as e:
+                        log(f"{job.__name__} failed (continuing): {e!r}")
                 last_fan = time.time()
             save_state(state)
         except KeyboardInterrupt:

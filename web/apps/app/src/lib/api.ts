@@ -20,7 +20,9 @@ import type {
 	SemiSegment,
 	AccountSnapshot,
 	NewsItem,
-	MarketStress
+	MarketStress,
+	StrategyRecord,
+	StrategyTrade
 } from './types';
 import { getToken } from './auth';
 
@@ -108,6 +110,13 @@ export const vps = {
 	// 90-day window). limit=1 → latest reading; larger limit → recent history.
 	marketStress: (f: Fetch = fetch, { limit = 1 }: { limit?: number } = {}) =>
 		req<MarketStress[]>(CONFIG.API_BASE, '/market_stress', { limit }, f),
+
+	// House trend-rule track record (anon-accessible; migration 032). strategy_record is the
+	// single source of truth for every stat — consumers only average across its rows.
+	strategyRecord: (f: Fetch = fetch) =>
+		req<StrategyRecord[]>(CONFIG.API_BASE, '/strategy_record', { order: 'asset.asc' }, f),
+	strategyTrades: (f: Fetch = fetch, { limit = 1000 }: { limit?: number } = {}) =>
+		req<StrategyTrade[]>(CONFIG.API_BASE, '/strategy_trades', { order: 'entry_ts.desc', limit }, f),
 
 	publicEventTriggers: (f: Fetch = fetch, { limit = 500 }: { limit?: number } = {}) =>
 		req<EventDcaTrigger[]>(

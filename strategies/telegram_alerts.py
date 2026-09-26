@@ -4,7 +4,7 @@ Telegram Alert System
 1. KOL real-time alerts — when Trump/Musk/BlackRock moves, get notified fast
 2. Sentiment shift alerts — when combined_score changes significantly
 3. Bot health watchdog — alert if a live signal-bot systemd unit dies
-4. Daily report — market + Nautilus execution P&L + Kelly verdicts
+4. Daily report — market + house strategy record (quant.strategy_record) + Kelly verdicts
 
 Run every 30 min via systemd timer (separate from the 4-hour pipeline).
 """
@@ -15,13 +15,16 @@ import os
 import subprocess
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import requests
 
+from strategy_record import STRATEGY
+
 try:
     import psycopg2
+    import psycopg2.extras
 except ImportError:
     psycopg2 = None  # type: ignore[assignment]
 
@@ -60,7 +63,8 @@ def send_telegram(message: str) -> bool:
         )
         return resp.status_code == 200
     except Exception as e:
-        logger.warning(f"Telegram send failed: {e}")
+        # requests puts the full URL (bot token included) in its message — never log it.
+        logger.warning(f"Telegram send failed: {str(e).replace(TELEGRAM_TOKEN, '<token>')}")
         return False
 
 
@@ -428,6 +432,73 @@ def write_kelly_status_json(target: Path) -> Path:
 
 
 # --------------------------------------------------------------------------
+# Helper: house strategy record (quant.strategy_record, migration 032)
+# --------------------------------------------------------------------------
+# The public track record of the house trend rule (趋势突破策略, Donchian 1h 168/72 on
+# BTC/ETH/SOL). quant.strategy_record is the single source of truth for its stats; this
+# block only does the cross-asset roll-up every consumer does (equal-weight averages,
+# pooled win rate). Bar timestamps are Binance close times (hh:59:59.999) → shown as the
+# round hour they close at, UTC.
+def _bar_utc(ts: datetime) -> datetime:
+    return (ts + timedelta(milliseconds=1)).astimezone(timezone.utc)
+
+
+def format_strategy_block(record: list[dict]) -> str:
+    """Compact English 'Strategy record' block (Markdown) from quant.strategy_record rows.
+
+    Per asset: long +x% (open position marked to market, net of fees; backfilled entries
+    labelled) or flat (+y% to the breakout trigger). Then portfolio vs buy-and-hold since
+    the record start, closed trades and win rate. Empty string when there are no rows.
+    """
+    if not record:
+        return ""
+    lines = []
+    for r in record:
+        if r["open_entry_ts"] is not None:
+            src = "" if r["open_live"] else ", backfilled"
+            lines.append(f"  {r['asset']}: long {r['open_ret']:+.1%} "
+                         f"(since {_bar_utc(r['open_entry_ts']):%m-%d}{src})")
+        elif r["channel_high"] is not None and r["last_close"]:
+            lines.append(f"  {r['asset']}: flat "
+                         f"({r['channel_high'] / r['last_close'] - 1:+.1%} to trigger)")
+        else:
+            lines.append(f"  {r['asset']}: flat")
+    priced = [r for r in record if r["sleeve_ret"] is not None and r["hold_ret"] is not None]
+    if priced:
+        ret = sum(r["sleeve_ret"] for r in priced) / len(priced)
+        hold = sum(r["hold_ret"] for r in priced) / len(priced)
+        starts = [r["start_ts"] for r in priced if r["start_ts"] is not None]
+        since = f" since {_bar_utc(min(starts)):%Y-%m-%d}" if starts else ""
+        lines.append(f"  Portfolio {ret:+.1%} vs hold {hold:+.1%}{since}")
+    n_closed = sum(r["n_closed"] for r in record)
+    n_wins = sum(r["n_wins"] for r in record)
+    lines.append(f"  Trades: {n_closed} closed, win rate {n_wins / n_closed:.0%}"
+                 if n_closed else "  Trades: none closed yet")
+    lasts = [r["last_ts"] for r in record if r["last_ts"] is not None]
+    asof = f" (last bar {_bar_utc(max(lasts)):%m-%d %H:%M} UTC)" if lasts else ""
+    return f"\n*Strategy record*{asof}:\n" + "\n".join(lines)
+
+
+def strategy_record_block(timescale_url: str) -> str:
+    """Query quant.strategy_record and format it; "" when the DB isn't configured or fails."""
+    if psycopg2 is None or not timescale_url:
+        return ""
+    try:
+        conn = psycopg2.connect(timescale_url)
+        try:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                cur.execute("SELECT * FROM quant.strategy_record WHERE strategy = %s ORDER BY asset",
+                            (STRATEGY,))
+                rows = cur.fetchall()
+        finally:
+            conn.close()
+    except Exception as e:
+        logger.warning(f"strategy record query failed: {e}")
+        return ""
+    return format_strategy_block(rows)
+
+
+# --------------------------------------------------------------------------
 # Alert 4: Daily Report
 # --------------------------------------------------------------------------
 def send_daily_report():
@@ -478,37 +549,11 @@ def send_daily_report():
     except Exception:
         pass
 
-    # Bot P&L from the Nautilus execution ledger — single-stack source of truth.
-    # (Replaced the freqtrade REST API call removed with the freqtrade core.)
-    # Graceful no-op when TIMESCALE_URL isn't provided to this service.
-    bot_status = ""
+    # House strategy record (quant.strategy_record, migration 032) — replaces the old
+    # quant.nautilus_trades P&L, which node restarts made misleading (stale "open" rows per
+    # position). Graceful no-op when TIMESCALE_URL isn't provided to this service.
     timescale_url = os.environ.get("TIMESCALE_URL", "")
-    if psycopg2 is not None and timescale_url:
-        try:
-            conn = psycopg2.connect(timescale_url)
-            try:
-                with conn.cursor() as cur:
-                    cur.execute("""
-                        SELECT
-                          count(*) FILTER (WHERE close_date IS NOT NULL),
-                          count(*) FILTER (WHERE close_date IS NULL),
-                          coalesce(sum(realized_pnl) FILTER (WHERE close_date IS NOT NULL), 0),
-                          coalesce(avg(profit_pct)   FILTER (WHERE close_date IS NOT NULL), 0),
-                          max(environment)
-                        FROM quant.nautilus_trades
-                    """)
-                    closed, open_n, pnl, avg_pct, env = cur.fetchone()
-            finally:
-                conn.close()
-            if (closed or 0) or (open_n or 0):
-                env_tag = f" ({env})" if env else ""
-                bot_status = (
-                    f"\n*Nautilus P&L{env_tag}:*\n"
-                    f"  Closed: {closed}  |  Open: {open_n}\n"
-                    f"  Realized: {float(pnl):+.2f} USDT  (avg {float(avg_pct) * 100:+.1f}%)"
-                )
-        except Exception as e:
-            logger.warning(f"Nautilus P&L query failed: {e}")
+    strategy = strategy_record_block(timescale_url)
 
     # Growth funnel from first-party analytics (quant.web_events, migration 020) —
     # the validation plan's daily eyes: visitors / signups / activation / D1 return.
@@ -592,7 +637,7 @@ def send_daily_report():
         f"  Sentiment: {score:+.2f}",
         f"  KOL Activity: {kol:+.2f} ({kol_n} mentions)",
     ])
-    message = "\n".join(parts) + history_str + bot_status + growth + news + format_kelly_report()
+    message = "\n".join(parts) + history_str + strategy + growth + news + format_kelly_report()
 
     # Snapshot the structured Kelly status alongside the Telegram send so
     # dashboards / monitoring can read the same numbers without re-running
@@ -624,84 +669,6 @@ def send_daily_report():
 
 
 # --------------------------------------------------------------------------
-# Alert 5: DCA Triggers
-# --------------------------------------------------------------------------
-_DCA_KIND_EMOJI = {
-    "FLASH": "⚡",
-    "FAST": "🏃",
-    "SUSTAIN": "💪",
-    "CAPITUL": "💀",
-}
-
-
-def check_dca_triggers() -> int:
-    """
-    Query quant.event_dca_triggers for rows newer than last seen id, send a
-    Telegram message for each one, and persist the high-water mark.
-
-    :return: Number of new trigger messages sent.
-    """
-    if psycopg2 is None:
-        logger.warning("psycopg2 not installed — skipping DCA trigger check")
-        return 0
-
-    timescale_url = os.environ.get("TIMESCALE_URL", "")
-    if not timescale_url:
-        logger.info("TIMESCALE_URL not set — skipping DCA trigger check")
-        return 0
-
-    state = load_state()
-    last_id: int = state.get("last_trigger_id", 0)
-
-    try:
-        conn = psycopg2.connect(timescale_url)
-    except Exception as e:
-        logger.warning(f"DB connect failed: {e}")
-        return 0
-
-    rows = []
-    try:
-        with conn.cursor() as cur:
-            cur.execute(
-                "SELECT id, ts, kind, price, severity, fng, amount_usdt, mode"
-                " FROM quant.event_dca_triggers"
-                " WHERE id > %s ORDER BY id ASC LIMIT 10",
-                (last_id,),
-            )
-            rows = cur.fetchall()
-    except Exception as e:
-        logger.warning(f"DB query failed: {e}")
-        return 0
-    finally:
-        conn.close()
-
-    sent = 0
-    max_id = last_id
-
-    for row in rows:
-        row_id, ts, kind, price, severity, fng, amount_usdt, mode = row
-        emoji = _DCA_KIND_EMOJI.get(str(kind).upper(), "📌")
-        message = (
-            f"*DCA Trigger* {emoji} {kind}\n"
-            f"─────────────────────\n"
-            f"Time: {ts}\n"
-            f"BTC: ${float(price):,.0f}\n"
-            f"Severity: {severity}/5  FnG: {fng}\n"
-            f"Amount: ${amount_usdt} USDT  Mode: {mode}"
-        )
-        if send_telegram(message):
-            sent += 1
-        max_id = max(max_id, row_id)
-
-    if max_id > last_id:
-        state["last_trigger_id"] = max_id
-        save_state(state)
-
-    logger.info(f"DCA triggers: {sent} new sent (last_id={max_id})")
-    return sent
-
-
-# --------------------------------------------------------------------------
 # Main
 # --------------------------------------------------------------------------
 if __name__ == "__main__":
@@ -711,7 +678,6 @@ if __name__ == "__main__":
     parser.add_argument("--sentiment", action="store_true", help="Check sentiment shift only")
     parser.add_argument("--health", action="store_true", help="Check bot health only")
     parser.add_argument("--daily", action="store_true", help="Send daily report")
-    parser.add_argument("--dca", action="store_true", help="Check DCA triggers")
     parser.add_argument("--kelly", action="store_true",
                         help="Print Kelly verdict per strategy (does not send Telegram)")
     parser.add_argument("--json", action="store_true",
@@ -734,11 +700,7 @@ if __name__ == "__main__":
             print(format_kelly_report() or "(no Kelly data)")
         sys.exit(0)
 
-    run_all = args.all or not (args.kol or args.sentiment or args.health or args.daily or args.dca)
-
-    if args.dca or run_all:
-        n = check_dca_triggers()
-        print(f"DCA triggers: {n} new")
+    run_all = args.all or not (args.kol or args.sentiment or args.health or args.daily)
 
     if args.kol or run_all:
         n = check_kol_alerts()

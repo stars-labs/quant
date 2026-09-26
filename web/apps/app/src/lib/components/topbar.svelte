@@ -2,7 +2,9 @@
 	import { page } from '$app/stores';
 	import { session, logout } from '$lib/auth';
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { t, type Lang } from '$lib/i18n';
+	import { navLabelKey } from '$lib/nav';
 	import LangToggle from './lang-toggle.svelte';
 	import ThemeToggle from './theme-toggle.svelte';
 	import { onMount, onDestroy } from 'svelte';
@@ -10,6 +12,8 @@
 	let { onmenuToggle }: { onmenuToggle?: () => void } = $props();
 
 	const lang = $derived<Lang>($page.data.lang ?? 'zh');
+	// Page label from the nav table (translated), never the raw English route slug.
+	const pageKey = $derived(navLabelKey($page.url.pathname));
 
 	let btcPrice = $state<number | null>(null);
 	let btcPriceDir = $state<'up' | 'down' | 'flat'>('flat');
@@ -71,11 +75,11 @@
 		</button>
 
 		<!-- Page eyebrow / breadcrumb on desktop -->
-		<span class="bdv-eyebrow hidden text-[10px] tracking-[0.16em] md:inline">
-			{$page.url.pathname === '/'
-				? 'Dashboard'
-				: $page.url.pathname.replace(/^\//, '').toUpperCase()}
-		</span>
+		{#if pageKey}
+			<span class="bdv-eyebrow hidden text-[10px] tracking-[0.16em] md:inline">
+				{t(lang, pageKey)}
+			</span>
+		{/if}
 	</div>
 
 	<div class="flex items-center gap-2">
@@ -104,12 +108,12 @@
 				class="rounded-md border border-border bg-secondary px-3 py-1 text-[12px] font-medium text-secondary-foreground transition-colors hover:border-border/80 hover:bg-accent"
 				onclick={() => {
 					logout();
-					goto('/');
+					goto(resolve('/'));
 				}}>{t(lang, 'topbar.logout')}</button
 			>
 		{:else}
 			<a
-				href="/login"
+				href={resolve('/login')}
 				class="rounded-md bg-gradient-to-br from-[var(--dawn-500)] to-[var(--dawn-700)] px-3 py-1 text-[12px] font-semibold text-[#0C0B1A] shadow-[0_0_0_1px_var(--dawn-glow),0_0_14px_color-mix(in_oklab,var(--dawn-500)_30%,transparent)] transition-shadow hover:shadow-[0_0_0_1px_var(--dawn-glow),0_0_22px_color-mix(in_oklab,var(--dawn-500)_50%,transparent)]"
 				>{t(lang, 'topbar.login')}</a
 			>

@@ -22,9 +22,9 @@
 
 	const TOPICS: { id: TelegramTopic; zh: string; en: string }[] = [
 		{
-			id: 'dca_events',
-			zh: 'DCA 信号事件 — 闪崩/恐慌买点等',
-			en: 'DCA signal events — flash crashes, panic buy points'
+			id: 'strategy_signals',
+			zh: '策略买卖信号 — BTC/ETH/SOL 趋势突破买入与离场 + 每周战绩',
+			en: 'Strategy buy/sell signals — BTC/ETH/SOL trend breakouts and exits + weekly scorecard'
 		},
 		{
 			id: 'equity_trades',
@@ -149,6 +149,8 @@
 	}
 </script>
 
+<!-- Both links carry runtime query strings (login ?next=, external t.me deep link). -->
+<!-- eslint-disable svelte/no-navigation-without-resolve -->
 <section class="rounded-xl border border-border bg-card p-5">
 	{#if !$user}
 		<p class="text-sm text-muted-foreground">
@@ -169,8 +171,8 @@
 		</div>
 		<p class="mt-1 text-sm text-muted-foreground">
 			{en
-				? 'Get a Telegram message the moment a DCA signal or paper trade fires — no need to keep this page open.'
-				: '信号触发或模拟盘成交时第一时间推送到你的 Telegram，不用一直盯着页面。'}
+				? 'Get a Telegram message the moment a strategy buy/sell signal or paper trade fires — no need to keep this page open.'
+				: '策略发出买卖信号或模拟盘成交时，第一时间推送到你的 Telegram，不用一直盯着页面。'}
 		</p>
 		<button
 			type="button"

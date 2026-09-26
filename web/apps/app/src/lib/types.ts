@@ -103,6 +103,50 @@ export interface NautilusTrade {
 	synced_at: string;
 }
 
+// House trend rule, per asset (api.strategy_record, migration 032) — the single source of truth
+// for every track-record stat. Returns are fractions, net of 0.1% fee per side; channel_high is
+// the next bar's buy trigger, channel_low the next bar's exit line.
+export interface StrategyRecord {
+	strategy: string;
+	asset: string;
+	start_ts: string | null;
+	start_price: number | null;
+	last_ts: string | null;
+	last_close: number | null;
+	channel_high: number | null;
+	channel_low: number | null;
+	n_closed: number;
+	n_wins: number;
+	closed_compound: number;
+	best_ret: number | null;
+	avg_win: number | null;
+	avg_loss: number | null;
+	open_entry_ts: string | null;
+	open_entry_price: number | null;
+	open_live: boolean | null;
+	open_ret: number | null;
+	sleeve_ret: number | null;
+	hold_ret: number | null;
+}
+
+// One house-rule trade (api.strategy_trades). live=false = backfilled (rule replayed on history
+// after the fact), never a real-time call. net_ret is NULL while the trade is open.
+export interface StrategyTrade {
+	id: number;
+	strategy: string;
+	asset: string;
+	entry_ts: string;
+	entry_price: number;
+	entry_level: number;
+	exit_ts: string | null;
+	exit_price: number | null;
+	exit_level: number | null;
+	live: boolean;
+	created_at: string;
+	net_ret: number | null;
+	hold_days: number | null;
+}
+
 // A backtest of a CURRENTLY-DEPLOYED Nautilus strategy (honest numbers, not freqtrade).
 export interface NautilusBacktest {
 	id: number;

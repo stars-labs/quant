@@ -29,6 +29,9 @@ export default {
 	'nav.graveyard': 'Graveyard',
 	'nav.more': 'More',
 	'nav.docs': 'Docs',
+	'nav.record': 'Track record',
+	'nav.realtimeOn': 'Realtime · Connected',
+	'nav.realtimeOff': 'Data · Scheduled',
 	'topbar.login': 'Log in',
 	'topbar.logout': 'Log out',
 	'topbar.title': 'Quant',
@@ -457,5 +460,104 @@ export default {
 	'login.cbError': 'Sign-in failed: {msg}',
 	'login.why':
 		'Log in to access {path} — strategy details, backtest archive, and the live feed are for signed-in users only.',
-	'login.publicHint': 'Free to browse: home · DCA simulator · docs'
+	'login.publicHint': 'Free to browse: home · DCA simulator · docs',
+
+	// --- record (house trend-rule track record, /record) ---
+	'record.metaTitle': 'Track record',
+	'record.metaDesc':
+		'Every trade of our trend-breakout rule on BTC, ETH and SOL — net of fees, with win rate and a buy-and-hold comparison, losses included. Rule-based simulated signals, not investment advice.',
+	'record.eyebrow': 'Rule-based simulated signals · public record',
+	'record.title': 'Track record',
+	'record.subtitle':
+		'One trend-breakout rule, applied to BTC, ETH and SOL: buy when an hourly candle closes above the highest price of the past 7 days, sell when one closes below the lowest price of the past 3 days. Below is every trade since {start}, winners and losers alike, with fees already deducted.',
+	'record.headline': 'If you had put $1,000 in on {start}, split equally across {assets}',
+	'record.kpi.follow': 'Following every signal',
+	'record.kpi.followSub': '{ret} after fees',
+	'record.kpi.hold': 'Buy and hold instead',
+	'record.kpi.holdSub': '{ret}, just holding',
+	'record.kpi.trades': 'Closed trades',
+	'record.kpi.tradesSub': 'plus {n} open now',
+	'record.kpi.tradesSubNone': 'no open position',
+	'record.kpi.winRate': 'Win rate',
+	'record.kpi.winRateSub': '{w} of {n} made money',
+	'record.kpi.best': 'Best trade',
+	'record.kpi.bestSub': '{asset}, after fees',
+	'record.asOf': 'Data as of {ts} UTC, updated after every hourly close.',
+	'record.split': '{b} trades are backfilled, {l} recorded live.',
+	'record.assets.title': 'Where each coin stands now',
+	'record.assets.sub': 'Binance spot hourly closes, refreshed after every hourly close.',
+	'record.state.long': 'Holding',
+	'record.state.flat': 'Waiting',
+	'record.card.bought': 'Bought at',
+	'record.card.boughtAt': 'bought {ts} UTC',
+	'record.card.last': 'Last close',
+	'record.card.openRet': 'Open P/L (after fees)',
+	'record.card.exitLine': 'Exit line',
+	'record.card.exitHint': 'Sells if an hourly candle closes below the exit line.',
+	'record.card.trigger': 'Buy trigger',
+	'record.card.triggerHint': 'Buys if an hourly candle closes above the trigger.',
+	'record.card.fromLast': '{pct} from last close',
+	'record.card.since': 'Since {start}',
+	'record.card.strategy': 'Strategy',
+	'record.card.hold': 'buy and hold',
+	'record.card.stats': '{n} closed · {w} made money',
+	'record.card.avg': 'Avg win {win} · avg loss {loss}',
+	'record.src.live': 'Live',
+	'record.src.backfill': 'Backfilled',
+	'record.src.liveHint': 'Recorded in real time as the signal fired',
+	'record.src.backfillHint':
+		'Computed afterwards by replaying the same rule on past prices — not a call made at the time',
+	'record.cta.title': 'Get the next signal the moment it fires',
+	'record.cta.sub':
+		'Bind Telegram and tick "Strategy buy/sell signals": you get every buy, every exit and a weekly scorecard, each with its exit rule.',
+	'record.trades.title': 'Every trade',
+	'record.trades.sub': '{n} trades, newest first. Times in UTC, returns after fees.',
+	'record.col.asset': 'Coin',
+	'record.col.entry': 'Bought',
+	'record.col.exit': 'Sold',
+	'record.col.ret': 'Return',
+	'record.col.days': 'Held',
+	'record.col.source': 'Source',
+	'record.trades.holding': 'Holding',
+	'record.trades.floating': 'open',
+	'record.trades.days': '{n} d',
+	'record.trades.showAll': 'Show all {n} trades',
+	'record.trades.showLess': 'Show fewer',
+	'record.trades.empty': 'No trades yet.',
+	'record.rules.title': 'How the rule works',
+	'record.rules.buy':
+		'Buy: an hourly candle closes above the highest price of the past 7 days (168 hourly candles).',
+	'record.rules.sell':
+		'Sell: while holding, an hourly candle closes below the lowest price of the past 3 days (72 hourly candles).',
+	'record.rules.scope':
+		'Long only, no leverage. Each coin runs on its own and is either fully in or fully out.',
+	'record.rules.portfolio':
+		'Portfolio: the money is split into three equal parts for BTC, ETH and SOL, each following its own signals, never rebalanced. The buy-and-hold comparison is split the same way and starts at the same moment.',
+	'record.rules.fees':
+		'Fees: 0.1% is deducted on every buy and every sell (Binance spot taker rate). Open trades are valued as if sold at the latest hourly close, fees included.',
+	'record.honest.title': 'Honestly',
+	'record.honest.body':
+		'Most trend signals end in a small loss; the money comes from a few big trends. Follow only a handful and you may well miss the one that pays. In sideways markets the rule racks up small losses in a row, and it can trail buy and hold.',
+	'record.honest.stats':
+		'Since {start}, {w} of {n} closed trades made money (win rate {rate}); the best was {asset} {best}.',
+	'record.backfill.title': 'What "Backfilled" means',
+	'record.backfill.body':
+		'Trades marked "Backfilled" were computed afterwards by replaying the same rule on past prices. They are not calls made at the time.',
+	'record.backfill.since':
+		'From {since}, new signals are marked "Live": recorded right after the hourly close and pushed to subscribers.',
+	'record.disclaimer':
+		'Rule-based simulated signals, not investment advice. We do not manage money or give position-sizing advice. Past performance does not guarantee future results.',
+	'record.empty.title': 'The track record is being prepared',
+	'record.empty.body':
+		'The historical backfill has not run yet. Every trade will be listed here once it has.',
+	'record.error.title': 'The track record could not be loaded',
+	'record.error.body':
+		'The data service is unreachable right now. Please refresh in a little while.',
+
+	// --- nautilus (execution engine) ---
+	'nautilus.superseded': 'Superseded',
+	'nautilus.supersededHint':
+		'An engine restart re-registered this position as a new row; this row is a stale copy with no real exit price or P&L.',
+	'nautilus.recordLink': 'Looking for every buy and sell of the trend rule?',
+	'nautilus.recordCta': 'Track record →'
 };
