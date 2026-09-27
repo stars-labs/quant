@@ -22,7 +22,9 @@ import type {
 	NewsItem,
 	MarketStress,
 	StrategyRecord,
-	StrategyTrade
+	StrategyTrade,
+	OpportunityScan,
+	FundingRate
 } from './types';
 import { getToken } from './auth';
 
@@ -117,6 +119,13 @@ export const vps = {
 		req<StrategyRecord[]>(CONFIG.API_BASE, '/strategy_record', { order: 'asset.asc' }, f),
 	strategyTrades: (f: Fetch = fetch, { limit = 1000 }: { limit?: number } = {}) =>
 		req<StrategyTrade[]>(CONFIG.API_BASE, '/strategy_trades', { order: 'entry_ts.desc', limit }, f),
+
+	// 机会雷达 (anon-accessible; migration 035): distance of every house coin to its trigger / exit
+	// line / 30-day high, and perp funding for spot-listed coins (hottest first).
+	opportunityScan: (f: Fetch = fetch) =>
+		req<OpportunityScan[]>(CONFIG.API_BASE, '/opportunity_scan', { order: 'asset.asc' }, f),
+	fundingRates: (f: Fetch = fetch) =>
+		req<FundingRate[]>(CONFIG.API_BASE, '/funding_rates', { order: 'ann_7d.desc' }, f),
 
 	publicEventTriggers: (f: Fetch = fetch, { limit = 500 }: { limit?: number } = {}) =>
 		req<EventDcaTrigger[]>(

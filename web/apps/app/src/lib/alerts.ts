@@ -6,9 +6,9 @@
 import { CONFIG } from './config';
 import { getToken } from './auth';
 
-// Valid quant.telegram_links topics (migration 032): the house trend rule's buy/sell signals +
-// weekly scorecard, and US-equity paper trades.
-export type TelegramTopic = 'strategy_signals' | 'dca_boost' | 'equity_trades';
+// Valid quant.telegram_links topics (migrations 032/035): the house trend rule's buy/sell signals +
+// weekly scorecard, smart-DCA boost days, the morning opportunity digest, US-equity paper trades.
+export type TelegramTopic = 'strategy_signals' | 'dca_boost' | 'daily_scan' | 'equity_trades';
 
 export interface TelegramLink {
 	link_token: string;

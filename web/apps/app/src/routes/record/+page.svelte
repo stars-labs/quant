@@ -8,7 +8,7 @@
 	import type { PageData } from './$types';
 	import type { StrategyRecord, StrategyTrade } from '$lib/types';
 	import { t, type Lang } from '$lib/i18n';
-	import { fmtPct } from '$lib/utils';
+	import { fmtPct, fmtPrice } from '$lib/utils';
 	import Kpi from '$lib/components/kpi.svelte';
 	import StatusPill from '$lib/components/status-pill.svelte';
 	import Callout from '$lib/components/callout.svelte';
@@ -45,19 +45,8 @@
 		return out;
 	}
 
-	// Returns are fractions in the view → signed percent. Prices >= $1 keep cents (commas from
-	// $1,000); sub-dollar coins show 4 significant digits so PEPE (~$0.00001) never reads $0.00.
+	// Returns are fractions in the view → signed percent.
 	const pct = (v: number | null | undefined) => (v == null ? '—' : fmtPct(v * 100, 1));
-	const price = (v: number | null | undefined) =>
-		v == null
-			? '—'
-			: '$' +
-				(Math.abs(v) >= 1 || v === 0
-					? v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-					: v.toLocaleString('en-US', {
-							minimumSignificantDigits: 4,
-							maximumSignificantDigits: 4
-						}));
 	const dollars = (v: number) => '$' + Math.round(v).toLocaleString('en-US');
 	// Always UTC: signals fire on UTC hourly closes, whatever the server or browser zone is.
 	const utc = (ts: string | null | undefined) => (ts ? new Date(ts).toISOString() : '');
@@ -247,7 +236,7 @@
 						<div class="mt-3 flex flex-col gap-2 text-[13px] sm:mt-4">
 							{#if long}
 								<div>
-									{@render stat(t(lang, 'record.card.bought'), price(r.open_entry_price))}
+									{@render stat(t(lang, 'record.card.bought'), fmtPrice(r.open_entry_price))}
 									<div
 										class="mt-1 flex flex-wrap items-center justify-end gap-x-2 gap-y-1 text-[11px] text-muted-foreground"
 									>
@@ -257,18 +246,18 @@
 										{@render sourceBadge(r.open_live === true)}
 									</div>
 								</div>
-								{@render stat(t(lang, 'record.card.last'), price(r.last_close))}
+								{@render stat(t(lang, 'record.card.last'), fmtPrice(r.last_close))}
 								{@render stat(t(lang, 'record.card.openRet'), pct(r.open_ret), tone(r.open_ret))}
 								<div>
-									{@render stat(t(lang, 'record.card.exitLine'), price(r.channel_low))}
+									{@render stat(t(lang, 'record.card.exitLine'), fmtPrice(r.channel_low))}
 									<div class="bdv-num mt-1 text-right text-[11px] text-muted-foreground">
 										{fmt('record.card.fromLast', { pct: pct(dist(r.channel_low, r.last_close)) })}
 									</div>
 								</div>
 							{:else}
-								{@render stat(t(lang, 'record.card.last'), price(r.last_close))}
+								{@render stat(t(lang, 'record.card.last'), fmtPrice(r.last_close))}
 								<div>
-									{@render stat(t(lang, 'record.card.trigger'), price(r.channel_high))}
+									{@render stat(t(lang, 'record.card.trigger'), fmtPrice(r.channel_high))}
 									<div class="bdv-num mt-1 text-right text-[11px] text-muted-foreground">
 										{fmt('record.card.fromLast', { pct: pct(dist(r.channel_high, r.last_close)) })}
 									</div>
@@ -385,7 +374,7 @@
 							· {heldDays(tr.hold_days)}
 						</div>
 						<div class="bdv-num text-[11px] text-muted-foreground">
-							{price(tr.entry_price)} → {open ? '—' : price(tr.exit_price)}
+							{fmtPrice(tr.entry_price)} → {open ? '—' : fmtPrice(tr.exit_price)}
 						</div>
 					</li>
 				{/each}
@@ -410,14 +399,14 @@
 							<tr class="border-t border-border">
 								<td class="px-3 py-2 font-semibold text-foreground">{tr.asset}</td>
 								<td class="px-3 py-2">
-									<div class="bdv-num text-foreground">{price(tr.entry_price)}</div>
+									<div class="bdv-num text-foreground">{fmtPrice(tr.entry_price)}</div>
 									<div class="bdv-num text-[11px] text-muted-foreground">{minute(tr.entry_ts)}</div>
 								</td>
 								<td class="px-3 py-2">
 									{#if open}
 										<StatusPill status="long" label={t(lang, 'record.trades.holding')} />
 									{:else}
-										<div class="bdv-num text-foreground">{price(tr.exit_price)}</div>
+										<div class="bdv-num text-foreground">{fmtPrice(tr.exit_price)}</div>
 										<div class="bdv-num text-[11px] text-muted-foreground">
 											{minute(tr.exit_ts)}
 										</div>

@@ -21,7 +21,8 @@ import {
 	FileText,
 	FlaskConical,
 	Skull,
-	Trophy
+	Trophy,
+	Radar
 } from 'lucide-svelte';
 
 export type NavItem = {
@@ -37,6 +38,7 @@ export const PRIMARY_NAV: NavItem[] = [
 	{ href: '/', labelKey: 'nav.home', icon: Home },
 	{ href: '/start', labelKey: 'nav.start', icon: Compass },
 	{ href: '/record', labelKey: 'nav.record', icon: Trophy },
+	{ href: '/scan', labelKey: 'nav.scan', icon: Radar },
 	{ href: '/live', labelKey: 'nav.live' },
 	{ href: '/nautilus', labelKey: 'nav.nautilus', icon: Cpu },
 	{ href: '/signals', labelKey: 'nav.signals', icon: Radio },

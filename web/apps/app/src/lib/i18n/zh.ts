@@ -30,6 +30,7 @@ export default {
 	'nav.more': '更多',
 	'nav.docs': '文档',
 	'nav.record': '策略战绩',
+	'nav.scan': '机会雷达',
 	'nav.realtimeOn': '实时 · 已连接',
 	'nav.realtimeOff': '数据 · 定时更新',
 	'topbar.login': '登录',
@@ -542,5 +543,78 @@ export default {
 	'nautilus.supersededHint':
 		'引擎重启后,同一持仓重新登记成了新的一行;这一行是旧副本,没有真实的平仓价和盈亏。',
 	'nautilus.recordLink': '想看趋势策略每一笔买卖的完整战绩?',
-	'nautilus.recordCta': '策略战绩 →'
+	'nautilus.recordCta': '策略战绩 →',
+
+	// --- scan (机会雷达, /scan) ---
+	'scan.metaTitle': '机会雷达',
+	'scan.metaDesc':
+		'哪些主流币快触发趋势买入、哪些持仓接近离场线、哪些比 30 天高点跌了 20% 以上,以及永续合约资金费率最极端的币。每小时更新。规则观察,不构成投资建议。',
+	'scan.eyebrow': '规则观察 · 每小时更新',
+	'scan.title': '机会雷达',
+	'scan.subtitle':
+		'用「策略战绩」里同一条趋势规则扫一遍全部 {n} 个币:谁离买入触发价只差一点,谁的持仓快碰到离场线,谁已经比 30 天高点跌了很多;再加上永续合约的资金费率,看看哪边的仓位最拥挤。',
+	'scan.asOf': '行情截至 {ts} UTC(币安现货 1 小时收盘)。',
+	'scan.fundingAsOf': '资金费率更新于 {ts} UTC。',
+	'scan.kpi.nearEntry': '接近买入触发',
+	'scan.kpi.nearEntrySub': '空仓且距触发价 {near} 以内',
+	'scan.kpi.nearExit': '接近离场线',
+	'scan.kpi.nearExitSub': '持仓且距离场线 {near} 以内',
+	'scan.kpi.dip': '大跌区',
+	'scan.kpi.dipSub': '比 30 天高点低 {dip} 以上',
+	'scan.kpi.funding': '资金费率极端',
+	'scan.kpi.fundingSub': '年化 ≥ {hot} 或 ≤ {cold}',
+	'scan.entry.title': '接近买入触发',
+	'scan.entry.sub':
+		'空仓等待中的币,按距离触发价由近到远排列。1 小时收盘价突破触发价就买入;距离 {near} 以内的高亮。',
+	'scan.exit.title': '接近离场线',
+	'scan.exit.sub':
+		'持仓中的币,按距离离场线由近到远排列。1 小时收盘价跌破离场线就卖出;距离 {near} 以内的高亮。',
+	'scan.dip.title': '大跌区',
+	'scan.dip.sub':
+		'全部币种按离 30 天高点的跌幅排列,跌了 {dip} 以上的高亮。这只是观察:跌得多不等于到了买点,趋势规则仍要等突破才买。',
+	'scan.dip.noData': '「—」表示该币的 1 小时收盘数据还不满 30 天,暂不计算。',
+	'scan.col.asset': '币种',
+	'scan.col.last': '最新收盘',
+	'scan.col.trigger': '买入触发价',
+	'scan.col.toEntry': '距触发',
+	'scan.col.exitLine': '离场线',
+	'scan.col.toExit': '距离场线',
+	'scan.col.high30d': '30 天高点',
+	'scan.col.fromHigh': '距高点',
+	'scan.heldSince': '{ts} 起持有',
+	'scan.flag.near': '{near} 内',
+	'scan.flag.dip': '大跌',
+	'scan.none.entry': '现在没有空仓的币,全部都在持有中。',
+	'scan.none.exit': '现在没有持仓,全部币种都在空仓等待。',
+	'scan.recordLink': '每个币的完整买卖记录和扣费后收益见',
+	'scan.recordCta': '策略战绩 →',
+	'scan.funding.title': '资金费率雷达',
+	'scan.funding.sub':
+		'币安 USDT 永续合约中、同时有现货的 {n} 个币,按近 7 天实际资金费率年化由高到低排列。年化 ≥ {hot} 标为多头拥挤,≤ {cold} 标为空头拥挤。',
+	'scan.funding.col.asset': '币种',
+	'scan.funding.col.ann': '7 天年化',
+	'scan.funding.col.last': '最新一期',
+	'scan.funding.col.vol': '24 小时成交额',
+	'scan.funding.hot': '多头拥挤',
+	'scan.funding.cold': '空头拥挤',
+	'scan.funding.empty': '暂无资金费率数据。',
+	'scan.carry.title': '资金费率是什么,能不能赚',
+	'scan.carry.what':
+		'永续合约没有到期日,多空双方每隔几小时互付一次「资金费」,让合约价格贴住现货。费率为正时多头付钱给空头,说明做多的人多、多头拥挤;费率为负时空头付钱给多头,说明空头拥挤。',
+	'scan.carry.how':
+		'常见做法叫「资金费率套利」:买入现货,同时在永续合约做空同样数量。价格涨跌两边抵消,只赚费率。',
+	'scan.risk.title': '但它不是无风险收益',
+	'scan.risk.fees': '开仓和平仓要付四笔手续费,费率不够高、持有时间不够长就被手续费吃掉。',
+	'scan.risk.flip':
+		'费率随时会变,甚至转负——那时变成你付钱给多头。表里是过去 7 天的年化,不是承诺的收益。',
+	'scan.risk.liq': '合约空单的保证金不足时,价格急涨会把空单强平,现货那一腿却还在,对冲当场失效。',
+	'scan.risk.exchange': '资金放在交易所上,要承担交易所本身的风险(暂停提现、倒闭、被盗)。',
+	'scan.cta.title': '每天早上把雷达推给你',
+	'scan.cta.sub':
+		'绑定 Telegram 并勾选「每日机会雷达」:每天北京时间 8:30 推送接近触发、大跌区和资金费率极端的币。',
+	'scan.disclaimer': '规则观察,不构成投资建议。我们不代客理财,也不提供仓位建议。',
+	'scan.empty.title': '雷达正在准备中',
+	'scan.empty.body': '行情数据还没到,每小时收盘后会自动更新。',
+	'scan.error.title': '雷达暂时加载不出来',
+	'scan.error.body': '数据服务暂时无法访问,请稍后刷新页面。'
 };

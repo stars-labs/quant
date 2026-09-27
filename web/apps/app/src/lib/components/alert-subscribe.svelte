@@ -32,6 +32,11 @@
 			en: 'DCA boost days — when fear is extreme or BTC is deep off its high, the rule says buy more'
 		},
 		{
+			id: 'daily_scan',
+			zh: '每日机会雷达 — 每天早上 8:30(北京时间)推送接近触发、大跌区和资金费率极端的币',
+			en: 'Daily opportunity radar — every morning at 08:30 Beijing time: coins near a trigger, deep dips and extreme funding'
+		},
+		{
 			id: 'equity_trades',
 			zh: '美股模拟盘交易 — 开仓/平仓通知',
 			en: 'US-equity paper trades — open/close notifications'

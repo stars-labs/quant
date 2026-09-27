@@ -147,6 +147,36 @@ export interface StrategyTrade {
 	hold_days: number | null;
 }
 
+// 机会雷达, one row per house coin (api.opportunity_scan, migration 035). Fractions throughout:
+// to_entry = channel_high/last_close-1 (only while flat), to_exit = channel_low/last_close-1 (only
+// while held), from_high_30d = last_close/high_30d-1, funding_ann_7d = 7-day funding annualised.
+export interface OpportunityScan {
+	asset: string;
+	last_ts: string | null;
+	last_close: number | null;
+	channel_high: number | null;
+	channel_low: number | null;
+	high_30d: number | null;
+	held: boolean;
+	held_since: string | null;
+	to_entry: number | null;
+	to_exit: number | null;
+	from_high_30d: number | null;
+	funding_ann_7d: number | null;
+}
+
+// Binance USDT-perp funding for spot-listed coins (api.funding_rates, migration 035). last_rate is
+// the latest per-interval rate; ann_7d = the last 7 days of actual funding × 365/7 (a fraction).
+export interface FundingRate {
+	asset: string;
+	symbol: string;
+	last_rate: number | null;
+	ann_7d: number;
+	n_7d: number | null;
+	quote_volume_24h: number | null;
+	updated_at: string;
+}
+
 // A backtest of a CURRENTLY-DEPLOYED Nautilus strategy (honest numbers, not freqtrade).
 export interface NautilusBacktest {
 	id: number;

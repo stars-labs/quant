@@ -30,6 +30,7 @@ export default {
 	'nav.more': 'More',
 	'nav.docs': 'Docs',
 	'nav.record': 'Track record',
+	'nav.scan': 'Opportunity radar',
 	'nav.realtimeOn': 'Realtime · Connected',
 	'nav.realtimeOff': 'Data · Scheduled',
 	'topbar.login': 'Log in',
@@ -566,5 +567,82 @@ export default {
 	'nautilus.supersededHint':
 		'An engine restart re-registered this position as a new row; this row is a stale copy with no real exit price or P&L.',
 	'nautilus.recordLink': 'Looking for every buy and sell of the trend rule?',
-	'nautilus.recordCta': 'Track record →'
+	'nautilus.recordCta': 'Track record →',
+
+	// --- scan (opportunity radar, /scan) ---
+	'scan.metaTitle': 'Opportunity radar',
+	'scan.metaDesc':
+		'Which major coins are close to a trend-rule buy, which holdings are near their exit line, which are 20%+ off their 30-day high, and where perp funding is most extreme. Updated hourly. Rule-based observations, not investment advice.',
+	'scan.eyebrow': 'Rule-based observations · updated hourly',
+	'scan.title': 'Opportunity radar',
+	'scan.subtitle':
+		'The same trend rule as the track record, run across all {n} coins: which are a small move away from their buy trigger, which holdings are close to their exit line, and which have fallen furthest from their 30-day high. Plus perpetual funding rates, to see which side is most crowded.',
+	'scan.asOf': 'Prices as of {ts} UTC (Binance spot 1-hour close).',
+	'scan.fundingAsOf': 'Funding updated {ts} UTC.',
+	'scan.kpi.nearEntry': 'Near a buy trigger',
+	'scan.kpi.nearEntrySub': 'Flat and within {near} of the trigger',
+	'scan.kpi.nearExit': 'Near the exit line',
+	'scan.kpi.nearExitSub': 'Held and within {near} of the exit line',
+	'scan.kpi.dip': 'Deep dip',
+	'scan.kpi.dipSub': '{dip} or more below the 30-day high',
+	'scan.kpi.funding': 'Extreme funding',
+	'scan.kpi.fundingSub': 'Annualised ≥ {hot} or ≤ {cold}',
+	'scan.entry.title': 'Near a buy trigger',
+	'scan.entry.sub':
+		'Coins the rule is waiting on, closest to the trigger first. A 1-hour close above the trigger is a buy; those within {near} are highlighted.',
+	'scan.exit.title': 'Near the exit line',
+	'scan.exit.sub':
+		'Coins the rule holds, closest to the exit line first. A 1-hour close below the exit line is a sell; those within {near} are highlighted.',
+	'scan.dip.title': 'Deep dips',
+	'scan.dip.sub':
+		'Every coin by its drop from the 30-day high; {dip} or more is highlighted. This is only an observation: a big drop is not a buy signal, and the trend rule still waits for a breakout.',
+	'scan.dip.noData': '"—" means the coin has less than 30 days of 1-hour closes so far.',
+	'scan.col.asset': 'Coin',
+	'scan.col.last': 'Last close',
+	'scan.col.trigger': 'Buy trigger',
+	'scan.col.toEntry': 'To trigger',
+	'scan.col.exitLine': 'Exit line',
+	'scan.col.toExit': 'To exit',
+	'scan.col.high30d': '30-day high',
+	'scan.col.fromHigh': 'From high',
+	'scan.heldSince': 'held since {ts}',
+	'scan.flag.near': 'within {near}',
+	'scan.flag.dip': 'deep dip',
+	'scan.none.entry': 'No coin is flat right now: the rule holds all of them.',
+	'scan.none.exit': 'Nothing is held right now: the rule is waiting on every coin.',
+	'scan.recordLink': 'Every buy and sell per coin, with net returns, is in the',
+	'scan.recordCta': 'track record →',
+	'scan.funding.title': 'Funding radar',
+	'scan.funding.sub':
+		'The {n} coins with both a Binance USDT perpetual and a spot market, by their last 7 days of actual funding, annualised, highest first. ≥ {hot} a year is flagged as crowded longs, ≤ {cold} as crowded shorts.',
+	'scan.funding.col.asset': 'Coin',
+	'scan.funding.col.ann': '7-day annualised',
+	'scan.funding.col.last': 'Last rate',
+	'scan.funding.col.vol': '24h volume',
+	'scan.funding.hot': 'crowded longs',
+	'scan.funding.cold': 'crowded shorts',
+	'scan.funding.empty': 'No funding data yet.',
+	'scan.carry.title': 'What funding is, and whether you can earn it',
+	'scan.carry.what':
+		'Perpetual futures never expire, so every few hours longs and shorts pay each other a funding fee that keeps the contract near spot. Positive funding means longs pay shorts: more people want to be long, longs are crowded. Negative funding means shorts pay longs: shorts are crowded.',
+	'scan.carry.how':
+		'The usual trade is the "carry": buy the coin spot and short the same amount on the perpetual. Price moves cancel out and you collect the funding.',
+	'scan.risk.title': 'It is not risk-free income',
+	'scan.risk.fees':
+		'Opening and closing both legs costs four trading fees; low funding or a short hold gets eaten by fees.',
+	'scan.risk.flip':
+		'Funding changes all the time and can turn negative, and then you pay the longs. The table shows the last 7 days annualised, not a promised yield.',
+	'scan.risk.liq':
+		'If the short leg is under-margined, a sharp rally liquidates it while the spot leg stays, and the hedge is gone.',
+	'scan.risk.exchange':
+		'Funds on an exchange carry the exchange risk itself: withdrawal halts, insolvency or hacks.',
+	'scan.cta.title': 'Get the radar every morning',
+	'scan.cta.sub':
+		'Bind Telegram and tick "Daily opportunity radar": every day at 08:30 Beijing time you get the coins near a trigger, the deep dips and the extreme funding.',
+	'scan.disclaimer':
+		'Rule-based observations, not investment advice. We do not manage money or give position sizing advice.',
+	'scan.empty.title': 'The radar is warming up',
+	'scan.empty.body': 'No price data yet; it updates after every hourly close.',
+	'scan.error.title': 'The radar could not load',
+	'scan.error.body': 'The data service is unreachable right now. Please refresh in a moment.'
 };
