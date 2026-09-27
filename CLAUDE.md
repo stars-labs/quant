@@ -115,6 +115,15 @@ closes the stale row as `exit_reason='superseded'`, no price/PnL).
   min: commodity closes from `market_snapshots`, 48 equities via cached Yahoo, VIX from `market_stress`) are
   OBSERVATIONS only — the daily breakout backtest failed OOS (`scripts/screen_daily_breakout.py`), so never
   add trigger wording there without a new passing backtest.
+- Growth loop (migration `037`): every dispatcher link carries `?ref=tg_<channel>` (`link()`); the web
+  stores it in `web_events.campaign` (landing page_view = the URL's ref, conversions = first-touch ref) and
+  the operator daily report shows per-ref visits / binds / weekly-active subscribers / follows.
+  `telegram_links.coins` (NULL = all) filters strategy entries/exits per chat (scorecard unfiltered).
+  Entry cards carry a 「我跟了这笔」 button (`callback_data follow:<id>`, dispatcher handles
+  `callback_query`) → `quant.user_follows` (live signals only, trigger-enforced; owner-only API views);
+  `quant.follow_record` / `quant.strategy_live_record` are the only place personal / live-only stats are
+  computed. Telegram `/me` = personal share card (`share_card.render_personal`). Web: `/record` 我的跟单 +
+  live block, `/method` (rules, costs, rejected ideas, changelog — add a line when a rule changes).
 
 ## Health checks (operator alerts)
 `strategies/health_check.py` runs every 10 min in two roles that watch each other via
