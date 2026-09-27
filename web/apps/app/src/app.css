@@ -13,8 +13,10 @@
 
 @theme inline {
 	/* Typography */
-	--font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-	--font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+	--font-sans:
+		'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+	--font-mono:
+		'JetBrains Mono', 'SF Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
 	--font-display: 'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
 
 	/* shadcn-compatible color vars (kept so existing utilities work) */
@@ -63,54 +65,54 @@
    ========================================================= */
 :root {
 	/* BearDawnVerse light surfaces */
-	--bg-void: #ECEAF5;
-	--bg-base: #F6F4FB;
-	--bg-surface: #FFFFFF;
-	--bg-surface-2: #F1EFF8;
-	--bg-surface-3: #E6E3F2;
+	--bg-void: #eceaf5;
+	--bg-base: #f6f4fb;
+	--bg-surface: #ffffff;
+	--bg-surface-2: #f1eff8;
+	--bg-surface-3: #e6e3f2;
 
 	/* Brand accents (light-tuned for AA) */
-	--dawn-300: #FFA77A;
-	--dawn-500: #F26E3D;
-	--dawn-700: #C8501F;
-	--dawn-glow: rgba(242, 110, 61, 0.30);
-	--gold-500: #D99520;
-	--violet-300: #B8A4FF;
-	--violet-500: #5A3FE0;
-	--violet-700: #4A30B8;
-	--violet-glow: rgba(90, 63, 224, 0.30);
-	--hex-300: #8FE6E1;
-	--hex-500: #1A8F8A;
-	--matrix-500: #16A34A;
+	--dawn-300: #ffa77a;
+	--dawn-500: #f26e3d;
+	--dawn-700: #c8501f;
+	--dawn-glow: rgba(242, 110, 61, 0.3);
+	--gold-500: #d99520;
+	--violet-300: #b8a4ff;
+	--violet-500: #5a3fe0;
+	--violet-700: #4a30b8;
+	--violet-glow: rgba(90, 63, 224, 0.3);
+	--hex-300: #8fe6e1;
+	--hex-500: #1a8f8a;
+	--matrix-500: #16a34a;
 
 	/* Trading semantics */
-	--profit: #16A34A;
-	--loss: #DC2647;
-	--warn: #B8801A;
-	--danger: #D91E3F;
+	--profit: #16a34a;
+	--loss: #dc2647;
+	--warn: #b8801a;
+	--danger: #d91e3f;
 
 	/* shadcn-mapped (light) */
-	--background: #F6F4FB;
-	--foreground: #14132A;
-	--card: #FFFFFF;
-	--card-foreground: #14132A;
-	--popover: #FFFFFF;
-	--popover-foreground: #14132A;
-	--primary: #F26E3D; /* dawn */
-	--primary-foreground: #FFFFFF;
-	--secondary: #F1EFF8;
-	--secondary-foreground: #14132A;
-	--muted: #F1EFF8;
-	--muted-foreground: #6E6A8E;
-	--accent: #E6E3F2;
-	--accent-foreground: #14132A;
-	--destructive: #D91E3F;
-	--destructive-foreground: #FFFFFF;
-	--border: rgba(20, 19, 42, 0.10);
-	--input: rgba(20, 19, 42, 0.10);
-	--ring: #F26E3D;
-	--success: #16A34A;
-	--warning: #B8801A;
+	--background: #f6f4fb;
+	--foreground: #14132a;
+	--card: #ffffff;
+	--card-foreground: #14132a;
+	--popover: #ffffff;
+	--popover-foreground: #14132a;
+	--primary: #f26e3d; /* dawn */
+	--primary-foreground: #ffffff;
+	--secondary: #f1eff8;
+	--secondary-foreground: #14132a;
+	--muted: #f1eff8;
+	--muted-foreground: #6e6a8e;
+	--accent: #e6e3f2;
+	--accent-foreground: #14132a;
+	--destructive: #d91e3f;
+	--destructive-foreground: #ffffff;
+	--border: rgba(20, 19, 42, 0.1);
+	--input: rgba(20, 19, 42, 0.1);
+	--ring: #f26e3d;
+	--success: #16a34a;
+	--warning: #b8801a;
 	--radius: 0.375rem; /* 6px — BearDawnVerse spec, slightly sharper than shadcn default */
 }
 
@@ -119,54 +121,54 @@
    ========================================================= */
 .dark {
 	/* BearDawnVerse dark surfaces */
-	--bg-void: #07060F;
-	--bg-base: #0C0B1A;
-	--bg-surface: #14132A;
-	--bg-surface-2: #1B1A38;
+	--bg-void: #07060f;
+	--bg-base: #0c0b1a;
+	--bg-surface: #14132a;
+	--bg-surface-2: #1b1a38;
 	--bg-surface-3: #252346;
 
 	/* Brand accents (canonical) */
-	--dawn-300: #FFA77A;
-	--dawn-500: #FF8A5C;
-	--dawn-700: #C8501F;
+	--dawn-300: #ffa77a;
+	--dawn-500: #ff8a5c;
+	--dawn-700: #c8501f;
 	--dawn-glow: rgba(255, 138, 92, 0.45);
-	--gold-500: #F5B340;
-	--violet-300: #B8A4FF;
-	--violet-500: #7C5CFF;
-	--violet-700: #4A30B8;
-	--violet-glow: rgba(124, 92, 255, 0.40);
-	--hex-300: #8FE6E1;
-	--hex-500: #3FD0C9;
-	--matrix-500: #6BFFB0;
+	--gold-500: #f5b340;
+	--violet-300: #b8a4ff;
+	--violet-500: #7c5cff;
+	--violet-700: #4a30b8;
+	--violet-glow: rgba(124, 92, 255, 0.4);
+	--hex-300: #8fe6e1;
+	--hex-500: #3fd0c9;
+	--matrix-500: #6bffb0;
 
 	/* Trading semantics */
-	--profit: #4ADE80;
-	--loss: #FF5C7A;
-	--warn: #F5B340;
-	--danger: #FF3B5C;
+	--profit: #4ade80;
+	--loss: #ff5c7a;
+	--warn: #f5b340;
+	--danger: #ff3b5c;
 
 	/* shadcn-mapped (dark) */
-	--background: #0C0B1A;
-	--foreground: #F4F2FF;
-	--card: #14132A;
-	--card-foreground: #F4F2FF;
-	--popover: #1B1A38;
-	--popover-foreground: #F4F2FF;
-	--primary: #FF8A5C; /* dawn */
-	--primary-foreground: #0C0B1A;
-	--secondary: #1B1A38;
-	--secondary-foreground: #F4F2FF;
-	--muted: #1B1A38;
-	--muted-foreground: #8E89B0;
+	--background: #0c0b1a;
+	--foreground: #f4f2ff;
+	--card: #14132a;
+	--card-foreground: #f4f2ff;
+	--popover: #1b1a38;
+	--popover-foreground: #f4f2ff;
+	--primary: #ff8a5c; /* dawn */
+	--primary-foreground: #0c0b1a;
+	--secondary: #1b1a38;
+	--secondary-foreground: #f4f2ff;
+	--muted: #1b1a38;
+	--muted-foreground: #8e89b0;
 	--accent: #252346;
-	--accent-foreground: #F4F2FF;
-	--destructive: #FF3B5C;
-	--destructive-foreground: #F4F2FF;
-	--border: rgba(255, 255, 255, 0.10);
-	--input: rgba(255, 255, 255, 0.10);
-	--ring: #FF8A5C;
-	--success: #4ADE80;
-	--warning: #F5B340;
+	--accent-foreground: #f4f2ff;
+	--destructive: #ff3b5c;
+	--destructive-foreground: #f4f2ff;
+	--border: rgba(255, 255, 255, 0.1);
+	--input: rgba(255, 255, 255, 0.1);
+	--ring: #ff8a5c;
+	--success: #4ade80;
+	--warning: #f5b340;
 }
 
 body {
@@ -210,7 +212,7 @@ body {
 }
 
 .bdv-grad-text {
-	background: linear-gradient(110deg, #FFD27A 0%, #FF8A5C 50%, #B8A4FF 100%);
+	background: linear-gradient(110deg, #ffd27a 0%, #ff8a5c 50%, #b8a4ff 100%);
 	-webkit-background-clip: text;
 	background-clip: text;
 	-webkit-text-fill-color: transparent;
@@ -218,13 +220,18 @@ body {
 }
 
 .bdv-glow-dawn {
-	box-shadow: 0 0 0 1px var(--dawn-glow), 0 0 24px rgba(255, 138, 92, 0.18);
+	box-shadow:
+		0 0 0 1px var(--dawn-glow),
+		0 0 24px rgba(255, 138, 92, 0.18);
 }
 
 /* Global typography — Space Grotesk for all heading levels, per BDV spec.
    Existing Tailwind utility classes (text-4xl, font-semibold, etc.) still
    compose normally — this only changes family + tracking. */
-h1, h2, h3, h4 {
+h1,
+h2,
+h3,
+h4 {
 	font-family: var(--font-display);
 	letter-spacing: -0.01em;
 }
@@ -257,40 +264,62 @@ h1 {
 	background: var(--profit-bg, rgba(74, 222, 128, 0.12));
 	border-color: color-mix(in oklab, var(--profit) 35%, transparent);
 }
-.bdv-status-pill.is-running > .dot { background: var(--profit); animation: bdv-pulse 1.6s infinite; }
+.bdv-status-pill.is-running > .dot {
+	background: var(--profit);
+	animation: bdv-pulse 1.6s infinite;
+}
 .bdv-status-pill.is-stopped {
 	color: var(--muted-foreground);
 	background: var(--muted);
 	border-color: var(--border);
 }
-.bdv-status-pill.is-stopped > .dot { background: var(--muted-foreground); }
+.bdv-status-pill.is-stopped > .dot {
+	background: var(--muted-foreground);
+}
 .bdv-status-pill.is-paused {
 	color: var(--warn);
 	background: var(--warn-bg, rgba(245, 179, 64, 0.12));
 	border-color: color-mix(in oklab, var(--warn) 35%, transparent);
 }
-.bdv-status-pill.is-paused > .dot { background: var(--warn); animation: bdv-pulse 1.6s infinite; }
+.bdv-status-pill.is-paused > .dot {
+	background: var(--warn);
+	animation: bdv-pulse 1.6s infinite;
+}
 .bdv-status-pill.is-error {
 	color: var(--danger);
 	background: var(--danger-bg, rgba(255, 59, 92, 0.14));
 	border-color: color-mix(in oklab, var(--danger) 40%, transparent);
 }
-.bdv-status-pill.is-error > .dot { background: var(--danger); animation: bdv-pulse 1.6s infinite; }
+.bdv-status-pill.is-error > .dot {
+	background: var(--danger);
+	animation: bdv-pulse 1.6s infinite;
+}
 .bdv-status-pill.is-long {
 	color: var(--profit);
 	background: var(--profit-bg, rgba(74, 222, 128, 0.12));
 	border-color: color-mix(in oklab, var(--profit) 35%, transparent);
 }
-.bdv-status-pill.is-long > .dot { background: var(--profit); }
+.bdv-status-pill.is-long > .dot {
+	background: var(--profit);
+}
 .bdv-status-pill.is-short {
 	color: var(--loss);
 	background: var(--loss-bg, rgba(255, 92, 122, 0.12));
 	border-color: color-mix(in oklab, var(--loss) 35%, transparent);
 }
-.bdv-status-pill.is-short > .dot { background: var(--loss); }
+.bdv-status-pill.is-short > .dot {
+	background: var(--loss);
+}
 @keyframes bdv-pulse {
-	0%, 100% { opacity: 1; transform: scale(1); }
-	50% { opacity: 0.5; transform: scale(1.3); }
+	0%,
+	100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+	50% {
+		opacity: 0.5;
+		transform: scale(1.3);
+	}
 }
 
 /* Chart-paint palette — theme-aware versions of the inline rgba()
@@ -301,24 +330,24 @@ h1 {
    BDV light-mode trading semantics + a more legible slate. */
 :root {
 	/* axis labels, grid lines, faint lines — slate */
-	--ch-axis-faint: rgba(110, 106, 142, 0.20);
+	--ch-axis-faint: rgba(110, 106, 142, 0.2);
 	--ch-axis-muted: rgba(110, 106, 142, 0.55);
-	--ch-axis: rgba(110, 106, 142, 0.70);
+	--ch-axis: rgba(110, 106, 142, 0.7);
 	--ch-axis-strong: rgba(60, 57, 90, 0.85);
 	/* profit (#16A34A in light) */
-	--ch-profit-light: rgba(22, 163, 74, 0.50);
-	--ch-profit: rgba(22, 163, 74, 0.70);
+	--ch-profit-light: rgba(22, 163, 74, 0.5);
+	--ch-profit: rgba(22, 163, 74, 0.7);
 	--ch-profit-strong: rgba(22, 163, 74, 0.85);
 	/* loss (#DC2647 in light) */
-	--ch-loss-light: rgba(220, 38, 71, 0.50);
-	--ch-loss: rgba(220, 38, 71, 0.70);
+	--ch-loss-light: rgba(220, 38, 71, 0.5);
+	--ch-loss: rgba(220, 38, 71, 0.7);
 	--ch-loss-strong: rgba(220, 38, 71, 0.85);
 	/* solid (no alpha) — used for stroke=, dot fills, line graphs */
-	--ch-profit-solid: #16A34A;
-	--ch-loss-solid: #DC2647;
+	--ch-profit-solid: #16a34a;
+	--ch-loss-solid: #dc2647;
 	/* warn / yellow (#B8801A in light, #F5B340 in dark) */
-	--ch-warn-light: rgba(184, 128, 26, 0.50);
-	--ch-warn: rgba(184, 128, 26, 0.70);
+	--ch-warn-light: rgba(184, 128, 26, 0.5);
+	--ch-warn: rgba(184, 128, 26, 0.7);
 	/* teal — same hex teal in both modes */
 	--ch-teal-light: rgba(26, 143, 138, 0.45);
 	--ch-teal: rgba(26, 143, 138, 0.65);
@@ -329,24 +358,24 @@ h1 {
 	--ch-violet-strong: rgba(90, 63, 224, 0.85);
 	/* chart hairlines — surface borders inside SVG */
 	--ch-rule-faint: rgba(20, 19, 42, 0.06);
-	--ch-rule: rgba(20, 19, 42, 0.10);
+	--ch-rule: rgba(20, 19, 42, 0.1);
 	--ch-rule-strong: rgba(20, 19, 42, 0.18);
 }
 .dark {
-	--ch-axis-faint: rgba(148, 163, 184, 0.20);
+	--ch-axis-faint: rgba(148, 163, 184, 0.2);
 	--ch-axis-muted: rgba(148, 163, 184, 0.55);
-	--ch-axis: rgba(148, 163, 184, 0.70);
+	--ch-axis: rgba(148, 163, 184, 0.7);
 	--ch-axis-strong: rgba(203, 213, 225, 0.85);
-	--ch-profit-light: rgba(74, 222, 128, 0.50);
-	--ch-profit: rgba(74, 222, 128, 0.70);
+	--ch-profit-light: rgba(74, 222, 128, 0.5);
+	--ch-profit: rgba(74, 222, 128, 0.7);
 	--ch-profit-strong: rgba(74, 222, 128, 0.85);
-	--ch-loss-light: rgba(255, 92, 122, 0.50);
-	--ch-loss: rgba(255, 92, 122, 0.70);
+	--ch-loss-light: rgba(255, 92, 122, 0.5);
+	--ch-loss: rgba(255, 92, 122, 0.7);
 	--ch-loss-strong: rgba(255, 92, 122, 0.85);
-	--ch-profit-solid: #4ADE80;
-	--ch-loss-solid: #FF5C7A;
-	--ch-warn-light: rgba(245, 179, 64, 0.50);
-	--ch-warn: rgba(245, 179, 64, 0.70);
+	--ch-profit-solid: #4ade80;
+	--ch-loss-solid: #ff5c7a;
+	--ch-warn-light: rgba(245, 179, 64, 0.5);
+	--ch-warn: rgba(245, 179, 64, 0.7);
 	--ch-teal-light: rgba(63, 208, 201, 0.45);
 	--ch-teal: rgba(63, 208, 201, 0.65);
 	--ch-teal-strong: rgba(63, 208, 201, 0.85);
@@ -354,7 +383,7 @@ h1 {
 	--ch-violet: rgba(124, 92, 255, 0.65);
 	--ch-violet-strong: rgba(124, 92, 255, 0.85);
 	--ch-rule-faint: rgba(255, 255, 255, 0.06);
-	--ch-rule: rgba(255, 255, 255, 0.10);
+	--ch-rule: rgba(255, 255, 255, 0.1);
 	--ch-rule-strong: rgba(255, 255, 255, 0.18);
 }
 
@@ -365,13 +394,27 @@ h1 {
 	border-color: color-mix(in oklab, currentColor 35%, transparent);
 	background: color-mix(in oklab, currentColor 10%, transparent);
 }
-.bdv-tag-indicator { color: var(--hex-500); }     /* EMA / ADX / MACD / RSI — signal */
-.bdv-tag-macro    { color: var(--violet-500); }   /* FnG / Funding / HTF — context */
-.bdv-tag-position { color: var(--gold-500); }     /* Pyramid / DCA / Trailing / Protections */
-.bdv-tag-risk     { color: var(--loss); }         /* DD-Kill / Cooldown */
-.bdv-tag-spot     { color: var(--profit); }       /* Spot */
-.bdv-tag-futures  { color: var(--dawn-500); }     /* Futures-Short / Futures-L+S */
-.bdv-tag-prod     { color: var(--dawn-500); }     /* Production-gate */
+.bdv-tag-indicator {
+	color: var(--hex-500);
+} /* EMA / ADX / MACD / RSI — signal */
+.bdv-tag-macro {
+	color: var(--violet-500);
+} /* FnG / Funding / HTF — context */
+.bdv-tag-position {
+	color: var(--gold-500);
+} /* Pyramid / DCA / Trailing / Protections */
+.bdv-tag-risk {
+	color: var(--loss);
+} /* DD-Kill / Cooldown */
+.bdv-tag-spot {
+	color: var(--profit);
+} /* Spot */
+.bdv-tag-futures {
+	color: var(--dawn-500);
+} /* Futures-Short / Futures-L+S */
+.bdv-tag-prod {
+	color: var(--dawn-500);
+} /* Production-gate */
 
 /* App canvas: subtle violet nebula glow at the top-right corner of the
    main content area — matches the BearDawnVerse data-screen treatment.

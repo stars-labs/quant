@@ -7,6 +7,7 @@
 	// Backdrop clicks do NOT close it (prevents accidental dismissal).
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { page } from '$app/stores';
 	import { session } from '$lib/auth';
 	import { tourOpen } from '$lib/tour';
@@ -17,9 +18,12 @@
 
 	const DONE_KEY = 'qt_tour_done';
 
+	// In-app pages a tour step can deep-link to (typed so goto() goes through resolve()).
+	type TourLink = '/backtest' | '/dca' | '/nautilus';
+
 	interface TourStep {
 		emoji: string;
-		link?: string;
+		link?: TourLink;
 		zh: { title: string; body: string };
 		en: { title: string; body: string };
 	}
@@ -131,10 +135,10 @@
 		close();
 	}
 
-	function visit(href: string) {
+	function visit(href: TourLink) {
 		markDone();
 		close();
-		void goto(href);
+		void goto(resolve(href));
 	}
 </script>
 
@@ -158,7 +162,7 @@
 			<button
 				type="button"
 				onclick={dismiss}
-				class="absolute right-4 top-4 text-sm text-muted-foreground transition-colors hover:text-foreground"
+				class="absolute top-4 right-4 text-sm text-muted-foreground transition-colors hover:text-foreground"
 			>
 				{en ? 'Skip' : '跳过'}
 			</button>
@@ -184,7 +188,7 @@
 
 			<div class="mt-6 flex items-center justify-between gap-3">
 				<div class="flex items-center gap-1.5" aria-hidden="true">
-					{#each steps as _, i (i)}
+					{#each steps, i (i)}
 						<span class={`h-1.5 w-1.5 rounded-full ${i === step ? 'bg-primary' : 'bg-border'}`}
 						></span>
 					{/each}

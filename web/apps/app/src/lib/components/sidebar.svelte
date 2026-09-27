@@ -26,7 +26,6 @@
 	]);
 </script>
 
-<!-- eslint-disable svelte/no-navigation-without-resolve -->
 <!-- Mobile scrim -->
 {#if open}
 	<button
@@ -132,7 +131,6 @@
 			{/each}
 		</ul>
 	</nav>
-
 </aside>
 
 <style>

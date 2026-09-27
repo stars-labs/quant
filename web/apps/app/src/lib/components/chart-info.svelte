@@ -125,7 +125,7 @@
 					type="button"
 					onclick={close}
 					aria-label={lang === 'zh' ? '关闭' : 'Close'}
-					class="-mr-1 -mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded text-base text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+					class="-mt-0.5 -mr-1 grid h-5 w-5 shrink-0 place-items-center rounded text-base text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
 				>
 					×
 				</button>
@@ -137,22 +137,27 @@
 			</p>
 
 			<p class="mb-2 text-foreground">
-				<span class="font-semibold text-muted-foreground">{lang === 'zh' ? '为何重要' : 'Why'}</span>
+				<span class="font-semibold text-muted-foreground">{lang === 'zh' ? '为何重要' : 'Why'}</span
+				>
 				· {copy.why}
 			</p>
 
 			{#if note}
 				<p class="mb-2 text-foreground">
-					<span class="font-semibold text-muted-foreground">{lang === 'zh' ? '怎么读这张图' : 'How to read'}</span>
+					<span class="font-semibold text-muted-foreground"
+						>{lang === 'zh' ? '怎么读这张图' : 'How to read'}</span
+					>
 					· {note}
 				</p>
 			{/if}
 
 			{#if copy.rules && copy.rules.length > 0}
 				<div class="mb-2">
-					<div class="mb-1 font-semibold text-muted-foreground">{lang === 'zh' ? '经验阈值' : 'Rules of thumb'}</div>
+					<div class="mb-1 font-semibold text-muted-foreground">
+						{lang === 'zh' ? '经验阈值' : 'Rules of thumb'}
+					</div>
 					<ul class="ml-3 list-disc space-y-0.5 text-muted-foreground">
-						{#each copy.rules as r}
+						{#each copy.rules as r, _i (_i)}
 							<li>{r}</li>
 						{/each}
 					</ul>
@@ -160,7 +165,9 @@
 			{/if}
 
 			{#if copy.formula}
-				<div class="mt-2 rounded border border-dashed border-border bg-secondary/40 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+				<div
+					class="mt-2 rounded border border-dashed border-border bg-secondary/40 px-2 py-1 font-mono text-[10px] text-muted-foreground"
+				>
 					{copy.formula}
 				</div>
 			{/if}

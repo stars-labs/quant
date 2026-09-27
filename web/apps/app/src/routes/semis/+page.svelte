@@ -393,7 +393,7 @@
 			aria-label={tr('半导体供应链网络图', 'Semiconductor supply-chain network graph')}
 		>
 			<!-- stage band headers (top → bottom flow) -->
-			{#each LAYERS as layer, li}
+			{#each LAYERS as layer, li (li)}
 				<line
 					x1="40"
 					y1={ROWY[li] + 22}
@@ -415,7 +415,7 @@
 				</text>
 			{/each}
 			<!-- edges (visible) -->
-			{#each edges as e}
+			{#each edges as e, _i (_i)}
 				{@const on = active === e.i}
 				{@const dim = active >= 0 && !on}
 				<path
@@ -428,7 +428,7 @@
 				/>
 			{/each}
 			<!-- edge hit areas (wide + invisible, sit above visible edges but below nodes) -->
-			{#each edges as e}
+			{#each edges as e, _i (_i)}
 				<path
 					d={e.path}
 					fill="none"
@@ -444,7 +444,7 @@
 				/>
 			{/each}
 			<!-- nodes -->
-			{#each [...nodes.values()] as n}
+			{#each [...nodes.values()] as n, _i (_i)}
 				{@const isNvda = n.t.symbol === 'NVDA'}
 				{@const lit = activeNodes?.has(n.t.symbol)}
 				{@const faded = (activeNodes && !lit) || trendDimmed(n.t.symbol)}
@@ -559,7 +559,7 @@
 							</div>
 						{/if}
 						<div class="mt-2.5 flex flex-wrap items-center gap-1.5">
-							{#each seg.tickers as tk}
+							{#each seg.tickers as tk, _i (_i)}
 								{@const t = bySym.get(tk)}
 								<span
 									class="rounded bg-secondary px-1.5 py-0.5 font-mono text-[11px] {t
@@ -571,7 +571,7 @@
 							{/each}
 						</div>
 						<div class="mt-1.5 flex flex-wrap gap-1">
-							{#each seg.trend_tags as tag}
+							{#each seg.trend_tags as tag, _i (_i)}
 								<button
 									type="button"
 									onclick={() => (selectedTrend = selectedTrend === tag ? null : tag)}
@@ -629,7 +629,7 @@
 	<div class="flex items-center gap-1">
 		<span class="w-10 text-right text-muted-foreground">{label}</span>
 		<span class="flex gap-px">
-			{#each [1, 2, 3, 4, 5] as n}
+			{#each [1, 2, 3, 4, 5] as n, _i (_i)}
 				<span
 					class="h-2 w-2 rounded-[1px]"
 					style="background:{n <= score
@@ -667,7 +667,7 @@
 			</div>
 		{:else}
 			<ul class="flex flex-col gap-2">
-				{#each items as m}
+				{#each items as m, _i (_i)}
 					<li class="flex items-start gap-3 text-sm">
 						<span class="w-14 shrink-0 font-semibold">{m.symbol}</span>
 						<span class="w-12 shrink-0 text-xs text-[var(--gold-500)] tabular-nums"

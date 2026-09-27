@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import type { NewsItem } from '$lib/types';
-	import { fmtTime, fmtUSD, fmtPct } from '$lib/utils';
+	import { fmtTime, fmtPct } from '$lib/utils';
 	import { t, type Lang } from '$lib/i18n';
 	import ChartInfo from '$lib/components/chart-info.svelte';
 	import StrategyInfo from '$lib/components/strategy-info.svelte';
@@ -258,55 +258,53 @@
 	{:else}
 		<ul class="space-y-3">
 			{#each runs as r (r.id)}
-					{@const profit = r.total_profit_pct ?? 0}
-					<li
-						class="rounded-xl border border-l-4 border-border border-l-green-500 bg-card px-4 py-3"
-					>
-						<div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+				{@const profit = r.total_profit_pct ?? 0}
+				<li class="rounded-xl border border-l-4 border-border border-l-green-500 bg-card px-4 py-3">
+					<div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+						<span
+							class="shrink-0 rounded-full bg-green-950/60 px-2 py-0.5 text-xs font-bold text-green-400"
+							>BACKTEST</span
+						>
+						<span class="shrink-0 text-xs text-muted-foreground tabular-nums"
+							>{fmtTime(r.started_at ?? r.imported_at)}</span
+						>
+						{#if r.timeframe}
 							<span
-								class="shrink-0 rounded-full bg-green-950/60 px-2 py-0.5 text-xs font-bold text-green-400"
-								>BACKTEST</span
+								class="shrink-0 rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground"
+								>{r.timeframe}</span
 							>
-							<span class="shrink-0 text-xs text-muted-foreground tabular-nums"
-								>{fmtTime(r.started_at ?? r.imported_at)}</span
+						{/if}
+						<span class="shrink-0 font-semibold">{r.strategy}</span>
+						<StrategyInfo strategy={r.strategy} {lang} size="xs" />
+						<span
+							class:text-green-400={profit > 0}
+							class:text-red-400={profit < 0}
+							class:text-muted-foreground={profit === 0}
+							class="shrink-0 font-mono font-semibold">{fmtPct(profit)}</span
+						>
+						{#if r.calmar != null}
+							<span class="shrink-0 text-xs text-muted-foreground"
+								>Calmar <span class="font-mono text-foreground">{r.calmar.toFixed(2)}</span></span
 							>
-							{#if r.timeframe}
-								<span
-									class="shrink-0 rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground"
-									>{r.timeframe}</span
-								>
-							{/if}
-							<span class="shrink-0 font-semibold">{r.strategy}</span>
-							<StrategyInfo strategy={r.strategy} {lang} size="xs" />
-							<span
-								class:text-green-400={profit > 0}
-								class:text-red-400={profit < 0}
-								class:text-muted-foreground={profit === 0}
-								class="shrink-0 font-mono font-semibold">{fmtPct(profit)}</span
+						{/if}
+						{#if r.sharpe != null}
+							<span class="shrink-0 text-xs text-muted-foreground"
+								>Sharpe <span class="font-mono text-foreground">{r.sharpe.toFixed(2)}</span></span
 							>
-							{#if r.calmar != null}
-								<span class="shrink-0 text-xs text-muted-foreground"
-									>Calmar <span class="font-mono text-foreground">{r.calmar.toFixed(2)}</span></span
-								>
-							{/if}
-							{#if r.sharpe != null}
-								<span class="shrink-0 text-xs text-muted-foreground"
-									>Sharpe <span class="font-mono text-foreground">{r.sharpe.toFixed(2)}</span></span
-								>
-							{/if}
-							{#if r.total_trades != null}
-								<span class="shrink-0 text-xs text-muted-foreground"
-									><span class="font-mono text-foreground">{r.total_trades}</span> trades</span
-								>
-							{/if}
-							{#if r.max_drawdown_pct != null}
-								<span class="shrink-0 text-xs text-muted-foreground"
-									>MaxDD <span class="font-mono text-red-500">{r.max_drawdown_pct.toFixed(1)}%</span
-									></span
-								>
-							{/if}
-						</div>
-					</li>
+						{/if}
+						{#if r.total_trades != null}
+							<span class="shrink-0 text-xs text-muted-foreground"
+								><span class="font-mono text-foreground">{r.total_trades}</span> trades</span
+							>
+						{/if}
+						{#if r.max_drawdown_pct != null}
+							<span class="shrink-0 text-xs text-muted-foreground"
+								>MaxDD <span class="font-mono text-red-500">{r.max_drawdown_pct.toFixed(1)}%</span
+								></span
+							>
+						{/if}
+					</div>
+				</li>
 			{/each}
 		</ul>
 	{/if}
@@ -325,7 +323,7 @@
 						<span class="text-[11px] text-muted-foreground">Days since last backtest import</span>
 					</div>
 					<div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-						{#each stratFreshness as s}
+						{#each stratFreshness as s, _i (_i)}
 							{@const tone =
 								s.daysAgo <= 7
 									? 'border-green-700/50 bg-green-950/20'
@@ -358,8 +356,6 @@
 					</div>
 				</section>
 			{/if}
-
-
 		</div>
 	</details>
 </main>

@@ -78,7 +78,9 @@
 	onMount(async () => {
 		try {
 			runs = await vps.backtestRuns(fetch, { limit: 50 });
-		} catch {}
+		} catch {
+			// no runs → the run picker stays empty; the chart itself still loads
+		}
 		await refresh();
 	});
 
@@ -94,7 +96,7 @@
 	<title>Chart · Crypto Quant</title>
 </svelte:head>
 
-<main class="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-8">
+<main class="mx-auto w-full max-w-[1600px] px-4 py-8 sm:px-6">
 	<div class="mb-4 flex items-baseline justify-between">
 		<div>
 			<h1 class="text-2xl font-semibold tracking-tight">{t(lang, 'chart.title')}</h1>
@@ -109,7 +111,7 @@
 				bind:value={pair}
 				class="rounded-md border border-border bg-background px-3 py-1 font-mono text-sm"
 			>
-				{#each DEFAULT_PAIRS as p}
+				{#each DEFAULT_PAIRS as p, _i (_i)}
 					<option value={p}>{p}</option>
 				{/each}
 			</select>
@@ -136,11 +138,10 @@
 				class="min-w-[280px] rounded-md border border-border bg-background px-3 py-1 text-sm"
 			>
 				<option value={null}>{t(lang, 'common.none')}</option>
-				{#each runs as r}
+				{#each runs as r, _i (_i)}
 					<option value={r.id}
-						>#{r.id} {r.strategy} · {r.total_trades} t · {(
-							r.total_profit_pct ?? 0
-						).toFixed(1)}%</option
+						>#{r.id}
+						{r.strategy} · {r.total_trades} t · {(r.total_profit_pct ?? 0).toFixed(1)}%</option
 					>
 				{/each}
 			</select>
@@ -151,15 +152,26 @@
 		class="mb-3 flex flex-wrap gap-x-6 gap-y-1 rounded-md border bg-card px-4 py-2 font-mono text-xs text-muted-foreground"
 	>
 		<span><span class="font-semibold text-foreground">{t(lang, 'common.pair')}:</span> {pair}</span>
-		<span><span class="font-semibold text-foreground">{t(lang, 'common.source')}:</span> {source}</span>
-		<span><span class="font-semibold text-foreground">{t(lang, 'common.rows')}:</span> {rows.length}</span>
-		<span><span class="font-semibold text-foreground">{t(lang, 'common.load')}:</span> {loadMs} ms</span>
+		<span
+			><span class="font-semibold text-foreground">{t(lang, 'common.source')}:</span> {source}</span
+		>
+		<span
+			><span class="font-semibold text-foreground">{t(lang, 'common.rows')}:</span>
+			{rows.length}</span
+		>
+		<span
+			><span class="font-semibold text-foreground">{t(lang, 'common.load')}:</span>
+			{loadMs} ms</span
+		>
 		{#if trades.length}
-			<span><span class="font-semibold text-foreground">{t(lang, 'chart.pairTrades')}:</span> {trades.length}</span>
+			<span
+				><span class="font-semibold text-foreground">{t(lang, 'chart.pairTrades')}:</span>
+				{trades.length}</span
+			>
 		{/if}
 	</div>
 
-	<div class="rounded-lg border bg-card overflow-hidden">
+	<div class="overflow-hidden rounded-lg border bg-card">
 		{#if rows.length > 0}
 			<TvChart {rows} {trades} height={560} />
 		{:else if loading}
@@ -170,12 +182,14 @@
 			<div class="flex h-[560px] flex-col items-center justify-center gap-3 px-6 text-center">
 				<div class="bdv-eyebrow text-[var(--loss)]">Chart unavailable</div>
 				<p class="max-w-md text-sm text-muted-foreground">
-					{t(lang, 'chart.error') ?? 'Chart data could not be loaded — your session may have expired or this pair is not accessible without login.'}
+					{t(lang, 'chart.error') ??
+						'Chart data could not be loaded — your session may have expired or this pair is not accessible without login.'}
 				</p>
 				<a
 					href="/login?next=/chart"
-					class="bdv-num text-[11px] uppercase tracking-[0.12em] text-[var(--dawn-500)] hover:text-[var(--dawn-300)]"
-				>→ Log in</a>
+					class="bdv-num text-[11px] tracking-[0.12em] text-[var(--dawn-500)] uppercase hover:text-[var(--dawn-300)]"
+					>→ Log in</a
+				>
 			</div>
 		{:else}
 			<!-- Successful query but 0 rows — usually means the OHLC data
@@ -191,13 +205,15 @@
 					<button
 						type="button"
 						onclick={() => (range = '1y')}
-						class="bdv-num text-[11px] uppercase tracking-[0.12em] text-[var(--dawn-500)] hover:text-[var(--dawn-300)]"
-					>→ 1Y</button>
+						class="bdv-num text-[11px] tracking-[0.12em] text-[var(--dawn-500)] uppercase hover:text-[var(--dawn-300)]"
+						>→ 1Y</button
+					>
 					<button
 						type="button"
 						onclick={() => (range = 'all')}
-						class="bdv-num text-[11px] uppercase tracking-[0.12em] text-[var(--dawn-500)] hover:text-[var(--dawn-300)]"
-					>→ ALL</button>
+						class="bdv-num text-[11px] tracking-[0.12em] text-[var(--dawn-500)] uppercase hover:text-[var(--dawn-300)]"
+						>→ ALL</button
+					>
 				</div>
 			</div>
 		{/if}
@@ -208,17 +224,17 @@
 		{@const pl = trades.reduce((a, t) => a + (t.profit_abs ?? 0), 0)}
 		<div class="mt-4 grid gap-3 sm:grid-cols-3">
 			<div class="rounded-lg border bg-card p-4">
-				<div class="text-[11px] uppercase text-muted-foreground">{t(lang, 'chart.pairTrades')}</div>
+				<div class="text-[11px] text-muted-foreground uppercase">{t(lang, 'chart.pairTrades')}</div>
 				<div class="mt-1 font-mono text-2xl font-semibold">{trades.length}</div>
 			</div>
 			<div class="rounded-lg border bg-card p-4">
-				<div class="text-[11px] uppercase text-muted-foreground">{t(lang, 'chart.winRate')}</div>
+				<div class="text-[11px] text-muted-foreground uppercase">{t(lang, 'chart.winRate')}</div>
 				<div class="mt-1 font-mono text-2xl font-semibold">
 					{((winners / trades.length) * 100).toFixed(1)}%
 				</div>
 			</div>
 			<div class="rounded-lg border bg-card p-4">
-				<div class="text-[11px] uppercase text-muted-foreground">{t(lang, 'chart.pnl')}</div>
+				<div class="text-[11px] text-muted-foreground uppercase">{t(lang, 'chart.pnl')}</div>
 				<div
 					class="mt-1 font-mono text-2xl font-semibold"
 					class:text-green-500={pl > 0}

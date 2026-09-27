@@ -62,7 +62,8 @@ export const METRICS: Record<string, MetricEntry> = {
 		},
 		en: {
 			name: 'Sharpe Ratio',
-			plain: 'Excess return divided by total volatility — the industry-standard risk-adjusted return.',
+			plain:
+				'Excess return divided by total volatility — the industry-standard risk-adjusted return.',
 			why: 'Widely understood, but treats upside swings as "risk" the same as downside swings.',
 			rules: ['> 1.5 great', '0.5–1.5 average', '< 0.5 usually not worth it'],
 			formula: 'Sharpe = (return − risk-free) ÷ stdev(returns)'
@@ -165,12 +166,14 @@ export const METRICS: Record<string, MetricEntry> = {
 	walkForward: {
 		zh: {
 			name: '滚动验证 (Walk-Forward)',
-			plain: '把历史切成多个连续窗口，用前一段优化参数，再到下一段验证 — 模拟真实"先训练后实盘"的场景。',
+			plain:
+				'把历史切成多个连续窗口，用前一段优化参数，再到下一段验证 — 模拟真实"先训练后实盘"的场景。',
 			why: '只看一次回测可能是过拟合。Walk-Forward 检查策略在不同市场环境下还能不能赚钱。'
 		},
 		en: {
 			name: 'Walk-Forward',
-			plain: 'Split history into rolling train/test windows: optimize on the past, validate on the next slice.',
+			plain:
+				'Split history into rolling train/test windows: optimize on the past, validate on the next slice.',
 			why: 'A single backtest may be over-fit. Walk-Forward checks whether the edge survives across different market regimes.'
 		}
 	},
@@ -191,13 +194,25 @@ export const METRICS: Record<string, MetricEntry> = {
 			name: '恐慌贪婪指数 (Fear & Greed)',
 			plain: '0–100 综合情绪指标 — 0=极度恐惧，100=极度贪婪。',
 			why: '反向指标。极度恐惧时往往是底部区域；极度贪婪时往往是顶部区域。Smart DCA 用它做仓位倍率。',
-			rules: ['0–25 极度恐惧 (加仓)', '25–45 恐惧', '45–55 中性', '55–75 贪婪', '75–100 极度贪婪 (减仓)']
+			rules: [
+				'0–25 极度恐惧 (加仓)',
+				'25–45 恐惧',
+				'45–55 中性',
+				'55–75 贪婪',
+				'75–100 极度贪婪 (减仓)'
+			]
 		},
 		en: {
 			name: 'Fear & Greed Index',
 			plain: '0–100 composite sentiment gauge — 0=extreme fear, 100=extreme greed.',
 			why: 'Contrarian signal. Extreme fear ≈ market bottom zones; extreme greed ≈ market top zones. Smart DCA scales position size with it.',
-			rules: ['0–25 extreme fear (scale in)', '25–45 fear', '45–55 neutral', '55–75 greed', '75–100 extreme greed (scale out)']
+			rules: [
+				'0–25 extreme fear (scale in)',
+				'25–45 fear',
+				'45–55 neutral',
+				'55–75 greed',
+				'75–100 extreme greed (scale out)'
+			]
 		}
 	},
 	bestProfit: {
@@ -205,13 +220,22 @@ export const METRICS: Record<string, MetricEntry> = {
 			name: '最佳回测收益',
 			plain: 'DCA 累积策略只买不卖，收益主要来自 BTC 长期上涨 —— 持有不动也会有大部分涨幅。',
 			why: '策略的增值在于恐慌时多买拉低成本，而不是"跑赢 BTC 几倍"。请与同期 BTC 买入持有对比着看，别只看绝对数字。',
-			rules: ['含 BTC beta：BTC 涨它就涨', '看相对买入持有的超额收益，不看绝对值', '只买不卖 → 回撤与 BTC 同步']
+			rules: [
+				'含 BTC beta：BTC 涨它就涨',
+				'看相对买入持有的超额收益，不看绝对值',
+				'只买不卖 → 回撤与 BTC 同步'
+			]
 		},
 		en: {
 			name: 'Best backtest return',
-			plain: 'The DCA accumulator only buys, never sells — most of this return is BTC’s own long-term appreciation (plain holding would also gain).',
+			plain:
+				'The DCA accumulator only buys, never sells — most of this return is BTC’s own long-term appreciation (plain holding would also gain).',
 			why: 'The strategy’s edge is buying more during panic to lower average cost, not multiplying BTC. Compare against buy-and-hold over the same window, not the absolute number.',
-			rules: ['Includes BTC beta — rises when BTC rises', 'Judge the excess vs buy-and-hold, not the headline %', 'Buy-only → drawdowns track BTC']
+			rules: [
+				'Includes BTC beta — rises when BTC rises',
+				'Judge the excess vs buy-and-hold, not the headline %',
+				'Buy-only → drawdowns track BTC'
+			]
 		}
 	},
 	leaderboard: {
@@ -283,7 +307,8 @@ export const METRICS: Record<string, MetricEntry> = {
 		},
 		en: {
 			name: 'Monte Carlo Simulation',
-			plain: 'Randomly reshuffle the historical trade sequence thousands of times to see the range of equity curves.',
+			plain:
+				'Randomly reshuffle the historical trade sequence thousands of times to see the range of equity curves.',
 			why: 'Your backtest may have benefited from a lucky order. MC shows what the same trades look like in the worst 5% — primes you for the downside.',
 			rules: ['p5 = worst 5% scenario', 'p50 = median', 'p95 = best 5% scenario']
 		}
@@ -313,7 +338,10 @@ export const METRICS: Record<string, MetricEntry> = {
 			name: 'Win/Loss Streak',
 			plain: 'Longest consecutive run of winning or losing trades.',
 			why: 'Tells you what your psychology has to survive. A 10-trade losing streak feels impossible but is more likely than you think over 100 trades.',
-			rules: ['Plan capital for 2× the historical worst streak', 'Mental prep = key to live success']
+			rules: [
+				'Plan capital for 2× the historical worst streak',
+				'Mental prep = key to live success'
+			]
 		}
 	},
 	exitReason: {
@@ -336,7 +364,8 @@ export const METRICS: Record<string, MetricEntry> = {
 		},
 		en: {
 			name: 'Enter Tag',
-			plain: 'A label the strategy attaches to each opened trade — "which signal triggered this entry?"',
+			plain:
+				'A label the strategy attaches to each opened trade — "which signal triggered this entry?"',
 			why: 'Lets you separate different entry logics inside one strategy. Some signals print, others bleed; splitting by enter_tag tells you which to keep and which to cut.'
 		}
 	},
@@ -391,12 +420,14 @@ export const METRICS: Record<string, MetricEntry> = {
 	factor: {
 		zh: {
 			name: '因子 (Factor)',
-			plain: '策略里使用的某个具体逻辑组件 — 如 EMA-cross, ADX, RSI, DD-Kill, Pyramid, Trailing 等。',
+			plain:
+				'策略里使用的某个具体逻辑组件 — 如 EMA-cross, ADX, RSI, DD-Kill, Pyramid, Trailing 等。',
 			why: '把"策略"这个黑盒拆成可以对比的乐高积木。"哪些因子赚钱、哪些拖累" 比"哪个策略好"更接近真相。'
 		},
 		en: {
 			name: 'Factor',
-			plain: 'A specific logic component inside a strategy — EMA-cross, ADX, RSI, DD-Kill, Pyramid, Trailing, etc.',
+			plain:
+				'A specific logic component inside a strategy — EMA-cross, ADX, RSI, DD-Kill, Pyramid, Trailing, etc.',
 			why: 'Decomposes the "strategy" black box into comparable lego bricks. "Which factors print money, which drag" is closer to truth than "which strategy is best".'
 		}
 	},
@@ -495,9 +526,14 @@ export const METRICS: Record<string, MetricEntry> = {
 		},
 		en: {
 			name: 'DCA Trigger',
-			plain: 'A scale-in action fired by Smart DCA when a market event (flash crash / extreme fear / macro signal) hits.',
+			plain:
+				'A scale-in action fired by Smart DCA when a market event (flash crash / extreme fear / macro signal) hits.',
 			why: 'The execution unit of contrarian buying. Trigger distribution tells you whether the rules buy "when they should" — most triggers should cluster in bear / fear regimes.',
-			rules: ['Flash crash: single-day drop > threshold', 'F&G: fear index < 25', 'Stacked: multiple conditions hit at once']
+			rules: [
+				'Flash crash: single-day drop > threshold',
+				'F&G: fear index < 25',
+				'Stacked: multiple conditions hit at once'
+			]
 		}
 	},
 	signalKind: {

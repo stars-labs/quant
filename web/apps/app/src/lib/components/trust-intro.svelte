@@ -8,8 +8,8 @@
 
 <section class="mb-8 rounded-xl border bg-card p-5">
 	<div class="flex flex-wrap items-start justify-between gap-4">
-		<div class="min-w-0 max-w-2xl">
-			<h2 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+		<div class="max-w-2xl min-w-0">
+			<h2 class="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
 				{t(lang, 'trust.heading')}
 			</h2>
 			<p class="mt-2 text-base text-foreground">{t(lang, 'trust.body')}</p>

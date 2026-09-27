@@ -37,9 +37,7 @@
 
 	<div class="relative">
 		<div class="bdv-eyebrow">{label}</div>
-		<div
-			class="bdv-num mt-1.5 text-[26px] font-bold leading-none tracking-[-0.02em] {valColor}"
-		>
+		<div class="bdv-num mt-1.5 text-[26px] leading-none font-bold tracking-[-0.02em] {valColor}">
 			{value}
 		</div>
 		{#if sub}

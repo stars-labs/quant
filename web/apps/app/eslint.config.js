@@ -12,6 +12,8 @@ const gitignorePath = path.resolve(import.meta.dirname, '.gitignore');
 
 export default defineConfig(
 	includeIgnoreFile(gitignorePath),
+	// Generated/vendored assets (Astro docs build, pagefind, plotly reports) — same as .prettierignore.
+	{ ignores: ['static/'] },
 	js.configs.recommended,
 	ts.configs.recommended,
 	svelte.configs.recommended,
@@ -37,8 +39,14 @@ export default defineConfig(
 		}
 	},
 	{
-		// Override or add rule settings here, such as:
-		// 'svelte/button-has-type': 'error'
-		rules: {}
+		rules: {
+			// The pages build their chart data from throwaway Map/Set/Date locals inside
+			// $derived.by / plain functions — rebuilt from scratch on every run, never mutated
+			// reactively — so the svelte/reactivity wrappers would only add proxy overhead.
+			'svelte/prefer-svelte-reactivity': 'off',
+			// paths.base is '' and most hrefs are static assets (/docs/, /reports/) or external
+			// URLs that resolve()'s typed route ids can't express; programmatic goto() stays checked.
+			'svelte/no-navigation-without-resolve': ['error', { ignoreLinks: true }]
+		}
 	}
 );

@@ -74,14 +74,16 @@
 	<section class="mb-8 overflow-hidden rounded-2xl border bg-card p-5 sm:p-6">
 		<div class="flex flex-wrap items-baseline justify-between gap-2">
 			<div class="flex items-center gap-2">
-				<h2 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+				<h2 class="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
 					{en ? 'Semis market pulse' : '半导体市场快照'}
 				</h2>
 				<span class="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
 					{en ? 'auto · real closes' : '自动 · 真实收盘'}
 				</span>
 			</div>
-			<a href="/semis" class="text-xs text-primary hover:underline">{en ? 'Full universe →' : '完整产业链 →'}</a>
+			<a href="/semis" class="text-xs text-primary hover:underline"
+				>{en ? 'Full universe →' : '完整产业链 →'}</a
+			>
 		</div>
 
 		<!-- Data-derived thesis (timsun-style read, honest). -->
@@ -90,7 +92,9 @@
 		<div class="mt-5 grid gap-5 lg:grid-cols-3">
 			<!-- Breadth -->
 			<div>
-				<div class="text-xs font-medium text-muted-foreground">{en ? 'Breadth (1w)' : '广度 (周)'}</div>
+				<div class="text-xs font-medium text-muted-foreground">
+					{en ? 'Breadth (1w)' : '广度 (周)'}
+				</div>
 				<div class="mt-1.5 flex items-baseline gap-2">
 					<span class="text-2xl font-bold tabular-nums">{pulse.up}/{pulse.total}</span>
 					<span class="text-xs text-muted-foreground">{en ? 'up' : '上涨'}</span>
@@ -109,9 +113,11 @@
 
 			<!-- Tier rotation -->
 			<div>
-				<div class="text-xs font-medium text-muted-foreground">{en ? 'Tier rotation (1m)' : '梯队轮动 (月)'}</div>
+				<div class="text-xs font-medium text-muted-foreground">
+					{en ? 'Tier rotation (1m)' : '梯队轮动 (月)'}
+				</div>
 				<div class="mt-2 space-y-1.5">
-					{#each pulse.tiers as t}
+					{#each pulse.tiers as t, _i (_i)}
 						<div class="flex items-center gap-2 text-xs">
 							<span class="w-20 shrink-0 text-muted-foreground">{tierName(t.tier)}</span>
 							<div class="relative h-3 flex-1 rounded bg-muted/50">
@@ -122,7 +128,9 @@
 									style="width: {(Math.abs(t.avg_ret_1m ?? 0) / maxTierAbs) * 100}%"
 								></div>
 							</div>
-							<span class="w-14 shrink-0 text-right font-mono tabular-nums">{sign(t.avg_ret_1m)}</span>
+							<span class="w-14 shrink-0 text-right font-mono tabular-nums"
+								>{sign(t.avg_ret_1m)}</span
+							>
 						</div>
 					{/each}
 				</div>
@@ -130,19 +138,23 @@
 
 			<!-- Movers -->
 			<div>
-				<div class="text-xs font-medium text-muted-foreground">{en ? 'Weekly movers' : '本周异动'}</div>
+				<div class="text-xs font-medium text-muted-foreground">
+					{en ? 'Weekly movers' : '本周异动'}
+				</div>
 				<div class="mt-2 space-y-2">
 					<div class="flex flex-wrap gap-1.5">
-						{#each pulse.leaders as m}
+						{#each pulse.leaders as m, _i (_i)}
 							<span class="rounded bg-emerald-500/10 px-2 py-1 text-xs text-emerald-500">
-								{m.symbol} {sign(m.ret_1w)}
+								{m.symbol}
+								{sign(m.ret_1w)}
 							</span>
 						{/each}
 					</div>
 					<div class="flex flex-wrap gap-1.5">
-						{#each pulse.laggards as m}
+						{#each pulse.laggards as m, _i (_i)}
 							<span class="rounded bg-red-500/10 px-2 py-1 text-xs text-red-500">
-								{m.symbol} {sign(m.ret_1w)}
+								{m.symbol}
+								{sign(m.ret_1w)}
 							</span>
 						{/each}
 					</div>

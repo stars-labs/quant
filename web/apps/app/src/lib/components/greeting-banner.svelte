@@ -40,12 +40,6 @@
 			loaded = true;
 		}
 	});
-
-	function fmt(key: string, vars: Record<string, string>) {
-		let s = t(lang, key);
-		for (const [k, v] of Object.entries(vars)) s = s.replace(`{${k}}`, v);
-		return s;
-	}
 </script>
 
 {#if $session && loaded}
@@ -62,7 +56,7 @@
 		<div class="relative flex flex-wrap items-center justify-between gap-4">
 			<div class="min-w-0">
 				<div class="bdv-eyebrow text-[var(--gold-500)]">{t(lang, 'plan.greeting')}</div>
-				<div class="bdv-display mt-1.5 text-[22px] font-semibold leading-none tracking-[-0.01em]">
+				<div class="bdv-display mt-1.5 text-[22px] leading-none font-semibold tracking-[-0.01em]">
 					{name}
 				</div>
 			</div>
@@ -93,13 +87,14 @@
 					</div>
 					<a
 						href="/dca"
-						class="bdv-num text-[11px] uppercase tracking-[0.12em] text-[var(--dawn-500)] hover:text-[var(--dawn-300)] transition-colors"
-					>→ /dca</a>
+						class="bdv-num text-[11px] tracking-[0.12em] text-[var(--dawn-500)] uppercase transition-colors hover:text-[var(--dawn-300)]"
+						>→ /dca</a
+					>
 				</div>
 			{:else}
 				<a
 					href="/dca"
-					class="text-sm text-[var(--dawn-500)] hover:text-[var(--dawn-300)] transition-colors"
+					class="text-sm text-[var(--dawn-500)] transition-colors hover:text-[var(--dawn-300)]"
 				>
 					{t(lang, 'plan.greetingNoPlan')}
 				</a>

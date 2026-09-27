@@ -41,10 +41,7 @@ export function t(lang: Lang, key: string): string {
  * taglines) that we store inline rather than in message bundles. Falls back to
  * zh if the requested lang is missing.
  */
-export function pick<T>(
-	field: { zh: T; en?: T } | null | undefined,
-	lang: Lang
-): T | null {
+export function pick<T>(field: { zh: T; en?: T } | null | undefined, lang: Lang): T | null {
 	if (!field) return null;
 	if (lang === 'en' && field.en != null) return field.en;
 	return field.zh;

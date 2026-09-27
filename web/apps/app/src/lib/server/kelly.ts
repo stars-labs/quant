@@ -35,9 +35,7 @@ export async function loadKellyStatus(fetchFn: typeof fetch): Promise<KellyStatu
  * Build a name → entry map for quick per-strategy lookup from a page loader.
  * Returns an empty Map (not null) so the consumer can always `.get(name)`.
  */
-export function indexKellyStatus(
-	file: KellyStatusFile | null
-): Map<string, KellyStatusEntry> {
+export function indexKellyStatus(file: KellyStatusFile | null): Map<string, KellyStatusEntry> {
 	const m = new Map<string, KellyStatusEntry>();
 	if (!file) return m;
 	for (const e of file.strategies) m.set(e.name, e);

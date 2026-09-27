@@ -17,7 +17,7 @@
 
 	let { data }: { data: PageData } = $props();
 	const s = data.summary;
-	const lang = $derived<Lang>(data.lang ?? 'zh');	const runs = $derived(data.recent_runs);
+	const lang = $derived<Lang>(data.lang ?? 'zh');
 
 	let strategyFilter = $state<string | null>(null);
 	let timeframeFilter = $state<string | null>(null);
@@ -38,13 +38,13 @@
 	// Strategy performance leaderboard — best recent run per strategy
 	const stratLeaderboard = $derived.by(() => {
 		if (data.recent_runs.length === 0) return null;
-		const byStrat = new Map<string, typeof data.recent_runs[0]>();
+		const byStrat = new Map<string, (typeof data.recent_runs)[0]>();
 		for (const r of data.recent_runs) {
 			const cur = byStrat.get(r.strategy);
 			if (!cur || (r.started_at ?? '') > (cur.started_at ?? '')) byStrat.set(r.strategy, r);
 		}
 		const entries = [...byStrat.values()]
-			.filter(r => r.total_profit_pct != null)
+			.filter((r) => r.total_profit_pct != null)
 			.sort((a, b) => b.total_profit_pct! - a.total_profit_pct!);
 		const top = entries.slice(0, 3);
 		const bottom = entries.slice(-3).reverse();
@@ -70,11 +70,39 @@
 	let regimeFng = $state<{ value: number; label: string } | null>(null);
 	let regimeLoading = $state(false);
 
-	function regimeSignal(fng: number, btc: number | null): { label: string; color: string; desc: string } {
-		if (fng <= 25) return { label: lang === 'en' ? 'BUY ZONE' : '抄底区', color: 'text-green-400', desc: lang === 'en' ? 'Extreme fear — historically best DCA window' : '极度恐慌 — 历史上最佳 DCA 时机' };
-		if (fng >= 75) return { label: lang === 'en' ? 'CAUTION' : '谨慎区', color: 'text-red-400',   desc: lang === 'en' ? 'Extreme greed — reduce exposure, tighten stops' : '极度贪婪 — 减仓，收紧止损' };
-		if (fng >= 55) return { label: lang === 'en' ? 'GREED'   : '贪婪',   color: 'text-yellow-400', desc: lang === 'en' ? 'Greed — trend-following strategies performing well' : '贪婪 — 趋势跟随表现良好' };
-		return { label: lang === 'en' ? 'NEUTRAL' : '中性',  color: 'text-muted-foreground', desc: lang === 'en' ? 'Neutral — all strategies on equal footing' : '中性 — 各策略均势' };
+	function regimeSignal(fng: number): { label: string; color: string; desc: string } {
+		if (fng <= 25)
+			return {
+				label: lang === 'en' ? 'BUY ZONE' : '抄底区',
+				color: 'text-green-400',
+				desc:
+					lang === 'en'
+						? 'Extreme fear — historically best DCA window'
+						: '极度恐慌 — 历史上最佳 DCA 时机'
+			};
+		if (fng >= 75)
+			return {
+				label: lang === 'en' ? 'CAUTION' : '谨慎区',
+				color: 'text-red-400',
+				desc:
+					lang === 'en'
+						? 'Extreme greed — reduce exposure, tighten stops'
+						: '极度贪婪 — 减仓，收紧止损'
+			};
+		if (fng >= 55)
+			return {
+				label: lang === 'en' ? 'GREED' : '贪婪',
+				color: 'text-yellow-400',
+				desc:
+					lang === 'en'
+						? 'Greed — trend-following strategies performing well'
+						: '贪婪 — 趋势跟随表现良好'
+			};
+		return {
+			label: lang === 'en' ? 'NEUTRAL' : '中性',
+			color: 'text-muted-foreground',
+			desc: lang === 'en' ? 'Neutral — all strategies on equal footing' : '中性 — 各策略均势'
+		};
 	}
 
 	onMount(async () => {
@@ -82,7 +110,7 @@
 		try {
 			const [btcRes, fngRes] = await Promise.allSettled([
 				fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT'),
-				fetch('https://api.alternative.me/fng/?limit=1'),
+				fetch('https://api.alternative.me/fng/?limit=1')
 			]);
 			if (btcRes.status === 'fulfilled' && btcRes.value.ok) {
 				const d = await btcRes.value.json();
@@ -93,29 +121,38 @@
 				const v = parseInt(d.data?.[0]?.value ?? '50');
 				regimeFng = { value: v, label: d.data?.[0]?.value_classification ?? '' };
 			}
-		} catch { /* silently ignore */ } finally {
+		} catch {
+			/* silently ignore */
+		} finally {
 			regimeLoading = false;
 		}
 	});
 
 	// Avg profit per trade (total_profit_abs / total_trades) by strategy — efficiency metric
-	// Median sharpe ratio per timeframe from recent runs</script>
+	// Median sharpe ratio per timeframe from recent runs
+</script>
 
 <svelte:head>
 	<title>{t(lang, 'home.title')} · BearDawnVerse Quant</title>
-	<meta name="description" content="BearDawnVerse Quant — 回测你自己的策略，看什么真的有效。免代码回测、实时信号、公开账本与诚实回撤。" />
+	<meta
+		name="description"
+		content="BearDawnVerse Quant — 回测你自己的策略，看什么真的有效。免代码回测、实时信号、公开账本与诚实回撤。"
+	/>
 	<meta property="og:title" content="{t(lang, 'home.title')} · BearDawnVerse Quant" />
-	<meta property="og:description" content="BearDawnVerse Quant — 回测你自己的策略，看什么真的有效。免代码回测、实时信号、公开账本与诚实回撤。" />
+	<meta
+		property="og:description"
+		content="BearDawnVerse Quant — 回测你自己的策略，看什么真的有效。免代码回测、实时信号、公开账本与诚实回撤。"
+	/>
 </svelte:head>
 
-<main class="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-10">
+<main class="mx-auto w-full max-w-[1600px] px-4 py-10 sm:px-6">
 	<Hero />
 	<GreetingBanner ohlcByCoin={data.ohlcByCoin} />
 
 	<div class="mb-10">
 		<div class="bdv-eyebrow mb-2 text-[var(--gold-500)]">BearDawnVerse · Quant</div>
 		<!-- div, not h1: the Hero above already carries the page's single h1 -->
-		<div class="bdv-display text-[44px] font-bold leading-[1.05] tracking-[-0.02em]">
+		<div class="bdv-display text-[44px] leading-[1.05] font-bold tracking-[-0.02em]">
 			{t(lang, 'home.title')}
 		</div>
 		<p class="mt-3 max-w-2xl text-[14px] text-muted-foreground">{t(lang, 'home.subtitle')}</p>
@@ -145,11 +182,7 @@
 			value={s.total_trades.toLocaleString()}
 			sub={t(lang, 'home.kpi.totalTradesSub')}
 		/>
-		<Kpi
-			label={t(lang, 'home.kpi.dca')}
-			value={s.dca_count}
-			sub={t(lang, 'home.kpi.dcaSub')}
-		/>
+		<Kpi label={t(lang, 'home.kpi.dca')} value={s.dca_count} sub={t(lang, 'home.kpi.dcaSub')} />
 	</section>
 
 	<section class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -162,7 +195,7 @@
 				tone={(s.best_profit_pct ?? 0) > 0 ? 'good' : 'bad'}
 				sub={t(lang, 'home.kpi.bestProfitSub')}
 			/>
-			<div class="absolute right-3 top-3">
+			<div class="absolute top-3 right-3">
 				<ChartInfo metric="bestProfit" {lang} size="xs" />
 			</div>
 		</div>
@@ -192,7 +225,9 @@
 		>
 			<div class="text-2xl">📚</div>
 			<div class="mt-2 font-semibold">{t(lang, 'home.card.strategies.title')}</div>
-			<p class="mt-1 text-sm text-muted-foreground">{fmt('home.card.strategies.desc', { n: s.distinct_strategies })}</p>
+			<p class="mt-1 text-sm text-muted-foreground">
+				{fmt('home.card.strategies.desc', { n: s.distinct_strategies })}
+			</p>
 			<div class="mt-3 text-xs text-primary opacity-0 transition-opacity group-hover:opacity-100">
 				{t(lang, 'common.enter')}
 			</div>
@@ -234,44 +269,63 @@
 
 	<!-- Market regime widget (hidden entirely when the upstream fetch fails) -->
 	{#if regimeLoading || regimeFng}
-	<section class="mt-6 rounded-xl border bg-card p-4">
-		<div class="flex flex-wrap items-center justify-between gap-4">
-			<h2 class="text-sm font-semibold">{lang === 'en' ? '🌡️ Market Regime' : '🌡️ 市场状态'}</h2>
-			{#if regimeLoading}
-				<span class="text-xs text-muted-foreground">{t(lang, 'common.loading')}</span>
-			{:else if regimeFng}
-				{@const sig = regimeSignal(regimeFng.value, regimeBtc)}
-				<div class="flex flex-wrap items-center gap-6">
-					{#if regimeBtc}
+		<section class="mt-6 rounded-xl border bg-card p-4">
+			<div class="flex flex-wrap items-center justify-between gap-4">
+				<h2 class="text-sm font-semibold">{lang === 'en' ? '🌡️ Market Regime' : '🌡️ 市场状态'}</h2>
+				{#if regimeLoading}
+					<span class="text-xs text-muted-foreground">{t(lang, 'common.loading')}</span>
+				{:else if regimeFng}
+					{@const sig = regimeSignal(regimeFng.value)}
+					<div class="flex flex-wrap items-center gap-6">
+						{#if regimeBtc}
+							<div class="text-center">
+								<div class="text-[10px] text-muted-foreground uppercase">BTC</div>
+								<div class="font-mono text-sm font-semibold">
+									${regimeBtc.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+								</div>
+							</div>
+						{/if}
 						<div class="text-center">
-							<div class="text-[10px] uppercase text-muted-foreground">BTC</div>
-							<div class="font-mono text-sm font-semibold">${regimeBtc.toLocaleString('en-US', { maximumFractionDigits: 0 })}</div>
+							<div class="text-[10px] text-muted-foreground uppercase">
+								{lang === 'en' ? 'Fear & Greed' : '恐贪指数'}
+							</div>
+							<div class="font-mono text-sm font-semibold">
+								{regimeFng.value}
+								<span class="text-xs text-muted-foreground">{regimeFng.label}</span>
+							</div>
 						</div>
-					{/if}
-					<div class="text-center">
-						<div class="text-[10px] uppercase text-muted-foreground">{lang === 'en' ? 'Fear & Greed' : '恐贪指数'}</div>
-						<div class="font-mono text-sm font-semibold">{regimeFng.value} <span class="text-xs text-muted-foreground">{regimeFng.label}</span></div>
-					</div>
-					<!-- FnG gauge bar -->
-					<div class="flex-1 min-w-32">
-						<div class="relative h-3 rounded-full overflow-hidden" style="background: linear-gradient(to right, #ef4444, #f97316, #eab308, #22c55e)">
-							<div class="absolute top-0 h-full w-1 rounded-full bg-white shadow" style="left: calc({regimeFng.value}% - 2px)"></div>
+						<!-- FnG gauge bar -->
+						<div class="min-w-32 flex-1">
+							<div
+								class="relative h-3 overflow-hidden rounded-full"
+								style="background: linear-gradient(to right, #ef4444, #f97316, #eab308, #22c55e)"
+							>
+								<div
+									class="absolute top-0 h-full w-1 rounded-full bg-white shadow"
+									style="left: calc({regimeFng.value}% - 2px)"
+								></div>
+							</div>
+							<div class="mt-0.5 flex justify-between text-[9px] text-muted-foreground">
+								<span>Fear</span><span>Greed</span>
+							</div>
 						</div>
-						<div class="mt-0.5 flex justify-between text-[9px] text-muted-foreground"><span>Fear</span><span>Greed</span></div>
+						<div class="text-center">
+							<div class="text-[10px] text-muted-foreground uppercase">
+								{lang === 'en' ? 'Signal' : '信号'}
+							</div>
+							<div class="text-sm font-bold {sig.color}">{sig.label}</div>
+						</div>
 					</div>
-					<div class="text-center">
-						<div class="text-[10px] uppercase text-muted-foreground">{lang === 'en' ? 'Signal' : '信号'}</div>
-						<div class="text-sm font-bold {sig.color}">{sig.label}</div>
-					</div>
-				</div>
-				<p class="w-full text-xs text-muted-foreground">{sig.desc}</p>
-			{/if}
-		</div>
-	</section>
+					<p class="w-full text-xs text-muted-foreground">{sig.desc}</p>
+				{/if}
+			</div>
+		</section>
 	{/if}
 
 	{#if !data.isAuthed}
-		<section class="mt-10 rounded-xl border-2 border-dashed border-primary/40 bg-gradient-to-br from-primary/5 to-transparent p-8 text-center">
+		<section
+			class="mt-10 rounded-xl border-2 border-dashed border-primary/40 bg-gradient-to-br from-primary/5 to-transparent p-8 text-center"
+		>
 			<h2 class="text-lg font-semibold">{t(lang, 'home.anonGate.title')}</h2>
 			<p class="mt-2 text-sm text-muted-foreground">{t(lang, 'home.anonGate.body')}</p>
 			<a
@@ -282,159 +336,251 @@
 			</a>
 		</section>
 	{:else}
-	{#if stratLeaderboard && stratLeaderboard.total >= 3}
-		{@const lb = stratLeaderboard}
-		<section class="mt-10">
-			<div class="mb-3 flex items-baseline justify-between">
-				<h2 class="text-lg font-semibold">Strategy Leaderboard <span class="ml-1 text-sm font-normal text-muted-foreground">(most recent run · {lb.total} strategies)</span> <ChartInfo metric="leaderboard" {lang} /></h2>
-				<a href="/strategies" class="text-xs text-primary hover:underline">All strategies</a>
-			</div>
-			<div class="grid gap-3 sm:grid-cols-2">
-				<div>
-					<p class="mb-2 text-[11px] font-semibold uppercase tracking-wider text-green-400">Top Performers</p>
-					<div class="space-y-1.5">
-						{#each lb.top as r, i}
-							<!-- StrategyInfo (a <button>) sits next to but outside the <a>
+		{#if stratLeaderboard && stratLeaderboard.total >= 3}
+			{@const lb = stratLeaderboard}
+			<section class="mt-10">
+				<div class="mb-3 flex items-baseline justify-between">
+					<h2 class="text-lg font-semibold">
+						Strategy Leaderboard <span class="ml-1 text-sm font-normal text-muted-foreground"
+							>(most recent run · {lb.total} strategies)</span
+						>
+						<ChartInfo metric="leaderboard" {lang} />
+					</h2>
+					<a href="/strategies" class="text-xs text-primary hover:underline">All strategies</a>
+				</div>
+				<div class="grid gap-3 sm:grid-cols-2">
+					<div>
+						<p class="mb-2 text-[11px] font-semibold tracking-wider text-green-400 uppercase">
+							Top Performers
+						</p>
+						<div class="space-y-1.5">
+							{#each lb.top as r, i (i)}
+								<!-- StrategyInfo (a <button>) sits next to but outside the <a>
 								 so HTML stays valid (no nested interactive controls) and the
 								 i-click doesn't accidentally fire the link navigation. -->
-							<div class="flex items-center gap-2 rounded-lg border border-green-800/30 bg-green-950/15 px-3 py-2 text-xs transition hover:border-green-600/50">
-								<a href={`/strategies/${r.strategy}`} class="flex flex-1 items-center gap-2 min-w-0">
-									<span class="w-4 shrink-0 font-bold text-green-400">#{i + 1}</span>
-									<span class="flex-1 truncate font-semibold text-foreground">{r.strategy}</span>
-									<span class="shrink-0 font-mono font-semibold text-green-400">+{r.total_profit_pct!.toFixed(1)}%</span>
-									<span class="shrink-0 font-mono text-muted-foreground text-[10px]">S {r.sharpe == null ? '—' : r.sharpe.toFixed(1)}</span>
-								</a>
-								<StrategyInfo strategy={r.strategy} {lang} size="xs" />
-							</div>
-						{/each}
+								<div
+									class="flex items-center gap-2 rounded-lg border border-green-800/30 bg-green-950/15 px-3 py-2 text-xs transition hover:border-green-600/50"
+								>
+									<a
+										href={`/strategies/${r.strategy}`}
+										class="flex min-w-0 flex-1 items-center gap-2"
+									>
+										<span class="w-4 shrink-0 font-bold text-green-400">#{i + 1}</span>
+										<span class="flex-1 truncate font-semibold text-foreground">{r.strategy}</span>
+										<span class="shrink-0 font-mono font-semibold text-green-400"
+											>+{r.total_profit_pct!.toFixed(1)}%</span
+										>
+										<span class="shrink-0 font-mono text-[10px] text-muted-foreground"
+											>S {r.sharpe == null ? '—' : r.sharpe.toFixed(1)}</span
+										>
+									</a>
+									<StrategyInfo strategy={r.strategy} {lang} size="xs" />
+								</div>
+							{/each}
+						</div>
+					</div>
+					<div>
+						<p class="mb-2 text-[11px] font-semibold tracking-wider text-red-400 uppercase">
+							Underperformers
+						</p>
+						<div class="space-y-1.5">
+							{#each lb.bottom as r, i (i)}
+								<div
+									class="flex items-center gap-2 rounded-lg border border-red-800/30 bg-red-950/15 px-3 py-2 text-xs transition hover:border-red-600/50"
+								>
+									<a
+										href={`/strategies/${r.strategy}`}
+										class="flex min-w-0 flex-1 items-center gap-2"
+									>
+										<span class="w-4 shrink-0 font-bold text-red-400"
+											>#{lb.total - lb.bottom.length + i + 1}</span
+										>
+										<span class="flex-1 truncate font-semibold text-foreground">{r.strategy}</span>
+										<span
+											class="shrink-0 font-mono font-semibold {(r.total_profit_pct ?? 0) >= 0
+												? 'text-green-400'
+												: 'text-red-400'}"
+											>{(r.total_profit_pct ?? 0) >= 0 ? '+' : ''}{r.total_profit_pct!.toFixed(
+												1
+											)}%</span
+										>
+										<span class="shrink-0 font-mono text-[10px] text-muted-foreground"
+											>S {r.sharpe == null ? '—' : r.sharpe.toFixed(1)}</span
+										>
+									</a>
+									<StrategyInfo strategy={r.strategy} {lang} size="xs" />
+								</div>
+							{/each}
+						</div>
 					</div>
 				</div>
-				<div>
-					<p class="mb-2 text-[11px] font-semibold uppercase tracking-wider text-red-400">Underperformers</p>
-					<div class="space-y-1.5">
-						{#each lb.bottom as r, i}
-							<div class="flex items-center gap-2 rounded-lg border border-red-800/30 bg-red-950/15 px-3 py-2 text-xs transition hover:border-red-600/50">
-								<a href={`/strategies/${r.strategy}`} class="flex flex-1 items-center gap-2 min-w-0">
-									<span class="w-4 shrink-0 font-bold text-red-400">#{lb.total - lb.bottom.length + i + 1}</span>
-									<span class="flex-1 truncate font-semibold text-foreground">{r.strategy}</span>
-									<span class="shrink-0 font-mono font-semibold {(r.total_profit_pct ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'}">{(r.total_profit_pct ?? 0) >= 0 ? '+' : ''}{r.total_profit_pct!.toFixed(1)}%</span>
-									<span class="shrink-0 font-mono text-muted-foreground text-[10px]">S {r.sharpe == null ? '—' : r.sharpe.toFixed(1)}</span>
-								</a>
-								<StrategyInfo strategy={r.strategy} {lang} size="xs" />
-							</div>
+			</section>
+		{/if}
+
+		<section class="mt-10">
+			<div class="mb-3 flex items-baseline justify-between">
+				<h2 class="text-lg font-semibold">{t(lang, 'home.recent.title')}</h2>
+				<a href="/archive" class="text-xs text-primary hover:underline"
+					>{t(lang, 'common.viewAll')}</a
+				>
+			</div>
+
+			<div class="mb-3 flex flex-wrap items-center gap-2 text-xs">
+				<span class="text-muted-foreground">{t(lang, 'home.filter.strategy')}</span>
+				<button
+					type="button"
+					onclick={() => (strategyFilter = null)}
+					class="rounded-md border px-2 py-1 transition-colors hover:bg-accent"
+					class:border-primary={strategyFilter === null}
+					class:text-primary={strategyFilter === null}
+				>
+					{t(lang, 'common.all')}
+				</button>
+				{#each data.strategy_options as opt, _i (_i)}
+					<button
+						type="button"
+						onclick={() => (strategyFilter = strategyFilter === opt ? null : opt)}
+						class="rounded-md border px-2 py-1 font-mono transition-colors hover:bg-accent"
+						class:border-primary={strategyFilter === opt}
+						class:text-primary={strategyFilter === opt}
+					>
+						{opt}
+					</button>
+				{/each}
+			</div>
+
+			<div class="mb-4 flex flex-wrap items-center gap-2 text-xs">
+				<span class="text-muted-foreground">{t(lang, 'home.filter.tf')}</span>
+				<button
+					type="button"
+					onclick={() => (timeframeFilter = null)}
+					class="rounded-md border px-2 py-1 transition-colors hover:bg-accent"
+					class:border-primary={timeframeFilter === null}
+					class:text-primary={timeframeFilter === null}
+				>
+					{t(lang, 'common.all')}
+				</button>
+				{#each data.timeframe_options as opt, _i (_i)}
+					<button
+						type="button"
+						onclick={() => (timeframeFilter = timeframeFilter === opt ? null : opt)}
+						class="rounded-md border px-2 py-1 font-mono transition-colors hover:bg-accent"
+						class:border-primary={timeframeFilter === opt}
+						class:text-primary={timeframeFilter === opt}
+					>
+						{opt}
+					</button>
+				{/each}
+			</div>
+
+			<div class="overflow-x-auto rounded-lg border bg-card">
+				<table class="w-full text-sm">
+					<thead class="bg-secondary text-left text-[11px] text-muted-foreground uppercase">
+						<tr>
+							<th class="px-3 py-2.5"
+								><span class="inline-flex items-center"
+									>{t(lang, 'home.table.started')}<InfoTip
+										text={t(lang, 'metric.tip.started')}
+									/></span
+								></th
+							>
+							<th class="px-3">{t(lang, 'home.table.strategy')}</th>
+							<th class="px-3"
+								><span class="inline-flex items-center"
+									>{t(lang, 'home.table.tf')}<InfoTip text={t(lang, 'metric.tip.tf')} /></span
+								></th
+							>
+							<th class="px-3"
+								><span class="inline-flex items-center"
+									>{t(lang, 'home.table.factors')}<InfoTip
+										text={t(lang, 'metric.tip.factors')}
+									/></span
+								></th
+							>
+							<th class="px-3 text-right"
+								><span class="inline-flex items-center"
+									>{t(lang, 'home.table.trades')}<InfoTip
+										text={t(lang, 'metric.tip.trades')}
+									/></span
+								></th
+							>
+							<th class="px-3 text-right"
+								><span class="inline-flex items-center"
+									>{t(lang, 'home.table.winRate')}<InfoTip text={t(lang, 'metric.tip.wr')} /></span
+								></th
+							>
+							<th class="px-3 text-right"
+								><span class="inline-flex items-center"
+									>{t(lang, 'home.table.profit')}<InfoTip
+										text={t(lang, 'metric.tip.profit')}
+									/></span
+								></th
+							>
+							<th class="px-3 text-right"
+								><span class="inline-flex items-center"
+									>{t(lang, 'home.table.maxDd')}<InfoTip text={t(lang, 'metric.tip.maxDd')} /></span
+								></th
+							>
+							<th class="px-3 text-right"
+								><span class="inline-flex items-center"
+									>{t(lang, 'home.table.calmar')}<InfoTip
+										text={t(lang, 'metric.tip.calmar')}
+										placement="top"
+									/></span
+								></th
+							>
+							<th class="px-3 text-right"
+								><span class="inline-flex items-center"
+									>{t(lang, 'home.table.sharpe')}<InfoTip
+										text={t(lang, 'metric.tip.sharpe')}
+										placement="top"
+									/></span
+								></th
+							>
+						</tr>
+					</thead>
+					<tbody class="font-mono text-xs">
+						{#each filtered as r (r.id)}
+							<tr class="border-t border-border hover:bg-accent/50">
+								<td class="px-3 py-2 text-muted-foreground">{fmtTime(r.started_at)}</td>
+								<td class="px-3 font-semibold">
+									<a href={`/strategies/${r.strategy}`} class="text-primary hover:underline">
+										{r.strategy}
+									</a>
+								</td>
+								<td class="px-3">{r.timeframe ?? '-'}</td>
+								<td class="px-3">
+									<FactorBadges factors={r.factors} size="xs" />
+								</td>
+								<td class="px-3 text-right">{r.total_trades ?? 0}</td>
+								<td class="px-3 text-right"
+									>{r.win_rate_pct == null ? '—' : r.win_rate_pct.toFixed(1)}</td
+								>
+								<td
+									class="px-3 text-right"
+									class:text-green-500={(r.total_profit_pct ?? 0) > 0}
+									class:text-red-500={(r.total_profit_pct ?? 0) < 0}
+								>
+									{fmtPct(r.total_profit_pct)}
+								</td>
+								<td class="px-3 text-right" class:text-red-500={(r.max_drawdown_pct ?? 0) > 20}>
+									{(r.max_drawdown_pct ?? 0).toFixed(2)}%
+								</td>
+								<td class="px-3 text-right">{r.calmar == null ? '-' : r.calmar.toFixed(2)}</td>
+								<td class="px-3 text-right">{r.sharpe == null ? '—' : r.sharpe.toFixed(2)}</td>
+							</tr>
 						{/each}
-					</div>
-				</div>
+						{#if filtered.length === 0}
+							<tr
+								><td class="px-3 py-6 text-center text-muted-foreground" colspan="10"
+									>{t(lang, 'home.filter.empty')}</td
+								></tr
+							>
+						{/if}
+					</tbody>
+				</table>
 			</div>
 		</section>
-	{/if}
-
-	<section class="mt-10">
-		<div class="mb-3 flex items-baseline justify-between">
-			<h2 class="text-lg font-semibold">{t(lang, 'home.recent.title')}</h2>
-			<a href="/archive" class="text-xs text-primary hover:underline">{t(lang, 'common.viewAll')}</a>
-		</div>
-
-		<div class="mb-3 flex flex-wrap items-center gap-2 text-xs">
-			<span class="text-muted-foreground">{t(lang, 'home.filter.strategy')}</span>
-			<button
-				type="button"
-				onclick={() => (strategyFilter = null)}
-				class="rounded-md border px-2 py-1 transition-colors hover:bg-accent"
-				class:border-primary={strategyFilter === null}
-				class:text-primary={strategyFilter === null}
-			>
-				{t(lang, 'common.all')}
-			</button>
-			{#each data.strategy_options as opt}
-				<button
-					type="button"
-					onclick={() => (strategyFilter = strategyFilter === opt ? null : opt)}
-					class="rounded-md border px-2 py-1 font-mono transition-colors hover:bg-accent"
-					class:border-primary={strategyFilter === opt}
-					class:text-primary={strategyFilter === opt}
-				>
-					{opt}
-				</button>
-			{/each}
-		</div>
-
-		<div class="mb-4 flex flex-wrap items-center gap-2 text-xs">
-			<span class="text-muted-foreground">{t(lang, 'home.filter.tf')}</span>
-			<button
-				type="button"
-				onclick={() => (timeframeFilter = null)}
-				class="rounded-md border px-2 py-1 transition-colors hover:bg-accent"
-				class:border-primary={timeframeFilter === null}
-				class:text-primary={timeframeFilter === null}
-			>
-				{t(lang, 'common.all')}
-			</button>
-			{#each data.timeframe_options as opt}
-				<button
-					type="button"
-					onclick={() => (timeframeFilter = timeframeFilter === opt ? null : opt)}
-					class="rounded-md border px-2 py-1 font-mono transition-colors hover:bg-accent"
-					class:border-primary={timeframeFilter === opt}
-					class:text-primary={timeframeFilter === opt}
-				>
-					{opt}
-				</button>
-			{/each}
-		</div>
-
-		<div class="overflow-x-auto rounded-lg border bg-card">
-			<table class="w-full text-sm">
-				<thead class="bg-secondary text-left text-[11px] uppercase text-muted-foreground">
-					<tr>
-						<th class="px-3 py-2.5"><span class="inline-flex items-center">{t(lang, 'home.table.started')}<InfoTip text={t(lang, 'metric.tip.started')} /></span></th>
-						<th class="px-3">{t(lang, 'home.table.strategy')}</th>
-						<th class="px-3"><span class="inline-flex items-center">{t(lang, 'home.table.tf')}<InfoTip text={t(lang, 'metric.tip.tf')} /></span></th>
-						<th class="px-3"><span class="inline-flex items-center">{t(lang, 'home.table.factors')}<InfoTip text={t(lang, 'metric.tip.factors')} /></span></th>
-						<th class="px-3 text-right"><span class="inline-flex items-center">{t(lang, 'home.table.trades')}<InfoTip text={t(lang, 'metric.tip.trades')} /></span></th>
-						<th class="px-3 text-right"><span class="inline-flex items-center">{t(lang, 'home.table.winRate')}<InfoTip text={t(lang, 'metric.tip.wr')} /></span></th>
-						<th class="px-3 text-right"><span class="inline-flex items-center">{t(lang, 'home.table.profit')}<InfoTip text={t(lang, 'metric.tip.profit')} /></span></th>
-						<th class="px-3 text-right"><span class="inline-flex items-center">{t(lang, 'home.table.maxDd')}<InfoTip text={t(lang, 'metric.tip.maxDd')} /></span></th>
-						<th class="px-3 text-right"><span class="inline-flex items-center">{t(lang, 'home.table.calmar')}<InfoTip text={t(lang, 'metric.tip.calmar')} placement="top" /></span></th>
-						<th class="px-3 text-right"><span class="inline-flex items-center">{t(lang, 'home.table.sharpe')}<InfoTip text={t(lang, 'metric.tip.sharpe')} placement="top" /></span></th>
-					</tr>
-				</thead>
-				<tbody class="font-mono text-xs">
-					{#each filtered as r (r.id)}
-						<tr class="border-t border-border hover:bg-accent/50">
-							<td class="px-3 py-2 text-muted-foreground">{fmtTime(r.started_at)}</td>
-							<td class="px-3 font-semibold">
-								<a href={`/strategies/${r.strategy}`} class="text-primary hover:underline">
-									{r.strategy}
-								</a>
-							</td>
-							<td class="px-3">{r.timeframe ?? '-'}</td>
-							<td class="px-3">
-								<FactorBadges factors={r.factors} size="xs" />
-							</td>
-							<td class="px-3 text-right">{r.total_trades ?? 0}</td>
-							<td class="px-3 text-right">{r.win_rate_pct == null ? '—' : r.win_rate_pct.toFixed(1)}</td>
-							<td
-								class="px-3 text-right"
-								class:text-green-500={(r.total_profit_pct ?? 0) > 0}
-								class:text-red-500={(r.total_profit_pct ?? 0) < 0}
-							>
-								{fmtPct(r.total_profit_pct)}
-							</td>
-							<td class="px-3 text-right" class:text-red-500={(r.max_drawdown_pct ?? 0) > 20}>
-								{(r.max_drawdown_pct ?? 0).toFixed(2)}%
-							</td>
-							<td class="px-3 text-right">{r.calmar == null ? '-' : r.calmar.toFixed(2)}</td>
-							<td class="px-3 text-right">{r.sharpe == null ? '—' : r.sharpe.toFixed(2)}</td>
-						</tr>
-					{/each}
-					{#if filtered.length === 0}
-						<tr><td class="px-3 py-6 text-center text-muted-foreground" colspan="10">{t(lang, 'home.filter.empty')}</td></tr>
-					{/if}
-				</tbody>
-			</table>
-		</div>
-	</section>
 	{/if}
 
 	<footer class="mt-16 border-t border-border pt-6 text-center text-xs text-muted-foreground">

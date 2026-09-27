@@ -12,10 +12,10 @@
 
 <div class="relative pl-7">
 	<!-- Vertical connector line -->
-	<div class="absolute left-2 top-0 bottom-0 w-px bg-border"></div>
+	<div class="absolute top-0 bottom-0 left-2 w-px bg-border"></div>
 	<!-- Dot -->
 	<div
-		class="absolute left-0 top-1 h-3 w-3 rounded-full ring-2 ring-background"
+		class="absolute top-1 left-0 h-3 w-3 rounded-full ring-2 ring-background"
 		style="background: {color}; box-shadow: 0 0 0 2px {color}, 0 0 8px {color};"
 	></div>
 	<!-- Content -->
@@ -25,7 +25,7 @@
 			<div class="bdv-num mt-0.5 text-[11px] text-muted-foreground">{date}</div>
 		{/if}
 		{#if children}
-			<div class="mt-1 text-[13px] text-muted-foreground leading-[1.55]">
+			<div class="mt-1 text-[13px] leading-[1.55] text-muted-foreground">
 				{@render children()}
 			</div>
 		{/if}
