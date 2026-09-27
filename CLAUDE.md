@@ -10,7 +10,8 @@ for stage status and `STRATEGY_LEADERBOARD.md` for the strategy research log.
 
 ## Layout
 - `nautilus_crypto/` — crypto engine (Nautilus). `accumulator.py` (FNG smart-DCA), `donchian.py`
-  (trend), `signal_detect.py`/`signal_alerter.py`/`telegram_notifier.py` (signal layer),
+  (trend rule, BACKTEST reference), `signal_follower.py` (live trend = executes the public signals),
+  `signal_detect.py`/`signal_alerter.py`/`telegram_notifier.py` (signal layer),
   `trade_ledger.py` (writes `quant.nautilus_trades`), `live_*.py`/`run_*.py` (live nodes + backtests).
 - `nautilus_equity/` — US-equity engine via IB (own `.venv`, has `nautilus_trader[ib]`). LIVE on
   IB paper via `quant-equity.service` (see Local services).
@@ -65,10 +66,8 @@ Python (no Makefile/pytest — invoke the venv interpreter directly; `P=nautilus
   `uv run --no-project --python $P --with pytest -m pytest -q tests/test_kelly_sizer.py`
   (append `::test_name` for one test). `tests/*` add `strategies/` to `sys.path` themselves; other
   tests sit next to their module (`nautilus_crypto/test_*.py`, `nautilus_equity/test_*.py`).
-  pandas 3 hands `BarDataWrangler.process()` a READ-ONLY `.values` view → `ValueError: buffer
-  source array is read-only`; build bars like `nautilus_crypto/crypto_data.load_bars` does (writable
-  float64 copy + `wrangler._build_bar`). Known failure: `nautilus_equity/test_honest_trend_equity.py`
-  (and `run_honest_equity.py`/`anystock_backtest.py`/`backtest_spike.py`) still call `.process()`.
+  Build backtest bars with `crypto_data.bars_from_frame`/`load_bars`, NOT `BarDataWrangler` (pandas 3
+  copy-on-write → `ValueError: buffer source array is read-only`).
 
 Web dashboard (`cd web/apps/app`, pnpm):
 - `pnpm run dev` — local dev server.   `pnpm run check` — svelte-check typecheck.
@@ -141,7 +140,11 @@ new service/table to its lists when you add one. `--dry-run` prints results and 
 
 ## Deploy (oracle-arm-002, NixOS)
 - Live crypto runs as **system services on oracle-arm-002**: `nautilus-accumulator`, `nautilus-trend`,
-  `nautilus-signal` (all testnet/data-only). Packaged in `github:xiongchenyu6/nur-packages`
+  `nautilus-signal` (all testnet/data-only). `nautilus-trend` (`live_trend.py`) does NOT compute
+  Donchian itself: one `SignalFollower` per house asset (all 13 `sr.ASSETS`, all listed on the spot
+  testnet) polls `quant.strategy_signals` (open row = target long) and resumes its holding from its
+  open `quant.nautilus_trades` row, so restarts never flatten and execution matches what users see.
+  Packaged in `github:xiongchenyu6/nur-packages`
   (`modules/nautilus-*`, `pkgs/nautilus-trader`), wired in `dotfiles/nixos-configurations/oracle-arm-002/nautilus.nix`.
 - Also on arm-002 (nur `modules/quant-collectors`, vendored copies of the `strategies/*.py` sources —
   keep both copies in sync when editing; `default.nix` copies an explicit file list, so a new module
@@ -192,6 +195,10 @@ and **`quant-equity`** — the US-equity LIVE node (`live_honest_equity.py`, IB 
 `~/.config/quant/equity.env` (IB_* + EQ_QUOTE_PER_BASE_FX=0.74 for the SGD-base account + TIMESCALE_URL).
 A **paper** IB account has no real-time US-equity data sub, so the node defaults to
 `EQ_MARKET_DATA_TYPE=DELAYED_FROZEN` (free delayed feed); REALTIME just yields error 162 + zero bars.
+The node warms indicators from IB history at start (`EQ_WARMUP_DAYS`, default 60), keeps positions on
+stop and re-claims them (`external_order_claims`), and logs one `bar … ready=` line per live bar.
+`quant-equity-daily-restart.timer` (00:30 ET) gives it a fresh IB session after the Gateway's nightly
+restart, which can leave the socket half-open with no error and no bars (the watchdog can't see that).
 The crypto bots `quant-event-dca`/`quant-reactor`/`quant-dca` were **retired** (moved to Nautilus@oracle-arm-002).
 
 ## Guardrails (hard)

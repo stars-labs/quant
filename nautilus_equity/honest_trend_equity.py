@@ -26,6 +26,7 @@ actually required:
 from __future__ import annotations
 
 import sys
+from datetime import timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -94,6 +95,16 @@ class HonestTrendEquityConfig(StrategyConfig, frozen=True):
     # Default 1.0 = no conversion: correct whenever base == quote (all backtests use a
     # USD base account, so their behaviour is unchanged).
     quote_per_base_fx: float = 1.0
+    # ---- Stage 5: restart-safe live ----
+    # Calendar days of history requested at start to warm the indicators (live only; 0 = off,
+    # all backtests). Without it EMA(slow) on 1h RTH bars needs ~14 trading days of unbroken
+    # uptime before the first possible signal, and the node restarts far more often.
+    warmup_days: int = 0
+    # Backtests realise the open position at the end (their reports read final CASH), so they
+    # keep flattening on stop. The live node sets False: a restart (watchdog, daily Gateway
+    # restart, deploy) must keep the position and its exchange-side GTC stop, which the next
+    # start re-claims via external_order_claims + _adopt_open_position().
+    flatten_on_stop: bool = True
 
 
 class HonestTrendEquity(Strategy):
@@ -157,35 +168,61 @@ class HonestTrendEquity(Strategy):
         self.register_indicator_for_bars(self.config.bar_type, self.slow)
         self.register_indicator_for_bars(self.config.bar_type, self.dm)
         self.subscribe_bars(self.config.bar_type)
+        self._adopt_open_position()
+        if self.config.warmup_days > 0:
+            self.request_bars(
+                self.config.bar_type,
+                start=self.clock.utc_now() - timedelta(days=self.config.warmup_days),
+            )
+
+    def on_historical_data(self, data):
+        # Warmup: the registered indicators (EMAs, DM) are already updated by the engine for
+        # historical bars; feed the derived ones the same way on_bar does. Never trade here.
+        bars = data if isinstance(data, (list, tuple)) else [data]
+        for bar in bars:
+            if not hasattr(bar, "volume"):
+                continue
+            self._update_derived(bar)
+            self._remember_emas()
+        self.log.info(f"warmup: {len(bars)} historical bar(s), ready={self._ready()}")
 
     def on_stop(self):
-        self.cancel_all_orders(self.iid)
-        self.close_all_positions(self.iid)
+        if self.config.flatten_on_stop:
+            self.cancel_all_orders(self.iid)
+            self.close_all_positions(self.iid)
+        else:
+            self.log.info(f"stop: keeping position ({self._shares} shares) and its stop")
+
+    def _adopt_open_position(self):
+        """Resume managing a position reconciled from the venue at startup (live restart)."""
+        positions = self.cache.positions_open(instrument_id=self.iid, strategy_id=self.id)
+        if not positions:
+            return
+        p = positions[0]
+        shares = int(float(p.quantity))
+        self._entry_count = 1
+        self._initial_shares = shares
+        self._shares = shares
+        self._cost = shares * float(p.avg_px_open)
+        # Held "long enough": min-hold must not block the exit of an adopted position.
+        self._entry_bar = -max(self.config.min_hold_bars, 1)
+        self.log.info(f"adopted open position: {shares} @ {float(p.avg_px_open):.2f}")
 
     # ----- core loop -----
     def on_bar(self, bar: Bar):
         self._bar_i += 1
-
-        # Derived indicators (not registerable): update now that DM is current.
-        if self.dm.initialized:
-            pos, neg = self.dm.pos, self.dm.neg
-            denom = pos + neg
-            dx = 100.0 * abs(pos - neg) / denom if denom > 0 else 0.0
-            self.adx.update_raw(dx)
-        self.vol_sma.update_raw(float(bar.volume))
+        self._update_derived(bar)
 
         # Detect a stop-out (exchange-side stop filled → position now flat).
         if self._entry_count > 0 and self.portfolio.is_flat(self.iid):
             self.stop_exits += 1
             self._reset_position_state()
 
-        ready = (
-            self.fast.initialized
-            and self.slow.initialized
-            and self.dm.initialized
-            and self.adx.initialized
-            and self.vol_sma.initialized
-        )
+        ready = self._ready()
+        if self.config.warmup_days > 0:  # live: prove bar delivery in the journal
+            self.log.info(f"bar {bar.close} ready={ready}"
+                          + (f" fast={self.fast.value:.2f} slow={self.slow.value:.2f}"
+                             f" adx={self.adx.value:.1f}" if ready else ""))
         if not ready:
             self._remember_emas()
             return
@@ -229,6 +266,24 @@ class HonestTrendEquity(Strategy):
         self._remember_emas()
 
     # ----- helpers -----
+    def _update_derived(self, bar: Bar):
+        # Derived indicators (not registerable): update after DM is current for this bar.
+        if self.dm.initialized:
+            pos, neg = self.dm.pos, self.dm.neg
+            denom = pos + neg
+            dx = 100.0 * abs(pos - neg) / denom if denom > 0 else 0.0
+            self.adx.update_raw(dx)
+        self.vol_sma.update_raw(float(bar.volume))
+
+    def _ready(self) -> bool:
+        return (
+            self.fast.initialized
+            and self.slow.initialized
+            and self.dm.initialized
+            and self.adx.initialized
+            and self.vol_sma.initialized
+        )
+
     def _remember_emas(self):
         if self.fast.initialized and self.slow.initialized:
             self._prev_fast = self.fast.value

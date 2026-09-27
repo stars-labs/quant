@@ -1,0 +1,11 @@
+[Unit]
+Description=quant-equity daily restart, 30 min after the Gateway's 23:59 ET auto-restart
+
+[Timer]
+# America/New_York keeps it tied to the Gateway's ET schedule across DST (12:30/13:30 SGT),
+# 9 h before the 09:30 ET open.
+OnCalendar=*-*-* 00:30:00 America/New_York
+Persistent=false
+
+[Install]
+WantedBy=timers.target
