@@ -1,0 +1,9 @@
+[Unit]
+Description=Top up testnet USDT hourly at :50 (before the :00 accumulator buy)
+
+[Timer]
+OnCalendar=*:50
+Persistent=true
+
+[Install]
+WantedBy=timers.target

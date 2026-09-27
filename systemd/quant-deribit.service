@@ -1,0 +1,14 @@
+[Unit]
+Description=Deribit BTC Options Monitor (Phase 1 — no orders)
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/freeman.xiong/Documents/github/stars-labs/quant
+ExecStart=/run/current-system/sw/bin/bash -c 'sops exec-env secrets.env "/home/freeman.xiong/Documents/github/stars-labs/quant/.venv-bots/bin/python strategies/deribit_monitor.py --top 5 --telegram"'
+Environment=PATH=/run/current-system/sw/bin:/home/freeman.xiong/Documents/github/stars-labs/quant/.venv-bots/bin:/etc/profiles/per-user/freeman.xiong/bin:/usr/bin:/bin
+Environment=GNUPGHOME=/home/freeman.xiong/.gnupg
+TimeoutStartSec=300
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,10 @@
+[Unit]
+Description=Push Deribit BTC CSP candidates to Telegram daily at 10:00 UTC (18:00 SGT)
+
+[Timer]
+OnCalendar=*-*-* 10:00:00
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

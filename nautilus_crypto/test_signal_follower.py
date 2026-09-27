@@ -18,7 +18,9 @@ sys.path.insert(0, str(_HERE.parent / "strategies"))
 from nautilus_trader.backtest.engine import BacktestEngine, BacktestEngineConfig  # noqa: E402
 from nautilus_trader.config import LoggingConfig  # noqa: E402
 from nautilus_trader.model.currencies import BTC, USDT  # noqa: E402
-from nautilus_trader.model.data import QuoteTick  # noqa: E402
+from nautilus_trader.model.data import QuoteTick, TradeTick  # noqa: E402
+from nautilus_trader.model.enums import AggressorSide  # noqa: E402
+from nautilus_trader.model.identifiers import TradeId  # noqa: E402
 from nautilus_trader.model.enums import AccountType, OmsType, OrderSide  # noqa: E402
 from nautilus_trader.model.identifiers import Venue  # noqa: E402
 from nautilus_trader.model.objects import Money, Price, Quantity  # noqa: E402
@@ -140,6 +142,11 @@ class ScriptedBook:
         self.calls = 0
         self.last_error = "scripted outage"
 
+    close = 100_000.0
+
+    def last_close(self, asset):
+        return self.close
+
     def open_assets(self):
         v = self._script[min(self.calls, len(self._script) - 1)]
         self.calls += 1
@@ -157,7 +164,7 @@ class SpyLedger:
         self.exits.append(a)
 
 
-def _run(script, held_qty=0.0, minutes=30):
+def _run(script, held_qty=0.0, minutes=30, quotes=True):
     engine = BacktestEngine(config=BacktestEngineConfig(logging=LoggingConfig(bypass_logging=True)))
     inst = TestInstrumentProvider.btcusdt_binance()
     venue = Venue("BINANCE")
@@ -165,12 +172,20 @@ def _run(script, held_qty=0.0, minutes=30):
                      starting_balances=[Money(10_000, USDT), Money(1, BTC)], base_currency=None)
     engine.add_instrument(inst)
     t0 = 1_758_000_000_000_000_000
-    engine.add_data([
-        QuoteTick(inst.id, Price.from_str("99999.00"), Price.from_str("100000.00"),
-                  Quantity.from_str("10.000000"), Quantity.from_str("10.000000"),
-                  t0 + i * 60_000_000_000, t0 + i * 60_000_000_000)
-        for i in range(minutes)
-    ])
+    if quotes:
+        engine.add_data([
+            QuoteTick(inst.id, Price.from_str("99999.00"), Price.from_str("100000.00"),
+                      Quantity.from_str("10.000000"), Quantity.from_str("10.000000"),
+                      t0 + i * 60_000_000_000, t0 + i * 60_000_000_000)
+            for i in range(minutes)
+        ])
+    else:  # trades only: time advances, but the quote cache stays empty (testnet PEPE case)
+        engine.add_data([
+            TradeTick(inst.id, Price.from_str("100000.00"), Quantity.from_str("0.010000"),
+                      AggressorSide.BUYER, TradeId(str(i + 1)),
+                      t0 + i * 60_000_000_000, t0 + i * 60_000_000_000)
+            for i in range(minutes)
+        ])
     book, ledger = ScriptedBook(script), SpyLedger()
     strat = SignalFollower(
         SignalFollowerConfig(instrument_id=str(inst.id), notional_usdt=500.0, poll_secs=60,
@@ -205,6 +220,11 @@ def test_engine_sells_adopted_position_when_signal_closed():
     sides, ledger = _run([set()], held_qty=0.3)
     assert sides == [OrderSide.SELL], sides
     assert abs(ledger.exits[0][-2] - 0.3) < 1e-9
+
+
+def test_engine_sizes_off_public_close_when_no_quote_arrives():
+    sides, ledger = _run([{"BTC"}], quotes=False)
+    assert sides == [OrderSide.BUY], sides
 
 
 def test_engine_holds_when_signal_db_unreadable():

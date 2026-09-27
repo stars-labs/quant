@@ -114,6 +114,25 @@ class SignalBook:
             )
             return {r[0] for r in cur.fetchall()}
 
+    def last_close(self, asset: str) -> float | None:
+        """The public record's latest mainnet 1h close — the sizing fallback when the testnet
+        quote stream never delivers (PEPE's testnet book carries a bid size above Nautilus'
+        Quantity limit, so every quote tick is dropped). None on any DB problem."""
+        import psycopg2  # lazily
+
+        try:
+            if self._conn is None or self._conn.closed:
+                self._conn = psycopg2.connect(self._url)
+                self._conn.autocommit = True
+            with self._conn.cursor() as cur:
+                cur.execute("SELECT last_close FROM quant.strategy_assets "
+                            "WHERE strategy = %s AND asset = %s", (self._strategy, asset))
+                row = cur.fetchone()
+            return float(row[0]) if row and row[0] else None
+        except Exception as e:  # noqa: BLE001
+            self.last_error = repr(e)
+            return None
+
     def open_assets(self) -> set[str] | None:
         """None when the DB can't be read (caller must then hold, not trade)."""
         now = time.monotonic()
@@ -219,10 +238,16 @@ class SignalFollower(Strategy):
         if instrument is None:
             return
         quote = self.cache.quote_tick(self.iid)
-        if quote is None:
-            self.log.warning(f"{self.asset}: no quote yet, entry deferred")
-            return
-        price = float(quote.ask_price)
+        if quote is not None:
+            price = float(quote.ask_price)
+        else:
+            # A market order only needs a price to size it; the public record's last close
+            # is close enough (and it is the price users were shown).
+            price = self._book.last_close(self.asset)
+            if not price:
+                self.log.warning(f"{self.asset}: no quote and no public close, entry deferred")
+                return
+            self.log.info(f"{self.asset}: no testnet quote — sizing off the public close {price}")
         qty = entry_qty(self.config.notional_usdt, self._free(account, instrument.quote_currency),
                         price, float(instrument.size_increment), self._min_notional(instrument))
         if qty <= 0:

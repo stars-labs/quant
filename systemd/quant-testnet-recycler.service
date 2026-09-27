@@ -1,0 +1,18 @@
+[Unit]
+# Keeps the Binance spot-testnet accumulator funded: the one-directional smart-DCA
+# (nautilus-accumulator on oracle-arm-002) drains testnet USDT and then every hourly
+# buy rejects -2010. No testnet faucet REST endpoint exists, so this recycles a slice
+# of the already-accumulated BTC back to USDT when buying power runs low (idempotent;
+# no-op while USDT is above the floor). Script: scripts/testnet_usdt_recycler.py.
+Description=Quant testnet USDT recycler (keeps accumulator DCA funded)
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/freeman.xiong/Documents/github/stars-labs/quant
+EnvironmentFile=%h/.config/quant/backtest-runner.env
+Environment=PATH=/run/current-system/sw/bin:/usr/bin:/bin
+# The trend node (13 coins × 500 USDT) shares this testnet account with the accumulator.
+Environment=RECYCLER_MIN_USDT=7000
+Environment=RECYCLER_TARGET_USDT=15000
+ExecStart=/home/freeman.xiong/Documents/github/stars-labs/quant/.venv-bots/bin/python scripts/testnet_usdt_recycler.py
