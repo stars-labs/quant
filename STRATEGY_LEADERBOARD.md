@@ -194,6 +194,27 @@ selection discriminates out of sample (selected beat hold 9/13, rejected 3/9) an
 Losers kept honestly: WLD −56%, DOGE −23%, AVAX −13%. Deployed as `strategy_record.ASSETS`
 (public /record backfilled from 2026-01-01, labelled 回溯). Re-screen yearly on a fresh in-sample.
 
+## 2026-09-27 — funding carry (spot long + perp short) — VERDICT: not an opportunity now
+`scripts/funding_carry_backtest.py`, Binance funding 2024-01-01..2026-09-26, today's top-40 spot-listed
+perps (survivorship caveat). Costs 0.40%/round trip (4 taker fees + spread). Annualised ON NOTIONAL;
+with 1:1 collateral (no-liquidation setup) the return on capital is HALF.
+
+| variant | 2024 | 2025 | 2026 YTD | full | maxDD |
+|---|---|---|---|---|---|
+| BTC always-on | +11.7% | +5.1% | +2.7% | +6.9% | −0.4% |
+| ETH always-on | +12.8% | +4.9% | +1.6% | +6.9% | −0.6% |
+| SOL always-on | +13.4% | +0.4% | −1.4% | +4.7% | −2.6% |
+| weekly top-3 by trailing funding (>10%) | +11.7% | −1.7% | −3.9% | +2.6% | −6.4% |
+| weekly top-5 (>20%) | +13.3% | +2.1% | 0.0% | +5.6% | −0.8% |
+| weekly top-10 (>10%) | +6.6% | −3.6% | −5.5% | −0.4% | −9.0% |
+| per-coin threshold 20%/5% (39 coins, mean) | | | | +2.7% | |
+
+Only the 2024 bull-market froth paid (~12% on notional, ~6% on capital). In 2026 the majors' carry is
+~1-1.5% on capital (below idle stablecoin yield) and chasing high funding LOSES after fees — high
+funding mean-reverts within days and turnover (~50x/yr) eats it. Product consequence: /scan and the
+daily digest present funding as a crowding/sentiment gauge with these numbers, not as a carry call.
+Revisit if BTC/ETH trailing funding returns to 2024 levels (>15%/yr sustained).
+
 ## Crypto — accumulation (fear-driven DCA)
 | Variant | avg cost vs naive | ROI | notes |
 |---|---|---|---|

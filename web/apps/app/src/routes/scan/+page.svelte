@@ -370,6 +370,7 @@
 				<Callout type="info" title={t(lang, 'scan.carry.title')}>
 					<p>{t(lang, 'scan.carry.what')}</p>
 					<p class="mt-2">{t(lang, 'scan.carry.how')}</p>
+					<p class="mt-2">{t(lang, 'scan.carry.backtest')}</p>
 				</Callout>
 				<Callout type="warning" title={t(lang, 'scan.risk.title')}>
 					<ul class="flex list-disc flex-col gap-1 pl-4">

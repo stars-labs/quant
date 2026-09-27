@@ -627,6 +627,8 @@ export default {
 		'Perpetual futures never expire, so every few hours longs and shorts pay each other a funding fee that keeps the contract near spot. Positive funding means longs pay shorts: more people want to be long, longs are crowded. Negative funding means shorts pay longs: shorts are crowded.',
 	'scan.carry.how':
 		'The usual trade is the "carry": buy the coin spot and short the same amount on the perpetual. Price moves cancel out and you collect the funding.',
+	'scan.carry.backtest':
+		'Our backtest (Jan 2024 – Sep 2026, four fees per round trip, annualised on the position): running the BTC carry all the time made +11.7% in 2024, +5.1% in 2025 and only +2.7% so far in 2026 — halve that for the return on capital, since spot and margin each tie up half. Rotating weekly into the 3 coins with the highest funding lost 3.9% in 2026: high funding tends to fade fast and switching fees eat the rest. So read this table mainly as a sentiment gauge: the more crowded the longs, the more careful you should be chasing a move.',
 	'scan.risk.title': 'It is not risk-free income',
 	'scan.risk.fees':
 		'Opening and closing both legs costs four trading fees; low funding or a short hold gets eaten by fees.',

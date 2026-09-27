@@ -602,6 +602,7 @@ def test_daily_scan_lists_only_what_crossed_the_thresholds():
     assert "• ETH 距离场线 -1.8%($2,600.15)" in text and "SOL 距离场线" not in text
     assert "• WLD -24.0%" in text
     assert "多头拥挤:ZEC +45.0%/年" in text and "BTC +6.0%/年" not in text
+    assert "追涨越要小心" in text and "可以赚取" not in text
     assert "空头拥挤:XYZ -22.0%/年" in text
     assert "https://starslab.qzz.io/scan" in text and text.endswith("⚠️ 规则观察,不构成投资建议。")
 

@@ -597,10 +597,12 @@ def format_daily_scan(scan: list[dict], funding: list[dict], now: datetime) -> s
     hot = [f for f in funding if f["ann_7d"] >= SCAN_FUNDING_HOT][:3]
     cold = sorted((f for f in funding if f["ann_7d"] <= SCAN_FUNDING_COLD),
                   key=lambda f: f["ann_7d"])[:3]
-    lines.append("\n<b>资金费率</b>(永续合约,近 7 天实际费率年化)")
+    lines.append("\n<b>资金费率</b>(永续合约,近 7 天实际费率年化;情绪指标)")
     if hot:
         lines.append("多头拥挤:" + "、".join(f"{f['asset']} {_pct(f['ann_7d'])}/年" for f in hot))
-        lines.append("  现货买入 + 永续做空可以赚取这部分费率,但要扣手续费,费率随时可能反转。")
+        # scripts/funding_carry_backtest.py: chasing the top-funding coins lost money after
+        # fees in 2025-26, so this is framed as crowding, not as a carry opportunity.
+        lines.append("  多头越拥挤,追涨越要小心。回测显示追着高费率做套利,扣费后 2026 年是亏的。")
     if cold:
         lines.append("空头拥挤:" + "、".join(f"{f['asset']} {_pct(f['ann_7d'])}/年" for f in cold))
     if not hot and not cold:
