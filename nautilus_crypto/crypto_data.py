@@ -13,6 +13,7 @@ from pathlib import Path
 import pandas as pd
 from nautilus_trader.model.data import BarType
 from nautilus_trader.persistence.wranglers import BarDataWrangler
+from nautilus_trader.persistence.wranglers import prepare_event_and_init_timestamps
 
 _REPO = Path(__file__).resolve().parent.parent
 _BINANCE = _REPO / "user_data" / "data" / "binance"
@@ -22,8 +23,17 @@ _FNG_CSV = _REPO / "data" / "fng_history.csv"
 def load_bars(instrument, pair_file: str, bar_type: BarType):
     """pair_file e.g. 'BTC_USDT-1d'. Returns a list of Nautilus Bar objects."""
     df = pd.read_feather(_BINANCE / f"{pair_file}.feather")
-    df = df.set_index("date")[["open", "high", "low", "close", "volume"]]
-    return BarDataWrangler(bar_type, instrument).process(df)
+    # Not BarDataWrangler.process(): it maps `_build_bar(double[:] values, ...)` over
+    # `data.values`, and under pandas >= 3 (Copy-on-Write always on) `.values` of an
+    # all-float frame is a READ-ONLY view -> Cython's non-const memoryview raises
+    # "buffer source array is read-only". Hand it a writable copy of the same rows instead
+    # (index forced to UTC nanoseconds: feather stores ms, and the helper views raw ints).
+    values = df[["open", "high", "low", "close", "volume"]].to_numpy(dtype="float64", copy=True)
+    ts_events, ts_inits = prepare_event_and_init_timestamps(
+        pd.DatetimeIndex(df["date"]).tz_convert("UTC").as_unit("ns"), 0
+    )
+    wrangler = BarDataWrangler(bar_type, instrument)
+    return list(map(wrangler._build_bar, values, ts_events, ts_inits))
 
 
 class FngSeries:
