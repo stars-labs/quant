@@ -147,6 +147,46 @@ export interface StrategyTrade {
 	hold_days: number | null;
 }
 
+// Signals actually pushed since launch (api.strategy_live_record, migration 037; one row per
+// strategy, no row before the first live signal). closed_compound = closed live trades
+// compounded in sequence with the same money.
+export interface StrategyLiveRecord {
+	strategy: string;
+	n_signals: number;
+	n_closed: number;
+	n_wins: number;
+	n_open: number;
+	closed_compound: number;
+	first_entry_ts: string | null;
+}
+
+// One trade the logged-in user marked as followed (api.my_follows, owner-only, migration 037).
+// Returns assume the signal price and 0.1%/side fees — not the user's real fills.
+export interface MyFollow {
+	trade_id: number;
+	followed_at: string;
+	source: 'web' | 'telegram';
+	asset: string;
+	entry_ts: string;
+	entry_price: number;
+	exit_ts: string | null;
+	exit_price: number | null;
+	net_ret: number | null;
+	hold_days: number | null;
+	open_ret: number | null;
+}
+
+// The logged-in user's follow record (api.my_follow_record; no row = nothing followed yet).
+export interface MyFollowRecord {
+	n_followed: number;
+	n_closed: number;
+	n_wins: number;
+	n_open: number;
+	closed_compound: number;
+	best_ret: number | null;
+	first_entry_ts: string | null;
+}
+
 // 机会雷达, one row per house coin (api.opportunity_scan, migration 035). Fractions throughout:
 // to_entry = channel_high/last_close-1 (only while flat), to_exit = channel_low/last_close-1 (only
 // while held), from_high_30d = last_close/high_30d-1, funding_ann_7d = 7-day funding annualised.
