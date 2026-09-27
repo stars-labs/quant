@@ -16,12 +16,15 @@ export const handle: Handle = async ({ event, resolve }) => {
 export const handleError: HandleServerError = ({ error, event, status, message }) => {
 	const err = error as Error;
 	const stackHead = err?.stack?.split('\n').slice(0, 3).join(' | ');
-	console.error('[ssr-error]', JSON.stringify({
-		path: event.url.pathname,
-		status,
-		errorName: err?.name,
-		errorMessage: err?.message,
-		stackHead
-	}));
+	console.error(
+		'[ssr-error]',
+		JSON.stringify({
+			path: event.url.pathname,
+			status,
+			errorName: err?.name,
+			errorMessage: err?.message,
+			stackHead
+		})
+	);
 	return { message: message ?? 'Internal Error' };
 };

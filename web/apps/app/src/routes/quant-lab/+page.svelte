@@ -15,15 +15,7 @@
 	import { onDestroy, onMount } from 'svelte';
 
 	type Model =
-		| 'gbm'
-		| 'bsm'
-		| 'markowitz'
-		| 'garch'
-		| 'cointegration'
-		| 'hmm'
-		| 'pca'
-		| 'kelly'
-		| 'copula';
+		'gbm' | 'bsm' | 'markowitz' | 'garch' | 'cointegration' | 'hmm' | 'pca' | 'kelly' | 'copula';
 
 	type ModelMeta = {
 		zh: string;

@@ -419,7 +419,6 @@
 		<div class="rounded-md border border-border bg-card p-5">
 			<h2 class="bdv-display text-xl font-bold">{tr('核心来源', 'Core Sources')}</h2>
 			<div class="mt-4 flex flex-col gap-2">
-				<!-- eslint-disable svelte/no-navigation-without-resolve -->
 				{#each sources as source (source.label)}
 					<a
 						href={source.href}

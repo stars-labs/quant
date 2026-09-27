@@ -11,26 +11,29 @@
 		type DcaResult,
 		type OhlcByCoin
 	} from '$lib/dcaSim';
-	import type { EventDcaTrigger } from '$lib/types';
 	import { fmtUSD, fmtPct } from '$lib/utils';
 	import { t, type Lang } from '$lib/i18n';
 
-	async function loadPlotly() {
+	// Plotly is loaded from the CDN at runtime (no bundled types) — model just what we call.
+	type PlotlyLike = {
+		newPlot: (el: HTMLElement, data: unknown[], layout: object, config: object) => unknown;
+	};
+	type PlotlyWindow = Window & { Plotly?: PlotlyLike };
+
+	async function loadPlotly(): Promise<PlotlyLike | null> {
 		if (typeof window === 'undefined') return null;
-		if ((window as any).Plotly) return (window as any).Plotly;
+		const w = window as PlotlyWindow;
+		if (w.Plotly) return w.Plotly;
 		await new Promise<void>((res) => {
 			const s = document.createElement('script');
 			s.src = 'https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js';
 			s.onload = () => res();
 			document.head.appendChild(s);
 		});
-		return (window as any).Plotly;
+		return w.Plotly ?? null;
 	}
 
-	let {
-		ohlcByCoin,
-		events
-	}: { ohlcByCoin: OhlcByCoin; events: EventDcaTrigger[] } = $props();
+	let { ohlcByCoin }: { ohlcByCoin: OhlcByCoin } = $props();
 
 	const lang = $derived<Lang>($page.data.lang ?? 'zh');
 
@@ -39,7 +42,6 @@
 	let plan = $state<DcaPlan>({
 		start_date: '2022-01-01',
 		monthly_usdt: 500,
-		include_event: true,
 		mix: { BTC: 60, ETH: 20, BNB: 10, SOL: 10 }
 	});
 	let saveStatus = $state<'idle' | 'saving' | 'ok' | 'err'>('idle');
@@ -48,13 +50,11 @@
 
 	// Number() guard: dca_plan comes from the user_preferences jsonb row — a string
 	// value would string-concat through the reduce and crash mixTotal.toFixed(0).
-	const mixTotal = $derived(
-		COIN_SYMBOLS.reduce((s, c) => s + Number(plan.mix?.[c] ?? 0), 0)
-	);
+	const mixTotal = $derived(COIN_SYMBOLS.reduce((s, c) => s + Number(plan.mix?.[c] ?? 0), 0));
 	const mixValid = $derived(Math.abs(mixTotal - 100) < 0.5);
 
 	const result = $derived<DcaResult | null>(
-		$session && mixValid ? simulateDca(plan, ohlcByCoin, events) : null
+		$session && mixValid ? simulateDca(plan, ohlcByCoin) : null
 	);
 
 	let chartEl = $state<HTMLDivElement | null>(null);
@@ -65,7 +65,6 @@
 		const dates = r.timeline.map((t) => t.date);
 		const values = r.timeline.map((t) => t.value);
 		const invested = r.timeline.map((t) => t.cum_invested);
-		const eventDays = r.timeline.filter((t) => t.source === 'event' && t.invested > 0);
 
 		Plotly.newPlot(
 			chartEl,
@@ -87,14 +86,6 @@
 					mode: 'lines',
 					name: t(lang, 'plan.result.value'),
 					line: { color: 'hsl(210 100% 66%)', width: 2 }
-				},
-				{
-					x: eventDays.map((d) => d.date),
-					y: eventDays.map((d) => d.value),
-					type: 'scatter',
-					mode: 'markers',
-					name: t(lang, 'plan.result.event'),
-					marker: { size: 7, color: '#f59e0b', symbol: 'triangle-up' }
 				}
 			],
 			{
@@ -137,11 +128,7 @@
 		saveStatus = 'saving';
 		errMsg = '';
 		try {
-			prefs = await savePrefs(
-				{ dca_plan: plan, email_digest: digest },
-				$session.user.sub!,
-				fetch
-			);
+			prefs = await savePrefs({ dca_plan: plan, email_digest: digest }, $session.user.sub!, fetch);
 			saveStatus = 'ok';
 			setTimeout(() => (saveStatus = 'idle'), 2000);
 		} catch (e) {
@@ -181,7 +168,9 @@
 	};
 </script>
 
-<section class="mb-8 rounded-xl border-2 border-primary/40 bg-gradient-to-br from-primary/5 to-transparent p-5">
+<section
+	class="mb-8 rounded-xl border-2 border-primary/40 bg-gradient-to-br from-primary/5 to-transparent p-5"
+>
 	<h2 class="text-base font-semibold">{t(lang, 'plan.title')}</h2>
 
 	{#if !$session}
@@ -195,7 +184,7 @@
 	{:else if !loaded}
 		<p class="mt-2 text-sm text-muted-foreground">{t(lang, 'plan.loading')}</p>
 	{:else}
-		<div class="mt-4 grid gap-4 lg:grid-cols-5">
+		<div class="mt-4 grid gap-4 lg:grid-cols-3">
 			<label class="flex flex-col gap-1 text-xs text-muted-foreground lg:col-span-1">
 				{t(lang, 'plan.start')}
 				<input
@@ -215,10 +204,6 @@
 					class="rounded-md border border-border bg-background px-3 py-2 font-mono text-sm text-foreground"
 				/>
 			</label>
-			<label class="flex items-center gap-2 text-xs text-muted-foreground lg:col-span-2">
-				<input type="checkbox" bind:checked={plan.include_event} class="h-4 w-4" />
-				{t(lang, 'plan.includeEvent')}
-			</label>
 			<div class="flex items-end lg:col-span-1">
 				<button
 					type="button"
@@ -226,14 +211,18 @@
 					disabled={saveStatus === 'saving' || !mixValid}
 					class="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
 				>
-					{saveStatus === 'saving' ? '…' : saveStatus === 'ok' ? t(lang, 'plan.saved') : t(lang, 'plan.save')}
+					{saveStatus === 'saving'
+						? '…'
+						: saveStatus === 'ok'
+							? t(lang, 'plan.saved')
+							: t(lang, 'plan.save')}
 				</button>
 			</div>
 		</div>
 
 		<div class="mt-4 rounded-lg border bg-card p-4">
 			<div class="mb-2 flex items-baseline justify-between">
-				<span class="text-xs font-semibold uppercase text-muted-foreground">
+				<span class="text-xs font-semibold text-muted-foreground uppercase">
 					{t(lang, 'plan.mix')}
 				</span>
 				<div class="flex items-center gap-3 text-xs">
@@ -256,9 +245,13 @@
 				</div>
 			</div>
 			<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-				{#each COIN_SYMBOLS as c}
+				{#each COIN_SYMBOLS as c, _i (_i)}
 					<div class="flex items-center gap-2">
-						<span class="w-12 shrink-0 rounded border px-1.5 py-0.5 text-center font-mono text-[10px] {coinColor[c]}">{c}</span>
+						<span
+							class="w-12 shrink-0 rounded border px-1.5 py-0.5 text-center font-mono text-[10px] {coinColor[
+								c
+							]}">{c}</span
+						>
 						<input
 							type="range"
 							min="0"
@@ -285,17 +278,23 @@
 		</div>
 
 		{#if result && result.summary.total_invested > 0}
-			<div class="mt-5 grid gap-3 text-center font-mono sm:grid-cols-4 lg:grid-cols-6">
+			<div class="mt-5 grid gap-3 text-center font-mono sm:grid-cols-3 lg:grid-cols-5">
 				<div class="rounded-lg border bg-card p-3">
-					<div class="text-[10px] uppercase text-muted-foreground">{t(lang, 'plan.result.invested')}</div>
+					<div class="text-[10px] text-muted-foreground uppercase">
+						{t(lang, 'plan.result.invested')}
+					</div>
 					<div class="mt-1 text-lg font-semibold">{fmtUSD(result.summary.total_invested)}</div>
 				</div>
 				<div class="rounded-lg border bg-card p-3">
-					<div class="text-[10px] uppercase text-muted-foreground">{t(lang, 'plan.result.value')}</div>
+					<div class="text-[10px] text-muted-foreground uppercase">
+						{t(lang, 'plan.result.value')}
+					</div>
 					<div class="mt-1 text-lg font-semibold">{fmtUSD(result.summary.current_value)}</div>
 				</div>
 				<div class="rounded-lg border bg-card p-3">
-					<div class="text-[10px] uppercase text-muted-foreground">{t(lang, 'plan.result.roi')}</div>
+					<div class="text-[10px] text-muted-foreground uppercase">
+						{t(lang, 'plan.result.roi')}
+					</div>
 					<div
 						class="mt-1 text-lg font-semibold"
 						class:text-green-500={result.summary.roi_pct > 0}
@@ -305,26 +304,31 @@
 					</div>
 				</div>
 				<div class="rounded-lg border bg-card p-3">
-					<div class="text-[10px] uppercase text-muted-foreground">{t(lang, 'plan.result.scheduled')}</div>
+					<div class="text-[10px] text-muted-foreground uppercase">
+						{t(lang, 'plan.result.scheduled')}
+					</div>
 					<div class="mt-1 text-lg font-semibold">{result.summary.n_scheduled_buys}</div>
 				</div>
 				<div class="rounded-lg border bg-card p-3">
-					<div class="text-[10px] uppercase text-muted-foreground">{t(lang, 'plan.result.event')}</div>
-					<div class="mt-1 text-lg font-semibold">{result.summary.n_event_buys}</div>
-				</div>
-				<div class="rounded-lg border bg-card p-3">
-					<div class="text-[10px] uppercase text-muted-foreground">{t(lang, 'plan.result.coins')}</div>
-					<div class="mt-1 text-xs font-mono leading-tight">
-						{#each COIN_SYMBOLS as c}
+					<div class="text-[10px] text-muted-foreground uppercase">
+						{t(lang, 'plan.result.coins')}
+					</div>
+					<div class="mt-1 font-mono text-xs leading-tight">
+						{#each COIN_SYMBOLS as c, _i (_i)}
 							{#if (result.summary.current_holdings[c] ?? 0) > 0}
-								<div>{c} {(result.summary.current_holdings[c] ?? 0).toFixed(c === 'BTC' ? 4 : 2)}</div>
+								<div>
+									{c}
+									{(result.summary.current_holdings[c] ?? 0).toFixed(c === 'BTC' ? 4 : 2)}
+								</div>
 							{/if}
 						{/each}
 					</div>
 				</div>
 			</div>
 		{:else if !mixValid}
-			<p class="mt-4 text-xs text-red-500">{fmt('plan.mixError', { total: mixTotal.toFixed(0) })}</p>
+			<p class="mt-4 text-xs text-red-500">
+				{fmt('plan.mixError', { total: mixTotal.toFixed(0) })}
+			</p>
 		{:else}
 			<p class="mt-4 text-xs text-muted-foreground">{t(lang, 'plan.emptyResult')}</p>
 		{/if}

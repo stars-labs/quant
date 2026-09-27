@@ -260,7 +260,9 @@
 				</label>
 				{#each COIN_SYMBOLS as c (c)}
 					<label class="flex flex-col gap-1 text-xs text-muted-foreground">
-						<span class="rounded border px-1.5 py-0.5 text-center font-mono text-[10px] {coinColor[c]}">
+						<span
+							class="rounded border px-1.5 py-0.5 text-center font-mono text-[10px] {coinColor[c]}"
+						>
 							{c}
 						</span>
 						<input
@@ -269,7 +271,10 @@
 							step="1"
 							value={amounts[c]}
 							oninput={(e) =>
-								(amounts = { ...amounts, [c]: (e.currentTarget as HTMLInputElement).valueAsNumber || 0 })}
+								(amounts = {
+									...amounts,
+									[c]: (e.currentTarget as HTMLInputElement).valueAsNumber || 0
+								})}
 							class="w-24 rounded-md border border-border bg-background px-2 py-2 text-right font-mono text-xs"
 						/>
 					</label>
@@ -305,19 +310,19 @@
 		{#if stats}
 			<div class="mt-5 grid gap-3 text-center font-mono sm:grid-cols-2 lg:grid-cols-4">
 				<div class="rounded-lg border bg-card p-3">
-					<div class="text-[10px] uppercase text-muted-foreground">
+					<div class="text-[10px] text-muted-foreground uppercase">
 						{lang === 'en' ? 'Total invested' : '总投入'}
 					</div>
 					<div class="mt-1 text-lg font-semibold">{fmtUSD(stats.totalInvested)}</div>
 				</div>
 				<div class="rounded-lg border bg-card p-3">
-					<div class="text-[10px] uppercase text-muted-foreground">
+					<div class="text-[10px] text-muted-foreground uppercase">
 						{lang === 'en' ? 'Current value' : '当前价值'}
 					</div>
 					<div class="mt-1 text-lg font-semibold">{fmtUSD(stats.currentValue)}</div>
 				</div>
 				<div class="rounded-lg border bg-card p-3">
-					<div class="text-[10px] uppercase text-muted-foreground">
+					<div class="text-[10px] text-muted-foreground uppercase">
 						{lang === 'en' ? 'Unrealized P&L' : '浮动盈亏'}
 					</div>
 					<div
@@ -329,7 +334,7 @@
 					</div>
 				</div>
 				<div class="rounded-lg border bg-card p-3">
-					<div class="text-[10px] uppercase text-muted-foreground">
+					<div class="text-[10px] text-muted-foreground uppercase">
 						{lang === 'en' ? 'Streak' : '坚持'}
 					</div>
 					<div class="mt-1 text-lg font-semibold">
@@ -342,7 +347,7 @@
 
 			<div class="mt-4 overflow-x-auto rounded-lg border bg-card">
 				<table class="w-full text-xs">
-					<thead class="bg-secondary text-left text-[10px] uppercase text-muted-foreground">
+					<thead class="bg-secondary text-left text-[10px] text-muted-foreground uppercase">
 						<tr>
 							<th class="px-3 py-2">{lang === 'en' ? 'Coin' : '币'}</th>
 							<th class="px-3 text-right">{lang === 'en' ? 'Invested' : '投入'}</th>
@@ -379,7 +384,7 @@
 
 			<!-- vs lump sum at first buy — honest in both directions -->
 			<div class="mt-3 rounded-lg border bg-card p-4 text-xs">
-				<div class="text-[10px] font-semibold uppercase text-muted-foreground">
+				<div class="text-[10px] font-semibold text-muted-foreground uppercase">
 					{lang === 'en' ? 'vs lump sum at your first buy' : '对比一次性买入'}
 				</div>
 				<p class="mt-1.5 text-muted-foreground">
@@ -407,11 +412,13 @@
 
 		<!-- LEDGER LIST -->
 		<div class="mt-5">
-			<h3 class="mb-2 text-xs font-semibold uppercase text-muted-foreground">
+			<h3 class="mb-2 text-xs font-semibold text-muted-foreground uppercase">
 				{lang === 'en' ? 'Recent entries' : '最近记录'}
 			</h3>
 			{#if execs.length === 0}
-				<p class="rounded-lg border border-dashed bg-card p-5 text-center text-xs text-muted-foreground">
+				<p
+					class="rounded-lg border border-dashed bg-card p-5 text-center text-xs text-muted-foreground"
+				>
 					{lang === 'en'
 						? 'No entries yet. The value of DCA only shows when you stick with it — start logging this month.'
 						: '还没有记录。定投的价值要靠坚持才能看见 —— 从这个月开始记。'}
@@ -419,7 +426,9 @@
 			{:else}
 				<ul class="space-y-1.5">
 					{#each execs.slice(0, 20) as e (e.id)}
-						<li class="flex flex-wrap items-center gap-2 rounded-lg border bg-card px-3 py-2 text-xs">
+						<li
+							class="flex flex-wrap items-center gap-2 rounded-lg border bg-card px-3 py-2 text-xs"
+						>
 							<span class="w-28 shrink-0 font-mono text-muted-foreground">{fmtTime(e.ts)}</span>
 							<span class="font-mono font-semibold">{fmtUSD(e.total_usdt)}</span>
 							<span class="flex flex-1 flex-wrap gap-1.5">

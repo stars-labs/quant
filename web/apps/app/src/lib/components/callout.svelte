@@ -22,11 +22,11 @@
 	}[type];
 </script>
 
-<div class="my-4 rounded-md border border-border border-l-4 px-4 py-3.5 {cls}">
+<div class="my-4 rounded-md border border-l-4 border-border px-4 py-3.5 {cls}">
 	{#if title}
 		<div class="mb-1 text-[13px] font-semibold {titleColor}">{title}</div>
 	{/if}
-	<div class="text-[13px] text-muted-foreground leading-[1.55]">
+	<div class="text-[13px] leading-[1.55] text-muted-foreground">
 		{@render children?.()}
 	</div>
 </div>

@@ -115,7 +115,9 @@
 					<p class="mt-1 text-xs text-muted-foreground">{t(lang, 'binance.subtitle')}</p>
 				{:else if connectedAt}
 					<p class="mt-1 text-xs text-muted-foreground">
-						✓ {t(lang, 'binance.connected')} · {fmt('binance.connectedAt', { time: fmtTime(connectedAt) })}
+						✓ {t(lang, 'binance.connected')} · {fmt('binance.connectedAt', {
+							time: fmtTime(connectedAt)
+						})}
 					</p>
 				{/if}
 			</div>
@@ -199,7 +201,7 @@
 		{#if connected}
 			<div class="mt-4 rounded-md bg-background/40 p-4">
 				<div class="flex items-baseline justify-between">
-					<span class="text-xs uppercase text-muted-foreground">{t(lang, 'binance.totalUsd')}</span>
+					<span class="text-xs text-muted-foreground uppercase">{t(lang, 'binance.totalUsd')}</span>
 					<span class="font-mono text-2xl font-semibold">{fmtUSD(total)}</span>
 				</div>
 			</div>
@@ -211,7 +213,7 @@
 			{:else}
 				<div class="mt-3 overflow-hidden rounded-md border">
 					<table class="w-full text-xs">
-						<thead class="bg-secondary text-left text-[10px] uppercase text-muted-foreground">
+						<thead class="bg-secondary text-left text-[10px] text-muted-foreground uppercase">
 							<tr>
 								<th class="px-3 py-2">{t(lang, 'binance.table.asset')}</th>
 								<th class="px-3 text-right">{t(lang, 'binance.table.amount')}</th>

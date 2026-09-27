@@ -75,7 +75,10 @@ const META: StrategyMeta[] = [
 			]
 		},
 		reports: [
-			{ label: { zh: '全历史 BTC/ETH', en: 'Full-history BTC/ETH' }, path: '/reports/full_history_btceth/' }
+			{
+				label: { zh: '全历史 BTC/ETH', en: 'Full-history BTC/ETH' },
+				path: '/reports/full_history_btceth/'
+			}
 		],
 		docSlug: 'honest-trend-report',
 		status: 'dryrun'
@@ -107,7 +110,12 @@ const META: StrategyMeta[] = [
 				'CooldownPeriod: force rest after every losing trade'
 			]
 		},
-		reports: [{ label: { zh: '全历史 BTC/ETH', en: 'Full-history BTC/ETH' }, path: '/reports/full_history_btceth/' }],
+		reports: [
+			{
+				label: { zh: '全历史 BTC/ETH', en: 'Full-history BTC/ETH' },
+				path: '/reports/full_history_btceth/'
+			}
+		],
 		docSlug: 'honest-trend-report',
 		status: 'dryrun'
 	},
@@ -138,7 +146,12 @@ const META: StrategyMeta[] = [
 				'Falls back to hard SL in low-liquidity regimes'
 			]
 		},
-		reports: [{ label: { zh: '全历史 BTC/ETH', en: 'Full-history BTC/ETH' }, path: '/reports/full_history_btceth/' }],
+		reports: [
+			{
+				label: { zh: '全历史 BTC/ETH', en: 'Full-history BTC/ETH' },
+				path: '/reports/full_history_btceth/'
+			}
+		],
 		docSlug: 'honest-trend-report',
 		status: 'research'
 	},
@@ -170,7 +183,10 @@ const META: StrategyMeta[] = [
 			]
 		},
 		reports: [
-			{ label: { zh: '金字塔 BTC/ETH', en: 'Pyramid BTC/ETH' }, path: '/reports/full_history_btceth_pyramid/' },
+			{
+				label: { zh: '金字塔 BTC/ETH', en: 'Pyramid BTC/ETH' },
+				path: '/reports/full_history_btceth_pyramid/'
+			},
 			{ label: { zh: '金字塔研究', en: 'Pyramid research' }, path: '/reports/pyramid/' }
 		],
 		docSlug: 'honest-trend-report',
@@ -190,7 +206,11 @@ const META: StrategyMeta[] = [
 			en: 'Faster timeframe, same logic — designed to validate the execution path (slippage, fills, timer jitter) without relying on the 15m signal. Useful as a live-infra shake-out even if its P&L is marginal.'
 		},
 		mechanics: {
-			zh: ['1m K 线上跑基线 EMA×ADX', '更紧的 ROI / 止损（反复震荡的盘面）', '当作 live 实战演习，不是盈利核心'],
+			zh: [
+				'1m K 线上跑基线 EMA×ADX',
+				'更紧的 ROI / 止损（反复震荡的盘面）',
+				'当作 live 实战演习，不是盈利核心'
+			],
 			en: [
 				'Baseline EMA×ADX on 1m candles',
 				'Tighter ROI / stoploss (whipsaw-dominant tape)',

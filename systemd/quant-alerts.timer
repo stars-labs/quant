@@ -1,0 +1,10 @@
+[Unit]
+Description=Run the Telegram alerts pass every 30 min
+
+[Timer]
+OnCalendar=*-*-* *:00/30:00
+Persistent=true
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target

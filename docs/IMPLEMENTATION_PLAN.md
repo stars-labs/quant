@@ -16,7 +16,6 @@
 
 - [README.md](../README.md) — 用户视角总览 + 文档索引
 - [PHASE_B_FUTURES_SHORT.md](PHASE_B_FUTURES_SHORT.md) — Phase B 设计与回测
-- [EVENT_DCA.md](EVENT_DCA.md) — 事件驱动 DCA daemon
 - [HYPEROPT_PYRAMID_TUNING.md](HYPEROPT_PYRAMID_TUNING.md) — 参数调优历程（含被拒绝的实验）
 - [DRYRUN_HANDBOOK.md](DRYRUN_HANDBOOK.md) — 日常运维
 - [GO_LIVE_CHECKLIST.md](GO_LIVE_CHECKLIST.md) — 实盘切换清单

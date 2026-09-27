@@ -8,8 +8,10 @@
 	import { type Lang } from '$lib/i18n';
 	import type { NautilusBacktest, NautilusTrade } from '$lib/types';
 
-	let { backtests = [], trades = [] }: { backtests?: NautilusBacktest[]; trades?: NautilusTrade[] } =
-		$props();
+	let {
+		backtests = [],
+		trades = []
+	}: { backtests?: NautilusBacktest[]; trades?: NautilusTrade[] } = $props();
 
 	const lang = $derived<Lang>($page.data.lang ?? 'zh');
 	const en = $derived(lang === 'en');
@@ -29,7 +31,7 @@
 <section class="mb-8 overflow-hidden rounded-2xl border bg-card">
 	<div class="flex flex-wrap items-start justify-between gap-3 border-b border-border p-5 sm:p-6">
 		<div class="min-w-0">
-			<p class="text-xs font-medium uppercase tracking-wide text-primary">
+			<p class="text-xs font-medium tracking-wide text-primary uppercase">
 				{en ? 'US Equity' : '美股量化'}
 			</p>
 			<h2 class="mt-1 text-xl font-bold tracking-tight">
@@ -51,23 +53,28 @@
 
 	<!-- Live paper status — honest: usually no open position (trend signals are rare). -->
 	<div class="border-b border-border p-5 sm:p-6">
-		<div class="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+		<div
+			class="flex items-center gap-2 text-xs font-medium tracking-wide text-muted-foreground uppercase"
+		>
 			<span class="relative flex h-2 w-2">
-				<span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60"></span>
+				<span
+					class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60"
+				></span>
 				<span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
 			</span>
 			{en ? 'Live · IB paper' : '实盘 · IB 模拟盘'}
 		</div>
 		{#if openTrades.length > 0}
 			<div class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-				{#each openTrades.slice(0, 6) as t}
+				{#each openTrades.slice(0, 6) as t, _i (_i)}
 					<div class="rounded-md border border-border px-3 py-2 text-sm">
 						<div class="flex items-center justify-between">
 							<span class="font-medium">{t.instrument}</span>
 							<span class="text-xs text-muted-foreground">{t.is_short ? 'short' : 'long'}</span>
 						</div>
 						<div class="mt-1 text-xs text-muted-foreground">
-							{en ? 'entry' : '入场'} {num(t.open_rate)} · {t.strategy}
+							{en ? 'entry' : '入场'}
+							{num(t.open_rate)} · {t.strategy}
 						</div>
 					</div>
 				{/each}
@@ -79,7 +86,7 @@
 					: '已连接，当前空仓。最近的模拟盘平仓记录：'}
 			</p>
 			<div class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-				{#each closedTrades.slice(0, 6) as t}
+				{#each closedTrades.slice(0, 6) as t, _i (_i)}
 					<div class="rounded-md border border-border px-3 py-2 text-sm">
 						<div class="flex items-center justify-between">
 							<span class="font-medium">{t.instrument}</span>
@@ -126,30 +133,30 @@
 					<thead>
 						<tr class="border-b border-border text-left text-xs text-muted-foreground">
 							<th class="py-2 pr-3 font-medium">{en ? 'Config' : '配置'}</th>
-							<th class="py-2 px-3 text-right font-medium">{en ? 'Return' : '收益'}</th>
-							<th class="py-2 px-3 text-right font-medium">{en ? 'Max DD' : '最大回撤'}</th>
-							<th class="py-2 px-3 text-right font-medium">Sharpe</th>
-							<th class="py-2 px-3 text-right font-medium">Calmar</th>
+							<th class="px-3 py-2 text-right font-medium">{en ? 'Return' : '收益'}</th>
+							<th class="px-3 py-2 text-right font-medium">{en ? 'Max DD' : '最大回撤'}</th>
+							<th class="px-3 py-2 text-right font-medium">Sharpe</th>
+							<th class="px-3 py-2 text-right font-medium">Calmar</th>
 							<th class="py-2 pl-3 text-right font-medium">{en ? 'Trades' : '交易'}</th>
 						</tr>
 					</thead>
 					<tbody>
-						{#each top as b}
+						{#each top as b, _i (_i)}
 							<tr class="border-b border-border/50 last:border-0">
 								<td class="py-2 pr-3 font-medium">{b.label}</td>
 								<td
-									class="py-2 px-3 text-right font-mono tabular-nums {(b.total_profit_pct ?? 0) >= 0
+									class="px-3 py-2 text-right font-mono tabular-nums {(b.total_profit_pct ?? 0) >= 0
 										? 'text-emerald-500'
 										: 'text-red-500'}"
 								>
 									{(b.total_profit_pct ?? 0) >= 0 ? '+' : ''}{num(b.total_profit_pct)}%
 								</td>
-								<td class="py-2 px-3 text-right font-mono tabular-nums text-muted-foreground">
+								<td class="px-3 py-2 text-right font-mono text-muted-foreground tabular-nums">
 									{num(b.max_drawdown_pct)}%
 								</td>
-								<td class="py-2 px-3 text-right font-mono tabular-nums">{num(b.sharpe)}</td>
-								<td class="py-2 px-3 text-right font-mono tabular-nums">{num(b.calmar)}</td>
-								<td class="py-2 pl-3 text-right font-mono tabular-nums text-muted-foreground">
+								<td class="px-3 py-2 text-right font-mono tabular-nums">{num(b.sharpe)}</td>
+								<td class="px-3 py-2 text-right font-mono tabular-nums">{num(b.calmar)}</td>
+								<td class="py-2 pl-3 text-right font-mono text-muted-foreground tabular-nums">
 									{b.total_trades ?? '—'}
 								</td>
 							</tr>
@@ -170,13 +177,22 @@
 		{/if}
 
 		<div class="mt-4 flex flex-wrap gap-2 text-xs">
-			<a href="/semis" class="rounded-md border border-border bg-secondary px-3 py-2 text-secondary-foreground hover:bg-accent">
+			<a
+				href="/semis"
+				class="rounded-md border border-border bg-secondary px-3 py-2 text-secondary-foreground hover:bg-accent"
+			>
 				{en ? '🔬 Semiconductor universe' : '🔬 半导体产业链'}
 			</a>
-			<a href="/wf" class="rounded-md border border-border bg-secondary px-3 py-2 text-secondary-foreground hover:bg-accent">
+			<a
+				href="/wf"
+				class="rounded-md border border-border bg-secondary px-3 py-2 text-secondary-foreground hover:bg-accent"
+			>
 				{en ? '📊 Walk-forward' : '📊 滚动前推回测'}
 			</a>
-			<a href="/nautilus" class="rounded-md border border-border bg-secondary px-3 py-2 text-secondary-foreground hover:bg-accent">
+			<a
+				href="/nautilus"
+				class="rounded-md border border-border bg-secondary px-3 py-2 text-secondary-foreground hover:bg-accent"
+			>
 				{en ? '⚡ Live execution' : '⚡ 实盘执行'}
 			</a>
 		</div>

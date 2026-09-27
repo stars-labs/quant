@@ -108,4 +108,3 @@ For strategy work, the repo is organized by execution domain rather than a singl
 - `CLAUDE.md` — repo layout, commands, deployment, and service topology
 - `AGENTS.md` — agent-focused guidance that mirrors the key operational instructions
 - `IMPLEMENTATION_PLAN.md` and `STRATEGY_LEADERBOARD.md` — current status and strategy research log
-- `TUTORIAL_FOR_BEGINNERS.md` — educational onboarding for new contributors

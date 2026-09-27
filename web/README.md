@@ -68,7 +68,6 @@ vps.backtestTrades(fetch, runId)                → BacktestTrade[]
 vps.ohlcAuto(fetch, pair, { from, to, maxPoints }) → { rows, source }
 vps.liveTrades(fetch, { bot, limit })           → LiveTrade[]
 vps.walkForward(fetch, { strategy })            → WfResult[]
-vps.eventDcaTriggers(fetch)                     → EventDcaTrigger[]
 supabase.kolEvents(fetch)                       → KolEvent[]
 supabase.dcaLog(fetch)                          → DcaLogRow[]
 ```
@@ -134,8 +133,3 @@ apps/app/src/
 - **Observability**: add `"observability": { "enabled": true }` in wrangler.jsonc
 - **Realtime** (live trade push): add Supabase Realtime channel when needed
 - **Per-user charts**: localStorage → KV + Durable Object after login
-
-## Trash bin
-
-Old vanilla site is kept at `../web-vanilla/` for reference.
-Once `quant.panda.qzz.io` proves out for ~1 week, delete the vanilla project.

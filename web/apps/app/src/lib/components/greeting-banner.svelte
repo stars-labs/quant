@@ -4,16 +4,12 @@
 	import { session } from '$lib/auth';
 	import { loadPrefs } from '$lib/userPrefs';
 	import { simulateDca, type OhlcByCoin } from '$lib/dcaSim';
-	import type { EventDcaTrigger } from '$lib/types';
 	import { fmtUSD, fmtPct } from '$lib/utils';
 	import { t, type Lang } from '$lib/i18n';
 
 	// Home-page personal greeting. Empty state (nothing rendered) if not
 	// logged in — the rest of the home page covers the anon case.
-	let {
-		ohlcByCoin,
-		events
-	}: { ohlcByCoin: OhlcByCoin; events: EventDcaTrigger[] } = $props();
+	let { ohlcByCoin }: { ohlcByCoin: OhlcByCoin } = $props();
 
 	const lang = $derived<Lang>($page.data.lang ?? 'zh');
 	const name = $derived(
@@ -31,7 +27,7 @@
 		try {
 			const p = await loadPrefs(fetch);
 			if (p?.dca_plan) {
-				const r = simulateDca(p.dca_plan, ohlcByCoin, events);
+				const r = simulateDca(p.dca_plan, ohlcByCoin);
 				summary = {
 					invested: r.summary.total_invested,
 					value: r.summary.current_value,
@@ -44,12 +40,6 @@
 			loaded = true;
 		}
 	});
-
-	function fmt(key: string, vars: Record<string, string>) {
-		let s = t(lang, key);
-		for (const [k, v] of Object.entries(vars)) s = s.replace(`{${k}}`, v);
-		return s;
-	}
 </script>
 
 {#if $session && loaded}
@@ -66,7 +56,7 @@
 		<div class="relative flex flex-wrap items-center justify-between gap-4">
 			<div class="min-w-0">
 				<div class="bdv-eyebrow text-[var(--gold-500)]">{t(lang, 'plan.greeting')}</div>
-				<div class="bdv-display mt-1.5 text-[22px] font-semibold leading-none tracking-[-0.01em]">
+				<div class="bdv-display mt-1.5 text-[22px] leading-none font-semibold tracking-[-0.01em]">
 					{name}
 				</div>
 			</div>
@@ -97,13 +87,14 @@
 					</div>
 					<a
 						href="/dca"
-						class="bdv-num text-[11px] uppercase tracking-[0.12em] text-[var(--dawn-500)] hover:text-[var(--dawn-300)] transition-colors"
-					>→ /dca</a>
+						class="bdv-num text-[11px] tracking-[0.12em] text-[var(--dawn-500)] uppercase transition-colors hover:text-[var(--dawn-300)]"
+						>→ /dca</a
+					>
 				</div>
 			{:else}
 				<a
 					href="/dca"
-					class="text-sm text-[var(--dawn-500)] hover:text-[var(--dawn-300)] transition-colors"
+					class="text-sm text-[var(--dawn-500)] transition-colors hover:text-[var(--dawn-300)]"
 				>
 					{t(lang, 'plan.greetingNoPlan')}
 				</a>

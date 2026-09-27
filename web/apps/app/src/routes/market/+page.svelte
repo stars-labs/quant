@@ -160,7 +160,7 @@
 	<title>{t(lang, 'nav.market')} · Crypto Quant</title>
 </svelte:head>
 
-<main class="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-8">
+<main class="mx-auto w-full max-w-[1600px] px-4 py-8 sm:px-6">
 	<div class="">
 		<!-- Page header -->
 		<div class="mb-6">
@@ -183,14 +183,17 @@
 				<div class="flex flex-wrap items-center justify-between gap-3">
 					<div class="flex items-center gap-4">
 						<div>
-							<span class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+							<span class="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
 								{lang === 'en' ? 'Market stress index' : '市场压力指数'}
 							</span>
 							<div class="mt-1 flex items-baseline gap-2">
 								<span class="text-3xl font-bold" style="color: {stressColor(stress.stress_score)}">
 									{stress.stress_score.toFixed(0)}
 								</span>
-								<span class="text-sm font-semibold" style="color: {stressColor(stress.stress_score)}">
+								<span
+									class="text-sm font-semibold"
+									style="color: {stressColor(stress.stress_score)}"
+								>
 									{lang === 'en' ? (STRESS_LABEL_EN[stress.label] ?? stress.label) : stress.label}
 								</span>
 							</div>
@@ -198,7 +201,9 @@
 						<div class="hidden h-2 w-40 overflow-hidden rounded-full bg-secondary sm:block">
 							<div
 								class="h-full rounded-full transition-all"
-								style="width: {stress.stress_score}%; background: {stressColor(stress.stress_score)}"
+								style="width: {stress.stress_score}%; background: {stressColor(
+									stress.stress_score
+								)}"
 							></div>
 						</div>
 					</div>
@@ -222,11 +227,16 @@
 							<div class="rounded-lg border border-border bg-secondary/40 px-3 py-2 text-xs">
 								<div class="flex items-center justify-between">
 									<span class="font-semibold text-foreground">
-										{lang === 'en' ? (STRESS_COMP_NAME[key]?.en ?? key) : (STRESS_COMP_NAME[key]?.zh ?? key)}
+										{lang === 'en'
+											? (STRESS_COMP_NAME[key]?.en ?? key)
+											: (STRESS_COMP_NAME[key]?.zh ?? key)}
 									</span>
 									<span class="text-muted-foreground">
-										{lang === 'en' ? 'raw' : '原始值'} {c.raw} →
-										<span class="font-semibold" style="color: {stressColor(c.score)}">{c.score.toFixed(0)}</span>
+										{lang === 'en' ? 'raw' : '原始值'}
+										{c.raw} →
+										<span class="font-semibold" style="color: {stressColor(c.score)}"
+											>{c.score.toFixed(0)}</span
+										>
 									</span>
 								</div>
 								<p class="mt-1 text-muted-foreground">{c.note}</p>
@@ -284,10 +294,10 @@
 			</div>
 		{:else}
 			<!-- Current Price Banner -->
-			<div class="mb-6 rounded-xl border border-border bg-card px-6 py-4 ">
+			<div class="mb-6 rounded-xl border border-border bg-card px-6 py-4">
 				<div class="flex items-center justify-between">
 					<div>
-						<span class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+						<span class="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
 							{activeTab}/USDT {t(lang, 'market.currentPrice')}
 						</span>
 						<div class="mt-1 text-3xl font-bold text-foreground">{fmtPrice(asset.price)}</div>
@@ -303,14 +313,16 @@
 			<section class="mb-8">
 				<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 					<!-- MA4Y -->
-					<div class="rounded-xl border border-border bg-card p-4 ">
+					<div class="rounded-xl border border-border bg-card p-4">
 						<div class="mb-1 text-sm font-bold text-foreground">
 							{lang === 'en' ? 'Is it expensive or cheap right now?' : '现在贵还是便宜?'}
 						</div>
-						<div class="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+						<div
+							class="mb-2 text-[10px] font-semibold tracking-widest text-muted-foreground uppercase"
+						>
 							{t(lang, 'market.card.ma4y.title')}
 						</div>
-						<div class="mb-2 text-[26px] font-bold leading-none text-foreground">
+						<div class="mb-2 text-[26px] leading-none font-bold text-foreground">
 							{fmtMultiple(asset.ma4y_multiple)}
 						</div>
 						<div class="mb-3 h-12">
@@ -330,14 +342,16 @@
 						</div>
 					</div>
 					<!-- MA5W Direction -->
-					<div class="rounded-xl border border-border bg-card p-4 ">
+					<div class="rounded-xl border border-border bg-card p-4">
 						<div class="mb-1 text-sm font-bold text-foreground">
 							{lang === 'en' ? 'Is the trend up or down?' : '趋势向上还是向下?'}
 						</div>
-						<div class="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+						<div
+							class="mb-2 text-[10px] font-semibold tracking-widest text-muted-foreground uppercase"
+						>
 							{t(lang, 'market.card.ma5w.title')}
 						</div>
-						<div class="mb-2 text-[26px] font-bold leading-none text-foreground">
+						<div class="mb-2 text-[26px] leading-none font-bold text-foreground">
 							{ma5wLabel(asset.ma5w_direction, lang)}
 						</div>
 						<div class="mb-3 h-12">
@@ -358,14 +372,16 @@
 					</div>
 
 					<!-- Fear & Greed -->
-					<div class="rounded-xl border border-border bg-card p-4 ">
+					<div class="rounded-xl border border-border bg-card p-4">
 						<div class="mb-1 text-sm font-bold text-foreground">
 							{lang === 'en' ? 'How is market sentiment?' : '市场情绪如何?'}
 						</div>
-						<div class="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+						<div
+							class="mb-2 text-[10px] font-semibold tracking-widest text-muted-foreground uppercase"
+						>
 							{t(lang, 'market.card.fng.title')}
 						</div>
-						<div class="mb-1 text-[26px] font-bold leading-none text-foreground">
+						<div class="mb-1 text-[26px] leading-none font-bold text-foreground">
 							{asset.fng_value}
 						</div>
 						<div class="mb-2 text-xs text-muted-foreground">{asset.fng_class}</div>
@@ -390,281 +406,336 @@
 
 			<!-- Advanced analytics: expert cards collapsed by default -->
 			<details class="mt-8 rounded-xl border border-border bg-card">
-				<summary class="cursor-pointer p-4 text-sm font-semibold text-muted-foreground">📊 高级分析(给量化爱好者)/ Advanced analytics</summary>
-				<div class="p-4 pt-0 space-y-8">
-			<!-- Technicals -->
-			<section>
-				<h2 class="mb-4 pl-3 text-base font-bold text-foreground" style="border-left: 4px solid var(--violet-500);">
-					{t(lang, 'market.section.technicals')}
-				</h2>
-				<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-					<!-- MACD -->
-					<div class="rounded-xl border border-border bg-card p-4 ">
-						<div class="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-							{t(lang, 'market.card.macd.title')}
-						</div>
-						<div class="mb-2 text-[26px] font-bold leading-none text-foreground">
-							{asset.macd_hist.toFixed(1)}
-						</div>
-						<div class="mb-3 h-12">
-							<Sparkline
-								values={asset.macd_hist_series}
-								color={sparklineColor(signals.macd)}
-								height={48}
-							/>
-						</div>
-						<div
-							class="mb-2 rounded border-l-2 border-border bg-secondary px-3 py-2 text-xs text-muted-foreground"
+				<summary class="cursor-pointer p-4 text-sm font-semibold text-muted-foreground"
+					>📊 高级分析(给量化爱好者)/ Advanced analytics</summary
+				>
+				<div class="space-y-8 p-4 pt-0">
+					<!-- Technicals -->
+					<section>
+						<h2
+							class="mb-4 pl-3 text-base font-bold text-foreground"
+							style="border-left: 4px solid var(--violet-500);"
 						>
-							{t(lang, 'market.card.macd.desc')}
-						</div>
-						<div class="rounded px-3 py-1.5 text-xs font-semibold {signalBg(signals.macd)}">
-							{t(lang, 'market.signal')}: {signalLabel(signals.macd, lang)}
-						</div>
-					</div>
-
-					<!-- RSI -->
-					<div class="rounded-xl border border-border bg-card p-4 ">
-						<div class="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-							{t(lang, 'market.card.rsi.title')}
-						</div>
-						<div class="mb-2 text-[26px] font-bold leading-none text-foreground">
-							{asset.rsi_weekly.toFixed(1)}
-						</div>
-						<div class="mb-3 h-12">
-							<Sparkline
-								values={asset.rsi_series}
-								color={sparklineColor(signals.rsi)}
-								height={48}
-							/>
-						</div>
-						<div
-							class="mb-2 rounded border-l-2 border-border bg-secondary px-3 py-2 text-xs text-muted-foreground"
-						>
-							{t(lang, 'market.card.rsi.desc')}
-						</div>
-						<div class="rounded px-3 py-1.5 text-xs font-semibold {signalBg(signals.rsi)}">
-							{t(lang, 'market.signal')}: {signalLabel(signals.rsi, lang)}
-						</div>
-					</div>
-
-					<!-- StochRSI -->
-					<div class="rounded-xl border border-border bg-card p-4 ">
-						<div class="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-							{t(lang, 'market.card.stochrsi.title')}
-						</div>
-						<div class="mb-2 text-[26px] font-bold leading-none text-foreground">
-							K {asset.stochrsi_k.toFixed(1)}
-						</div>
-						<div class="mb-3 h-12">
-							<Sparkline
-								values={asset.rsi_series}
-								color={sparklineColor(signals.stoch)}
-								height={48}
-							/>
-						</div>
-						<div
-							class="mb-2 rounded border-l-2 border-border bg-secondary px-3 py-2 text-xs text-muted-foreground"
-						>
-							{t(lang, 'market.card.stochrsi.desc')}
-						</div>
-						<div class="rounded px-3 py-1.5 text-xs font-semibold {signalBg(signals.stoch)}">
-							{t(lang, 'market.signal')}: {signalLabel(signals.stoch, lang)}
-						</div>
-					</div>
-				</div>
-			</section>
-
-			<!-- Sentiment: funding -->
-			<section>
-				<h2 class="mb-4 pl-3 text-base font-bold text-foreground" style="border-left: 4px solid var(--violet-500);">
-					{t(lang, 'market.section.sentiment')}
-				</h2>
-				<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-					<!-- Funding Rate APR -->
-					<div class="rounded-xl border border-border bg-card p-4 ">
-						<div class="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-							{t(lang, 'market.card.funding.title')}
-						</div>
-						<div class="mb-2 text-[26px] font-bold leading-none text-foreground">
-							{fmtPct(asset.funding_rate_apr)}
-						</div>
-						<div class="mb-3 h-12">
-							<Sparkline
-								values={asset.oi_series}
-								color={sparklineColor(signals.funding)}
-								height={48}
-							/>
-						</div>
-						<div
-							class="mb-2 rounded border-l-2 border-border bg-secondary px-3 py-2 text-xs text-muted-foreground"
-						>
-							{t(lang, 'market.card.funding.desc')}
-						</div>
-						<div class="rounded px-3 py-1.5 text-xs font-semibold {signalBg(signals.funding)}">
-							{t(lang, 'market.signal')}: {signalLabel(signals.funding, lang)}
-						</div>
-					</div>
-				</div>
-			</section>
-
-			<!-- Leverage: open interest -->
-			<section>
-				<h2 class="mb-4 pl-3 text-base font-bold text-foreground" style="border-left: 4px solid var(--violet-500);">
-					{t(lang, 'market.section.leverage')}
-				</h2>
-				<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-					<div class="rounded-xl border border-border bg-card p-4 ">
-						<div class="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-							{t(lang, 'market.card.oi.title')}
-						</div>
-						<div class="mb-2 text-[26px] font-bold leading-none text-foreground">
-							{fmtBillion(asset.open_interest_usd)}
-						</div>
-						<div class="mb-3 h-12">
-							<Sparkline values={asset.oi_series} color="#7b5fff" height={48} />
-						</div>
-						<div
-							class="mb-2 rounded border-l-2 border-border bg-secondary px-3 py-2 text-xs text-muted-foreground"
-						>
-							{t(lang, 'market.card.oi.desc')}
-						</div>
-						<div
-							class="rounded border-l-[3px] border-[var(--violet-500)] bg-[color-mix(in_oklab,var(--violet-500)_10%,transparent)] px-3 py-1.5 text-xs font-semibold text-[var(--violet-500)]"
-						>
-							{t(lang, 'market.signal')}: {t(lang, 'market.signal.info')}
-						</div>
-					</div>
-				</div>
-			</section>
-
-			<!-- Derivatives sentiment: L/S, taker, top traders -->
-			<section>
-				<h2 class="mb-4 pl-3 text-base font-bold text-foreground" style="border-left: 4px solid var(--violet-500);">
-					{t(lang, 'market.derivatives.title')}
-				</h2>
-
-				{#if asset}
-					{@const longPct = asset.ls_ratio / (1 + asset.ls_ratio)}
-					{@const shortPct = 1 - longPct}
-					{@const lsColor = asset.ls_ratio > 1.05 ? '#18a058' : asset.ls_ratio < 0.95 ? '#e84040' : '#888'}
-					{@const takerColor = asset.taker_ratio > 1.05 ? '#18a058' : asset.taker_ratio < 0.95 ? '#e84040' : '#888'}
-					{@const topTraderColor = asset.top_trader_ls > 1.05 ? '#18a058' : asset.top_trader_ls < 0.95 ? '#e84040' : '#888'}
-					{@const composite = (asset.ls_ratio + asset.taker_ratio + asset.top_trader_ls) / 3}
-
-					<div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-						<!-- Card 1: Long/Short Ratio -->
-						<div class="rounded-xl border border-border bg-card p-4 ">
-							<div class="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-								{t(lang, 'market.ls.title')}
-							</div>
-							<div class="mb-1 text-[26px] font-bold leading-none" style="color: {lsColor};">
-								{asset.ls_ratio.toFixed(3)}
-							</div>
-							<div class="mb-3 text-xs text-muted-foreground">
-								{lang === 'en' ? 'longs' : '多'} {(longPct * 100).toFixed(1)}% / {lang === 'en' ? 'shorts' : '空'} {(shortPct * 100).toFixed(1)}%
-							</div>
-							<!-- Long/Short split bar -->
-							<div class="mb-3 h-2 w-full overflow-hidden rounded-full" style="background: #e84040;">
-								<div class="h-full rounded-full" style="width: {(longPct * 100).toFixed(1)}%; background: #18a058;"></div>
-							</div>
-							<!-- Sparkline -->
-							<svg width="80" height="28" viewBox="0 0 80 28" class="overflow-visible">
-								{#if asset.ls_ratio_series.length > 1}
-									{@const pts = asset.ls_ratio_series}
-									{@const step = 80 / (pts.length - 1)}
-									<polyline
-										points={pts.map((v, i) => `${i * step},${28 - v * 26}`).join(' ')}
-										fill="none"
-										stroke={lsColor}
-										stroke-width="1.5"
-										stroke-linejoin="round"
-										stroke-linecap="round"
-									/>
-								{/if}
-							</svg>
-						</div>
-
-						<!-- Card 2: Taker Buy/Sell Ratio -->
-						<div class="rounded-xl border border-border bg-card p-4 ">
-							<div class="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-								{t(lang, 'market.taker.title')}
-							</div>
-							<div class="mb-1 text-[26px] font-bold leading-none" style="color: {takerColor};">
-								{asset.taker_ratio.toFixed(3)}
-							</div>
-							<div class="mb-3 text-xs text-muted-foreground">
-								{#if asset.taker_ratio > 1.05}
-									{lang === 'en' ? 'Buy dominant' : '买方主动'}
-								{:else if asset.taker_ratio < 0.95}
-									{lang === 'en' ? 'Sell dominant' : '卖方主动'}
-								{:else}
-									{lang === 'en' ? 'Balanced' : '均衡'}
-								{/if}
-							</div>
-							<!-- Sparkline -->
-							<svg width="80" height="28" viewBox="0 0 80 28" class="overflow-visible">
-								{#if asset.taker_ratio_series.length > 1}
-									{@const pts = asset.taker_ratio_series}
-									{@const step = 80 / (pts.length - 1)}
-									<polyline
-										points={pts.map((v, i) => `${i * step},${28 - v * 26}`).join(' ')}
-										fill="none"
-										stroke={takerColor}
-										stroke-width="1.5"
-										stroke-linejoin="round"
-										stroke-linecap="round"
-									/>
-								{/if}
-							</svg>
-						</div>
-
-						<!-- Card 3: Top Trader L/S -->
-						<div class="rounded-xl border border-border bg-card p-4 ">
-							<div class="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-								{t(lang, 'market.toptrader.title')}
-							</div>
-							<div class="mb-1 text-[26px] font-bold leading-none" style="color: {topTraderColor};">
-								{asset.top_trader_ls.toFixed(3)}
-							</div>
-							<div class="mb-2 text-xs text-muted-foreground">
-								{lang === 'en' ? 'Elite positioning' : '大户持仓方向'}
-							</div>
-							{#if Math.abs(asset.top_trader_ls - asset.ls_ratio) > 0.2}
-								<div class="mb-2 rounded bg-[color-mix(in_oklab,var(--warn)_10%,transparent)] px-2 py-1 text-xs font-semibold text-[var(--warn)]">
-									{lang === 'en' ? '⚠ Divergence: retail vs elite' : '⚠ 散户 vs 大户方向背离'}
+							{t(lang, 'market.section.technicals')}
+						</h2>
+						<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+							<!-- MACD -->
+							<div class="rounded-xl border border-border bg-card p-4">
+								<div
+									class="mb-2 text-[10px] font-semibold tracking-widest text-muted-foreground uppercase"
+								>
+									{t(lang, 'market.card.macd.title')}
 								</div>
-							{/if}
-						</div>
-					</div>
+								<div class="mb-2 text-[26px] leading-none font-bold text-foreground">
+									{asset.macd_hist.toFixed(1)}
+								</div>
+								<div class="mb-3 h-12">
+									<Sparkline
+										values={asset.macd_hist_series}
+										color={sparklineColor(signals.macd)}
+										height={48}
+									/>
+								</div>
+								<div
+									class="mb-2 rounded border-l-2 border-border bg-secondary px-3 py-2 text-xs text-muted-foreground"
+								>
+									{t(lang, 'market.card.macd.desc')}
+								</div>
+								<div class="rounded px-3 py-1.5 text-xs font-semibold {signalBg(signals.macd)}">
+									{t(lang, 'market.signal')}: {signalLabel(signals.macd, lang)}
+								</div>
+							</div>
 
-					<!-- Interpretation bar -->
-					<div class="mt-4 rounded-xl border border-border bg-card px-5 py-3 ">
-						{#if composite > 1.1}
-							<p class="text-sm font-semibold text-[var(--loss)]">
-								{lang === 'en'
-									? '⚠ Market over-leveraged long — correction risk elevated'
-									: '⚠ 市场过度多头，留意回调风险'}
-							</p>
-						{:else if composite < 0.9}
-							<p class="text-sm font-semibold text-[var(--profit)]">
-								{lang === 'en'
-									? '↑ Short-heavy market — potential reversal zone'
-									: '↑ 空头主导，可能触底信号'}
-							</p>
-						{:else}
-							<p class="text-sm text-muted-foreground">
-								{lang === 'en'
-									? 'Market positioning balanced — no strong directional bias detected'
-									: '市场多空持仓均衡，暂无明显方向偏差'}
-							</p>
+							<!-- RSI -->
+							<div class="rounded-xl border border-border bg-card p-4">
+								<div
+									class="mb-2 text-[10px] font-semibold tracking-widest text-muted-foreground uppercase"
+								>
+									{t(lang, 'market.card.rsi.title')}
+								</div>
+								<div class="mb-2 text-[26px] leading-none font-bold text-foreground">
+									{asset.rsi_weekly.toFixed(1)}
+								</div>
+								<div class="mb-3 h-12">
+									<Sparkline
+										values={asset.rsi_series}
+										color={sparklineColor(signals.rsi)}
+										height={48}
+									/>
+								</div>
+								<div
+									class="mb-2 rounded border-l-2 border-border bg-secondary px-3 py-2 text-xs text-muted-foreground"
+								>
+									{t(lang, 'market.card.rsi.desc')}
+								</div>
+								<div class="rounded px-3 py-1.5 text-xs font-semibold {signalBg(signals.rsi)}">
+									{t(lang, 'market.signal')}: {signalLabel(signals.rsi, lang)}
+								</div>
+							</div>
+
+							<!-- StochRSI -->
+							<div class="rounded-xl border border-border bg-card p-4">
+								<div
+									class="mb-2 text-[10px] font-semibold tracking-widest text-muted-foreground uppercase"
+								>
+									{t(lang, 'market.card.stochrsi.title')}
+								</div>
+								<div class="mb-2 text-[26px] leading-none font-bold text-foreground">
+									K {asset.stochrsi_k.toFixed(1)}
+								</div>
+								<div class="mb-3 h-12">
+									<Sparkline
+										values={asset.rsi_series}
+										color={sparklineColor(signals.stoch)}
+										height={48}
+									/>
+								</div>
+								<div
+									class="mb-2 rounded border-l-2 border-border bg-secondary px-3 py-2 text-xs text-muted-foreground"
+								>
+									{t(lang, 'market.card.stochrsi.desc')}
+								</div>
+								<div class="rounded px-3 py-1.5 text-xs font-semibold {signalBg(signals.stoch)}">
+									{t(lang, 'market.signal')}: {signalLabel(signals.stoch, lang)}
+								</div>
+							</div>
+						</div>
+					</section>
+
+					<!-- Sentiment: funding -->
+					<section>
+						<h2
+							class="mb-4 pl-3 text-base font-bold text-foreground"
+							style="border-left: 4px solid var(--violet-500);"
+						>
+							{t(lang, 'market.section.sentiment')}
+						</h2>
+						<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+							<!-- Funding Rate APR -->
+							<div class="rounded-xl border border-border bg-card p-4">
+								<div
+									class="mb-2 text-[10px] font-semibold tracking-widest text-muted-foreground uppercase"
+								>
+									{t(lang, 'market.card.funding.title')}
+								</div>
+								<div class="mb-2 text-[26px] leading-none font-bold text-foreground">
+									{fmtPct(asset.funding_rate_apr)}
+								</div>
+								<div class="mb-3 h-12">
+									<Sparkline
+										values={asset.oi_series}
+										color={sparklineColor(signals.funding)}
+										height={48}
+									/>
+								</div>
+								<div
+									class="mb-2 rounded border-l-2 border-border bg-secondary px-3 py-2 text-xs text-muted-foreground"
+								>
+									{t(lang, 'market.card.funding.desc')}
+								</div>
+								<div class="rounded px-3 py-1.5 text-xs font-semibold {signalBg(signals.funding)}">
+									{t(lang, 'market.signal')}: {signalLabel(signals.funding, lang)}
+								</div>
+							</div>
+						</div>
+					</section>
+
+					<!-- Leverage: open interest -->
+					<section>
+						<h2
+							class="mb-4 pl-3 text-base font-bold text-foreground"
+							style="border-left: 4px solid var(--violet-500);"
+						>
+							{t(lang, 'market.section.leverage')}
+						</h2>
+						<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+							<div class="rounded-xl border border-border bg-card p-4">
+								<div
+									class="mb-2 text-[10px] font-semibold tracking-widest text-muted-foreground uppercase"
+								>
+									{t(lang, 'market.card.oi.title')}
+								</div>
+								<div class="mb-2 text-[26px] leading-none font-bold text-foreground">
+									{fmtBillion(asset.open_interest_usd)}
+								</div>
+								<div class="mb-3 h-12">
+									<Sparkline values={asset.oi_series} color="#7b5fff" height={48} />
+								</div>
+								<div
+									class="mb-2 rounded border-l-2 border-border bg-secondary px-3 py-2 text-xs text-muted-foreground"
+								>
+									{t(lang, 'market.card.oi.desc')}
+								</div>
+								<div
+									class="rounded border-l-[3px] border-[var(--violet-500)] bg-[color-mix(in_oklab,var(--violet-500)_10%,transparent)] px-3 py-1.5 text-xs font-semibold text-[var(--violet-500)]"
+								>
+									{t(lang, 'market.signal')}: {t(lang, 'market.signal.info')}
+								</div>
+							</div>
+						</div>
+					</section>
+
+					<!-- Derivatives sentiment: L/S, taker, top traders -->
+					<section>
+						<h2
+							class="mb-4 pl-3 text-base font-bold text-foreground"
+							style="border-left: 4px solid var(--violet-500);"
+						>
+							{t(lang, 'market.derivatives.title')}
+						</h2>
+
+						{#if asset}
+							{@const longPct = asset.ls_ratio / (1 + asset.ls_ratio)}
+							{@const shortPct = 1 - longPct}
+							{@const lsColor =
+								asset.ls_ratio > 1.05 ? '#18a058' : asset.ls_ratio < 0.95 ? '#e84040' : '#888'}
+							{@const takerColor =
+								asset.taker_ratio > 1.05
+									? '#18a058'
+									: asset.taker_ratio < 0.95
+										? '#e84040'
+										: '#888'}
+							{@const topTraderColor =
+								asset.top_trader_ls > 1.05
+									? '#18a058'
+									: asset.top_trader_ls < 0.95
+										? '#e84040'
+										: '#888'}
+							{@const composite = (asset.ls_ratio + asset.taker_ratio + asset.top_trader_ls) / 3}
+
+							<div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+								<!-- Card 1: Long/Short Ratio -->
+								<div class="rounded-xl border border-border bg-card p-4">
+									<div
+										class="mb-2 text-[10px] font-semibold tracking-widest text-muted-foreground uppercase"
+									>
+										{t(lang, 'market.ls.title')}
+									</div>
+									<div class="mb-1 text-[26px] leading-none font-bold" style="color: {lsColor};">
+										{asset.ls_ratio.toFixed(3)}
+									</div>
+									<div class="mb-3 text-xs text-muted-foreground">
+										{lang === 'en' ? 'longs' : '多'}
+										{(longPct * 100).toFixed(1)}% / {lang === 'en' ? 'shorts' : '空'}
+										{(shortPct * 100).toFixed(1)}%
+									</div>
+									<!-- Long/Short split bar -->
+									<div
+										class="mb-3 h-2 w-full overflow-hidden rounded-full"
+										style="background: #e84040;"
+									>
+										<div
+											class="h-full rounded-full"
+											style="width: {(longPct * 100).toFixed(1)}%; background: #18a058;"
+										></div>
+									</div>
+									<!-- Sparkline -->
+									<svg width="80" height="28" viewBox="0 0 80 28" class="overflow-visible">
+										{#if asset.ls_ratio_series.length > 1}
+											{@const pts = asset.ls_ratio_series}
+											{@const step = 80 / (pts.length - 1)}
+											<polyline
+												points={pts.map((v, i) => `${i * step},${28 - v * 26}`).join(' ')}
+												fill="none"
+												stroke={lsColor}
+												stroke-width="1.5"
+												stroke-linejoin="round"
+												stroke-linecap="round"
+											/>
+										{/if}
+									</svg>
+								</div>
+
+								<!-- Card 2: Taker Buy/Sell Ratio -->
+								<div class="rounded-xl border border-border bg-card p-4">
+									<div
+										class="mb-2 text-[10px] font-semibold tracking-widest text-muted-foreground uppercase"
+									>
+										{t(lang, 'market.taker.title')}
+									</div>
+									<div class="mb-1 text-[26px] leading-none font-bold" style="color: {takerColor};">
+										{asset.taker_ratio.toFixed(3)}
+									</div>
+									<div class="mb-3 text-xs text-muted-foreground">
+										{#if asset.taker_ratio > 1.05}
+											{lang === 'en' ? 'Buy dominant' : '买方主动'}
+										{:else if asset.taker_ratio < 0.95}
+											{lang === 'en' ? 'Sell dominant' : '卖方主动'}
+										{:else}
+											{lang === 'en' ? 'Balanced' : '均衡'}
+										{/if}
+									</div>
+									<!-- Sparkline -->
+									<svg width="80" height="28" viewBox="0 0 80 28" class="overflow-visible">
+										{#if asset.taker_ratio_series.length > 1}
+											{@const pts = asset.taker_ratio_series}
+											{@const step = 80 / (pts.length - 1)}
+											<polyline
+												points={pts.map((v, i) => `${i * step},${28 - v * 26}`).join(' ')}
+												fill="none"
+												stroke={takerColor}
+												stroke-width="1.5"
+												stroke-linejoin="round"
+												stroke-linecap="round"
+											/>
+										{/if}
+									</svg>
+								</div>
+
+								<!-- Card 3: Top Trader L/S -->
+								<div class="rounded-xl border border-border bg-card p-4">
+									<div
+										class="mb-2 text-[10px] font-semibold tracking-widest text-muted-foreground uppercase"
+									>
+										{t(lang, 'market.toptrader.title')}
+									</div>
+									<div
+										class="mb-1 text-[26px] leading-none font-bold"
+										style="color: {topTraderColor};"
+									>
+										{asset.top_trader_ls.toFixed(3)}
+									</div>
+									<div class="mb-2 text-xs text-muted-foreground">
+										{lang === 'en' ? 'Elite positioning' : '大户持仓方向'}
+									</div>
+									{#if Math.abs(asset.top_trader_ls - asset.ls_ratio) > 0.2}
+										<div
+											class="mb-2 rounded bg-[color-mix(in_oklab,var(--warn)_10%,transparent)] px-2 py-1 text-xs font-semibold text-[var(--warn)]"
+										>
+											{lang === 'en' ? '⚠ Divergence: retail vs elite' : '⚠ 散户 vs 大户方向背离'}
+										</div>
+									{/if}
+								</div>
+							</div>
+
+							<!-- Interpretation bar -->
+							<div class="mt-4 rounded-xl border border-border bg-card px-5 py-3">
+								{#if composite > 1.1}
+									<p class="text-sm font-semibold text-[var(--loss)]">
+										{lang === 'en'
+											? '⚠ Market over-leveraged long — correction risk elevated'
+											: '⚠ 市场过度多头，留意回调风险'}
+									</p>
+								{:else if composite < 0.9}
+									<p class="text-sm font-semibold text-[var(--profit)]">
+										{lang === 'en'
+											? '↑ Short-heavy market — potential reversal zone'
+											: '↑ 空头主导，可能触底信号'}
+									</p>
+								{:else}
+									<p class="text-sm text-muted-foreground">
+										{lang === 'en'
+											? 'Market positioning balanced — no strong directional bias detected'
+											: '市场多空持仓均衡，暂无明显方向偏差'}
+									</p>
+								{/if}
+								<p class="mt-1 text-xs text-muted-foreground">
+									{lang === 'en' ? 'Composite signal (avg of 3 ratios):' : '综合信号（三项均值）:'}
+									{composite.toFixed(3)}
+								</p>
+							</div>
 						{/if}
-						<p class="mt-1 text-xs text-muted-foreground">
-							{lang === 'en' ? 'Composite signal (avg of 3 ratios):' : '综合信号（三项均值）:'} {composite.toFixed(3)}
-						</p>
-					</div>
-				{/if}
-			</section>
+					</section>
 				</div>
 			</details>
 

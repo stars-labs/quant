@@ -3,11 +3,7 @@
 Incremental sync of local state files → TimescaleDB.
 Runs quickly (seconds) so safe to invoke every few minutes via systemd timer.
 
-One source (the freqtrade SQLite → quant.trades stage and the event_dca_state.json
-→ quant.event_dca_triggers stage were both removed with the single-stack migration:
-the freqtrade DBs are frozen, and the event-dca daemon was retired in favour of the
-Nautilus signal node — its state file no longer updates. quant.nautilus_trades is now
-the execution source of truth; the historical event_dca_triggers rows remain in the DB):
+One source (quant.nautilus_trades is the execution source of truth, written in-node):
   1. walk_forward_history/*.json → quant.wf_results
 
 All upserts are idempotent by natural key.

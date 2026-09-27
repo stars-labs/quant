@@ -11,9 +11,15 @@
 
 <svelte:head>
 	<title>{en ? 'Getting started' : '新手指南'} · Crypto Quant</title>
-	<meta name="description" content="新手指南：这个平台是什么、能做什么、如何开始——免代码回测、实时信号、公开账本，不荐股、不代客理财。" />
+	<meta
+		name="description"
+		content="新手指南：这个平台是什么、能做什么、如何开始——免代码回测、实时信号、公开账本，不荐股、不代客理财。"
+	/>
 	<meta property="og:title" content="{en ? 'Getting started' : '新手指南'} · Crypto Quant" />
-	<meta property="og:description" content="新手指南：这个平台是什么、能做什么、如何开始——免代码回测、实时信号、公开账本，不荐股、不代客理财。" />
+	<meta
+		property="og:description"
+		content="新手指南：这个平台是什么、能做什么、如何开始——免代码回测、实时信号、公开账本，不荐股、不代客理财。"
+	/>
 </svelte:head>
 
 <main class="mx-auto mt-12 max-w-3xl px-5 pb-16">

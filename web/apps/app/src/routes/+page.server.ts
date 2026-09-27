@@ -1,9 +1,9 @@
 import type { PageServerLoad } from './$types';
 import { vps, supabase } from '$lib/api';
-import type { BacktestRun, OhlcRow, EventDcaTrigger, PublicStats } from '$lib/types';
+import type { BacktestRun, OhlcRow, PublicStats } from '$lib/types';
 
 // Home is the funnel's top surface: anon gets public-preview aggregates,
-// authed gets the same PLUS richer Recent-25 table and full OHLC/events.
+// authed gets the same PLUS richer Recent-25 table and full OHLC.
 
 export const load: PageServerLoad = async ({ fetch, cookies }) => {
 	const jwt = cookies.get('qt_jwt');
@@ -16,7 +16,9 @@ export const load: PageServerLoad = async ({ fetch, cookies }) => {
 					.ohlcDaily(fetch, pair, { from: '2017-01-01', limit: 4000, authHeader: auth })
 					.catch(() => [] as OhlcRow[])
 			: pair === 'BTC/USDT' || pair === 'ETH/USDT' || pair === 'BNB/USDT' || pair === 'SOL/USDT'
-				? vps.publicOhlcDaily(fetch, pair, { from: '2017-01-01', limit: 4000 }).catch(() => [] as OhlcRow[])
+				? vps
+						.publicOhlcDaily(fetch, pair, { from: '2017-01-01', limit: 4000 })
+						.catch(() => [] as OhlcRow[])
 				: Promise.resolve([] as OhlcRow[]);
 
 	const [
@@ -31,8 +33,7 @@ export const load: PageServerLoad = async ({ fetch, cookies }) => {
 		btcOhlc,
 		ethOhlc,
 		bnbOhlc,
-		solOhlc,
-		triggers
+		solOhlc
 	] = await Promise.all([
 		// Honest current numbers: aggregates over the deployed strategies re-run on Nautilus,
 		// NOT the retired freqtrade backtest_runs.
@@ -45,21 +46,16 @@ export const load: PageServerLoad = async ({ fetch, cookies }) => {
 		// derives an honest, data-driven market read from it (breadth, rotation, movers).
 		vps.semiUniverse(fetch).catch(() => []),
 		vps.semiGroups(fetch).catch(() => []),
-			isAuthed
-				? vps.backtestRuns(fetch, { limit: 500, authHeader: auth }).catch(() => [] as BacktestRun[])
-				: Promise.resolve([] as BacktestRun[]),
-			supabase.dcaLog(fetch, { limit: 50 }).catch(() => []),
-			supabase.kolEvents(fetch, { limit: 5 }).catch(() => []),
-			ohlcFor('BTC/USDT'),
-			ohlcFor('ETH/USDT'),
-			ohlcFor('BNB/USDT'),
-			ohlcFor('SOL/USDT'),
-			isAuthed
-				? vps
-						.eventDcaTriggers(fetch, { limit: 500, authHeader: auth })
-						.catch(() => [] as EventDcaTrigger[])
-				: vps.publicEventTriggers(fetch, { limit: 500 }).catch(() => [] as EventDcaTrigger[])
-		]);
+		isAuthed
+			? vps.backtestRuns(fetch, { limit: 500, authHeader: auth }).catch(() => [] as BacktestRun[])
+			: Promise.resolve([] as BacktestRun[]),
+		supabase.dcaLog(fetch, { limit: 50 }).catch(() => []),
+		supabase.kolEvents(fetch, { limit: 5 }).catch(() => []),
+		ohlcFor('BTC/USDT'),
+		ohlcFor('ETH/USDT'),
+		ohlcFor('BNB/USDT'),
+		ohlcFor('SOL/USDT')
+	]);
 
 	const ohlcByCoin = { BTC: btcOhlc, ETH: ethOhlc, BNB: bnbOhlc, SOL: solOhlc };
 	const stats = statsRow[0] ?? null;
@@ -135,7 +131,6 @@ export const load: PageServerLoad = async ({ fetch, cookies }) => {
 		timeframe_options: [...distinctTimeframes].sort(),
 		recent_kol: kolArr,
 		recent_dca: dcaArr.slice(0, 5),
-		ohlcByCoin,
-		triggers
+		ohlcByCoin
 	};
 };

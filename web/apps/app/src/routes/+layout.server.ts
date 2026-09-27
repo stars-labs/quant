@@ -3,7 +3,7 @@ import { redirect } from '@sveltejs/kit';
 
 // Routes behind login. Everything else (/, /dca, /login, /auth/*, /docs/*,
 // /reports/* static, /api/*) stays public so the conversion funnel survives.
-const PROTECTED_PREFIXES = ['/strategies', '/archive', '/chart', '/wf', '/live'];
+const PROTECTED_PREFIXES = ['/strategies', '/archive', '/chart', '/wf'];
 
 // /reports has static HTML + an index page. Gate the index only so the funnel
 // still works (users can share direct report links, but the catalog is premium).

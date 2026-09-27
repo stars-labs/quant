@@ -7,7 +7,6 @@
  */
 import {
 	copyFileSync,
-	cpSync,
 	existsSync,
 	mkdirSync,
 	readdirSync,
@@ -65,10 +64,7 @@ const folders = readdirSync(DST, { withFileTypes: true })
 		return { folder, pages, updated: mt };
 	});
 
-writeFileSync(
-	join(DST, 'manifest.json'),
-	JSON.stringify({ folders, skipped }, null, 2)
-);
+writeFileSync(join(DST, 'manifest.json'), JSON.stringify({ folders, skipped }, null, 2));
 console.log(`sync-reports: copied ${folders.length} folders → ${DST}`);
 for (const f of folders) console.log(`  ${f.folder}  (${f.pages.length} pages)`);
 if (skipped.length) {

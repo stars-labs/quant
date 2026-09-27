@@ -85,8 +85,7 @@ ROLES = {
     "desk": {
         "systemctl": ["systemctl", "--user"],
         "failed_scope": ["quant-*"],  # a desktop: ignore desktop-session units
-        "required": ["quant-equity.service", "quant-dashboard.service",
-                     "quant-backtest-runner.service"],
+        "required": ["quant-equity.service", "quant-backtest-runner.service"],
         "peer": ("server", 30),
     },
 }

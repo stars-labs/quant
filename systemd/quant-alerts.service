@@ -1,12 +1,12 @@
 [Unit]
-Description=Quant daily Telegram report
+Description=Quant Telegram alerts pass (every 30 min)
 After=network-online.target
 
 [Service]
 Type=oneshot
 WorkingDirectory=/home/freeman.xiong/Documents/github/stars-labs/quant
 # Inner command is ONE single-quoted string so `sops exec-env` doesn't eat its flags.
-ExecStart=/run/current-system/sw/bin/bash -c 'sops exec-env secrets.env "/home/freeman.xiong/Documents/github/stars-labs/quant/.venv-bots/bin/python strategies/telegram_alerts.py --daily"'
+ExecStart=/run/current-system/sw/bin/bash -c 'sops exec-env secrets.env "/home/freeman.xiong/Documents/github/stars-labs/quant/.venv-bots/bin/python strategies/telegram_alerts.py --all"'
 Environment=PATH=/run/current-system/sw/bin:/home/freeman.xiong/Documents/github/stars-labs/quant/.venv-bots/bin:/etc/profiles/per-user/freeman.xiong/bin:/usr/bin:/bin
 Environment=GNUPGHOME=/home/freeman.xiong/.gnupg
 

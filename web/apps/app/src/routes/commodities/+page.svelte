@@ -86,7 +86,10 @@
 		<div
 			class="mt-8 rounded-lg border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground"
 		>
-			{tr('行情快照暂不可用，稍后再来。', 'Snapshots are unavailable right now — check back shortly.')}
+			{tr(
+				'行情快照暂不可用，稍后再来。',
+				'Snapshots are unavailable right now — check back shortly.'
+			)}
 		</div>
 	{:else}
 		<div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

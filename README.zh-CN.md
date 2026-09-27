@@ -56,15 +56,15 @@ nautilus 实时节点               (+ Supabase：认证 + 实时)              
 nautilus_crypto/    加密引擎（Nautilus）：accumulator.py、donchian.py、signal_*.py、live_*/run_* 节点
 nautilus_equity/    经 Interactive Brokers 的美股引擎（独立 .venv，装了 nautilus_trader[ib]）
 nautilus_options/   Deribit CSP 回测
-strategies/         独立机器人 + 采集器（risk_manager、kelly_sizer、dca_executor、
-                    deribit_monitor、news_collector、stress_index、market_collector、quant_lab…）
+strategies/         独立机器人 + 采集器（kelly_sizer、deribit_monitor、health_check、
+                   news_collector、stress_index、market_collector、quant_lab…）
 scripts/            运维脚本（TimescaleDB 同步、Binance 数据下载、testnet USDT 回收器…）
 migrations/         TimescaleDB schema（库 `api`、schema `quant`）→ PostgREST `api.*` 视图
 web/apps/app/       SvelteKit 仪表盘（Cloudflare Workers）· web/apps/docs/ = Astro 文档站
 tests/              pytest 风格测试（直接用 venv 解释器跑）
 ```
 
-关键文档：[`CLAUDE.md`](CLAUDE.md) / [`AGENTS.md`](AGENTS.md)（贡献者与 agent 指南）、[`STRATEGY_LEADERBOARD.md`](STRATEGY_LEADERBOARD.md)（策略研究日志）、[`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)、[`TUTORIAL_FOR_BEGINNERS.md`](TUTORIAL_FOR_BEGINNERS.md)。
+关键文档：[`CLAUDE.md`](CLAUDE.md) / [`AGENTS.md`](AGENTS.md)（贡献者与 agent 指南）、[`STRATEGY_LEADERBOARD.md`](STRATEGY_LEADERBOARD.md)（策略研究日志）、[`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)。
 
 ---
 

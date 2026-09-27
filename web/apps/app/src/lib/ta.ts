@@ -102,7 +102,10 @@ export function stochRsi(closes: number[]): StochRsiResult {
 	}
 
 	// Smooth K
-	const kSeries = sma(rawK.filter((v) => !isNaN(v)), kSmooth);
+	const kSeries = sma(
+		rawK.filter((v) => !isNaN(v)),
+		kSmooth
+	);
 	// Smooth D (SMA of K)
 	const dSeries = sma(kSeries, dSmooth);
 

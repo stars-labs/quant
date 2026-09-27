@@ -57,7 +57,13 @@ type BinanceKline = [
 
 type FundingEntry = { fundingRate: string; [k: string]: unknown };
 type FngEntry = { value: string; value_classification: string; timestamp: string };
-type LsRatioEntry = { symbol: string; longShortRatio: string; longAccount: string; shortAccount: string; timestamp: number };
+type LsRatioEntry = {
+	symbol: string;
+	longShortRatio: string;
+	longAccount: string;
+	shortAccount: string;
+	timestamp: number;
+};
 type TakerRatioEntry = { buySellRatio: string; buyVol: string; sellVol: string; timestamp: number };
 
 /** Raw upstream responses — shared shape between the snapshot payload and the
@@ -202,17 +208,23 @@ function computeAssetData(
 	const ls_ratio =
 		lsRatioData.length > 0 ? parseFloat(lsRatioData[lsRatioData.length - 1].longShortRatio) : 1.0;
 	const ls_ratio_raw = lsRatioData.map((e) => parseFloat(e.longShortRatio));
-	const ls_ratio_series = ls_ratio_raw.length > 0 ? normalize(ls_ratio_raw) : new Array(48).fill(0.5);
+	const ls_ratio_series =
+		ls_ratio_raw.length > 0 ? normalize(ls_ratio_raw) : new Array(48).fill(0.5);
 
 	// Taker buy/sell ratio
 	const taker_ratio =
-		takerRatioData.length > 0 ? parseFloat(takerRatioData[takerRatioData.length - 1].buySellRatio) : 1.0;
+		takerRatioData.length > 0
+			? parseFloat(takerRatioData[takerRatioData.length - 1].buySellRatio)
+			: 1.0;
 	const taker_ratio_raw = takerRatioData.map((e) => parseFloat(e.buySellRatio));
-	const taker_ratio_series = taker_ratio_raw.length > 0 ? normalize(taker_ratio_raw) : new Array(48).fill(0.5);
+	const taker_ratio_series =
+		taker_ratio_raw.length > 0 ? normalize(taker_ratio_raw) : new Array(48).fill(0.5);
 
 	// Top trader L/S ratio
 	const top_trader_ls =
-		topTraderData.length > 0 ? parseFloat(topTraderData[topTraderData.length - 1].longShortRatio) : 1.0;
+		topTraderData.length > 0
+			? parseFloat(topTraderData[topTraderData.length - 1].longShortRatio)
+			: 1.0;
 
 	return {
 		symbol,
@@ -275,39 +287,37 @@ async function fetchFromSnapshot(
 
 /** Original direct-origin fetches — blocked from CF Workers / mainland CN, but
  * fine for local dev and as a fallback when the snapshot is unavailable. */
-async function fetchFromOrigins(
-	symbol: 'BTC' | 'ETH',
-	fetchFn: typeof fetch
-): Promise<AssetData> {
+async function fetchFromOrigins(symbol: 'BTC' | 'ETH', fetchFn: typeof fetch): Promise<AssetData> {
 	const binanceSymbol = symbol === 'BTC' ? 'BTCUSDT' : 'ETHUSDT';
 
-	const [klines, fundingRates, oiData, fngData, lsRatioData, takerRatioData, topTraderData] = await Promise.all([
-		fetchJson<BinanceKline[]>(
-			`https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=1w&limit=220`,
-			fetchFn
-		),
-		fetchJson<FundingEntry[]>(
-			`https://fapi.binance.com/fapi/v1/fundingRate?symbol=${binanceSymbol}&limit=7`,
-			fetchFn
-		),
-		fetchJson<{ openInterest: string; symbol: string }>(
-			`https://fapi.binance.com/fapi/v1/openInterest?symbol=${binanceSymbol}`,
-			fetchFn
-		),
-		fetchJson<{ data: FngEntry[] }>('https://api.alternative.me/fng/?limit=30', fetchFn),
-		fetchJson<LsRatioEntry[]>(
-			`https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${binanceSymbol}&period=1h&limit=48`,
-			fetchFn
-		).catch(() => [] as LsRatioEntry[]),
-		fetchJson<TakerRatioEntry[]>(
-			`https://fapi.binance.com/futures/data/takerlongshortRatio?symbol=${binanceSymbol}&period=1h&limit=48`,
-			fetchFn
-		).catch(() => [] as TakerRatioEntry[]),
-		fetchJson<LsRatioEntry[]>(
-			`https://fapi.binance.com/futures/data/topLongShortAccountRatio?symbol=${binanceSymbol}&period=1h&limit=1`,
-			fetchFn
-		).catch(() => [] as LsRatioEntry[])
-	]);
+	const [klines, fundingRates, oiData, fngData, lsRatioData, takerRatioData, topTraderData] =
+		await Promise.all([
+			fetchJson<BinanceKline[]>(
+				`https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=1w&limit=220`,
+				fetchFn
+			),
+			fetchJson<FundingEntry[]>(
+				`https://fapi.binance.com/fapi/v1/fundingRate?symbol=${binanceSymbol}&limit=7`,
+				fetchFn
+			),
+			fetchJson<{ openInterest: string; symbol: string }>(
+				`https://fapi.binance.com/fapi/v1/openInterest?symbol=${binanceSymbol}`,
+				fetchFn
+			),
+			fetchJson<{ data: FngEntry[] }>('https://api.alternative.me/fng/?limit=30', fetchFn),
+			fetchJson<LsRatioEntry[]>(
+				`https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${binanceSymbol}&period=1h&limit=48`,
+				fetchFn
+			).catch(() => [] as LsRatioEntry[]),
+			fetchJson<TakerRatioEntry[]>(
+				`https://fapi.binance.com/futures/data/takerlongshortRatio?symbol=${binanceSymbol}&period=1h&limit=48`,
+				fetchFn
+			).catch(() => [] as TakerRatioEntry[]),
+			fetchJson<LsRatioEntry[]>(
+				`https://fapi.binance.com/futures/data/topLongShortAccountRatio?symbol=${binanceSymbol}&period=1h&limit=1`,
+				fetchFn
+			).catch(() => [] as LsRatioEntry[])
+		]);
 
 	return computeAssetData(
 		symbol,

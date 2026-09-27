@@ -120,7 +120,7 @@
 					type="button"
 					onclick={close}
 					aria-label={lang === 'zh' ? '关闭' : 'Close'}
-					class="-mr-1 -mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded text-base text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+					class="-mt-0.5 -mr-1 grid h-5 w-5 shrink-0 place-items-center rounded text-base text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
 				>
 					×
 				</button>
@@ -129,16 +129,23 @@
 			<p class="mb-3 text-foreground italic">{copy.pitch}</p>
 
 			<p class="mb-2 text-foreground">
-				<span class="font-semibold text-muted-foreground">{lang === 'zh' ? '逻辑' : 'Philosophy'}</span>
+				<span class="font-semibold text-muted-foreground"
+					>{lang === 'zh' ? '逻辑' : 'Philosophy'}</span
+				>
 				· {copy.philosophy}
 			</p>
 
 			{#if copy.factors && copy.factors.length > 0}
 				<div class="mb-2">
-					<span class="font-semibold text-muted-foreground">{lang === 'zh' ? '核心因子' : 'Factors'}</span>
+					<span class="font-semibold text-muted-foreground"
+						>{lang === 'zh' ? '核心因子' : 'Factors'}</span
+					>
 					<div class="mt-1 flex flex-wrap gap-1">
-						{#each copy.factors as f}
-							<span class="rounded-full border border-border bg-secondary/60 px-2 py-0.5 font-mono text-[10px] text-foreground">{f}</span>
+						{#each copy.factors as f, _i (_i)}
+							<span
+								class="rounded-full border border-border bg-secondary/60 px-2 py-0.5 font-mono text-[10px] text-foreground"
+								>{f}</span
+							>
 						{/each}
 					</div>
 				</div>
@@ -159,7 +166,9 @@
 			{/if}
 
 			{#if copy.risk}
-				<div class="mt-2 rounded border border-dashed border-border bg-secondary/40 px-2 py-1.5 text-[11px] text-muted-foreground">
+				<div
+					class="mt-2 rounded border border-dashed border-border bg-secondary/40 px-2 py-1.5 text-[11px] text-muted-foreground"
+				>
 					<span class="font-semibold">{lang === 'zh' ? '风险特征' : 'Risk profile'}:</span>
 					{copy.risk}
 				</div>
@@ -182,8 +191,10 @@
 							p={kelly.win_rate.toFixed(2)} · b={kelly.payoff_ratio.toFixed(2)} · n={kelly.n_trades}
 							{#if kelly.f_half_point != null && kelly.f_half_shrunk != null && kelly.status === 'negative_edge'}
 								<br />
-								{lang === 'zh' ? '点估计' : 'point'} f½={(kelly.f_half_point * 100).toFixed(2)}%
-								→ {lang === 'zh' ? '收缩后' : 'after Wilson'} 0%
+								{lang === 'zh' ? '点估计' : 'point'} f½={(kelly.f_half_point * 100).toFixed(2)}% → {lang ===
+								'zh'
+									? '收缩后'
+									: 'after Wilson'} 0%
 							{:else if kelly.f_half_shrunk != null && kelly.status === 'ok'}
 								<br />
 								f½={(kelly.f_half_shrunk * 100).toFixed(2)}%
@@ -191,7 +202,12 @@
 						</div>
 					{/if}
 					{#if kelly.profit_total_pct != null}
-						{@const profitColor = kelly.profit_total_pct > 0 ? 'text-green-400' : kelly.profit_total_pct < 0 ? 'text-red-400' : 'text-muted-foreground'}
+						{@const profitColor =
+							kelly.profit_total_pct > 0
+								? 'text-green-400'
+								: kelly.profit_total_pct < 0
+									? 'text-red-400'
+									: 'text-muted-foreground'}
 						<div class="mt-1.5 border-t border-current/20 pt-1.5 text-[10px] opacity-80">
 							{lang === 'zh' ? '同期回测' : 'Same-window backtest'}:
 							<span class="font-mono font-semibold {profitColor}">

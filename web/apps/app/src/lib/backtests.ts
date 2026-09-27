@@ -6,11 +6,7 @@ import { CONFIG } from './config';
 import { getToken } from './auth';
 
 export type Strategy =
-	| 'honest_trend'
-	| 'accumulator'
-	| 'donchian'
-	| 'master_portfolio'
-	| 'quant_lab';
+	'honest_trend' | 'accumulator' | 'donchian' | 'master_portfolio' | 'quant_lab';
 export type JobStatus = 'queued' | 'running' | 'done' | 'error';
 
 export interface BacktestJob {

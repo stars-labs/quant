@@ -1,5 +1,13 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import type {
+		IChartApi,
+		ISeriesApi,
+		ISeriesMarkersPluginApi,
+		SeriesMarker,
+		Time,
+		UTCTimestamp
+	} from 'lightweight-charts';
 	import type { OhlcRow, BacktestTrade } from '$lib/types';
 
 	interface Props {
@@ -13,33 +21,33 @@
 	let containerEl: HTMLDivElement;
 
 	// chart internals — assigned after mount
-	let chart: any = null;
-	let candleSeries: any = null;
-	let volumeSeries: any = null;
-	let emaSeries: any = null;
-	let candleMarkers: any = null; // v5: separate markers primitive
+	let chart: IChartApi | null = null;
+	let candleSeries: ISeriesApi<'Candlestick'> | null = null;
+	let volumeSeries: ISeriesApi<'Histogram'> | null = null;
+	let emaSeries: ISeriesApi<'Line'> | null = null;
+	let candleMarkers: ISeriesMarkersPluginApi<Time> | null = null; // v5: separate markers primitive
 	let ro: ResizeObserver | null = null;
 
 	// ── helpers ────────────────────────────────────────────────────────────────
 
-	function toUnix(iso: string): number {
-		return Math.floor(new Date(iso).getTime() / 1000);
+	function toUnix(iso: string): UTCTimestamp {
+		return Math.floor(new Date(iso).getTime() / 1000) as UTCTimestamp;
 	}
 
-	function calcEma(data: { time: number; value: number }[], period: number) {
+	function calcEma(data: { time: UTCTimestamp; value: number }[], period: number) {
 		const k = 2 / (period + 1);
-		const out: { time: number; value: number }[] = [];
+		const out: { time: UTCTimestamp; value: number }[] = [];
 		let prev = data[0].value;
 		for (const d of data) {
 			prev = d.value * k + prev * (1 - k);
-			out.push({ time: d.time as any, value: prev });
+			out.push({ time: d.time, value: prev });
 		}
 		return out.slice(period);
 	}
 
 	function mapCandles() {
 		return rows.map((r) => ({
-			time: toUnix(r.bucket) as any,
+			time: toUnix(r.bucket),
 			open: r.open,
 			high: r.high,
 			low: r.low,
@@ -55,28 +63,24 @@
 		const profit = (css.getPropertyValue('--profit').trim() || '#4ADE80') + '40';
 		const loss = (css.getPropertyValue('--loss').trim() || '#FF5C7A') + '40';
 		return rows.map((r) => ({
-			time: toUnix(r.bucket) as any,
+			time: toUnix(r.bucket),
 			value: r.volume,
 			color: r.close >= r.open ? profit : loss
 		}));
 	}
 
 	function buildMarkers() {
-		const markers: {
-			time: any;
-			position: string;
-			shape: string;
-			color: string;
-			text: string;
-		}[] = [];
+		const markers: SeriesMarker<UTCTimestamp>[] = [];
 
 		for (const trade of trades) {
 			// Entry marker
 			markers.push({
-				time: toUnix(trade.open_date) as any,
+				time: toUnix(trade.open_date),
 				position: 'belowBar',
 				shape: 'arrowUp',
-				color: getComputedStyle(document.documentElement).getPropertyValue('--gold-500').trim() || '#F5B340',
+				color:
+					getComputedStyle(document.documentElement).getPropertyValue('--gold-500').trim() ||
+					'#F5B340',
 				text: '▲'
 			});
 
@@ -86,7 +90,7 @@
 				const absVal = Math.abs(trade.profit_abs ?? 0);
 				const css = getComputedStyle(document.documentElement);
 				markers.push({
-					time: toUnix(trade.close_date) as any,
+					time: toUnix(trade.close_date),
 					position: 'aboveBar',
 					shape: 'arrowDown',
 					color: isWinner
@@ -98,7 +102,7 @@
 		}
 
 		// lightweight-charts requires markers sorted by time ascending
-		markers.sort((a, b) => (a.time as number) - (b.time as number));
+		markers.sort((a, b) => a.time - b.time);
 		return markers;
 	}
 
@@ -112,7 +116,7 @@
 		volumeSeries.setData(volume);
 
 		if (candles.length > 20) {
-			const closes = candles.map((c: any) => ({ time: c.time, value: c.close }));
+			const closes = candles.map((c) => ({ time: c.time, value: c.close }));
 			emaSeries.setData(calcEma(closes, 20));
 		} else {
 			emaSeries.setData([]);
@@ -121,7 +125,7 @@
 		// markers — v5 uses createSeriesMarkers primitive (set up in onMount)
 		const markers = buildMarkers();
 		if (candleMarkers) {
-			candleMarkers.setMarkers(markers as any);
+			candleMarkers.setMarkers(markers);
 		}
 
 		// Force the time scale to fit all candles. Without this, lightweight-
@@ -150,8 +154,7 @@
 		// Resolve BDV theme vars to concrete hex/rgba so lightweight-charts
 		// (canvas-based) renders with the current dark/light palette.
 		const css = getComputedStyle(document.documentElement);
-		const v = (name: string, fallback: string) =>
-			css.getPropertyValue(name).trim() || fallback;
+		const v = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
 		const bg = v('--card', '#14132A');
 		const fg = v('--foreground', '#F4F2FF');
 		const grid = v('--border', 'rgba(255,255,255,0.10)');

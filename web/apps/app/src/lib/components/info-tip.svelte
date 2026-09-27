@@ -7,10 +7,10 @@
 <span class="group relative ml-1 inline-flex cursor-help items-center align-middle">
 	<span class="text-[10px] leading-none text-muted-foreground group-hover:text-foreground">ⓘ</span>
 	<span
-		class="pointer-events-none invisible absolute z-50 w-64 rounded-md border bg-popover px-3 py-2 text-[11px] font-normal normal-case leading-relaxed text-popover-foreground opacity-0 shadow-lg transition group-hover:visible group-hover:opacity-100 {placement ===
+		class="pointer-events-none invisible absolute z-50 w-64 rounded-md border bg-popover px-3 py-2 text-[11px] leading-relaxed font-normal text-popover-foreground normal-case opacity-0 shadow-lg transition group-hover:visible group-hover:opacity-100 {placement ===
 		'top'
 			? 'bottom-full left-0 mb-1'
-			: 'left-0 top-full mt-1'}"
+			: 'top-full left-0 mt-1'}"
 	>
 		{text}
 	</span>

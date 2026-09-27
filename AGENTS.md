@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This repository is a quant trading research and operations workspace centered on NautilusTrader. Core engines live in `nautilus_crypto/`, `nautilus_equity/`, and `nautilus_options/`. Shared standalone bots and helpers live in `strategies/`, while operational scripts live in `scripts/`. The public strategy track record (`/record`, Telegram topic `strategy_signals`) is computed from `quant.strategy_signals` via the `quant.strategy_record` view — see CLAUDE.md "Strategy track record"; `quant.nautilus_trades` is only the testnet execution ledger. Database changes are in `migrations/` for TimescaleDB/PostgREST and `supabase/` for Supabase schemas. Static dashboards are in `dashboard/`; the active SvelteKit/Cloudflare dashboard is in `web/apps/app/`, with docs in `web/apps/docs/`. Tests are in `tests/` and some module-local `test_*` files.
+This repository is a quant trading research and operations workspace centered on NautilusTrader. Core engines live in `nautilus_crypto/`, `nautilus_equity/`, and `nautilus_options/`. Shared standalone bots and helpers live in `strategies/`, while operational scripts live in `scripts/`. The public strategy track record (`/record`, Telegram topic `strategy_signals`) is computed from `quant.strategy_signals` via the `quant.strategy_record` view — see CLAUDE.md "Strategy track record"; `quant.nautilus_trades` is only the testnet execution ledger. Database changes are in `migrations/` for TimescaleDB/PostgREST and `supabase/` for Supabase schemas. The SvelteKit/Cloudflare dashboard is in `web/apps/app/`, with docs in `web/apps/docs/`. Tests are in `tests/` and some module-local `test_*` files.
 
 ## Build, Test, and Development Commands
 

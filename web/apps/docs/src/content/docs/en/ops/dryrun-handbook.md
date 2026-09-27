@@ -390,7 +390,6 @@ The trend strategy doesn't touch BTC; BTC is accumulated by this DCA combo:
 - Limits: 72h cooldown, max 3 per month
 - State file: `event_dca_state.json`
 - Self-test: `python strategies/event_dca_bot.py --self-test`
-- Details: [EVENT_DCA.md](EVENT_DCA.md)
 
 The two channels have **independent budgets** (not shared); both invoke `dca_executor.py` to execute. **To enable live**: add `DCA_LIVE_ENABLED=true` + Binance spot API key in SOPS `secrets.env`, and both channels go live simultaneously.
 

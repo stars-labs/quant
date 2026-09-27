@@ -22,7 +22,6 @@ const DST_EN_ROOT = join(DST_ROOT, 'en');
 const MAPPING = {
 	HONEST_TREND_REPORT: ['strategies', 'HonestTrend 完整验证报告', 'HonestTrend full validation report'],
 	PHASE_B_FUTURES_SHORT: ['strategies', 'Phase B：期货对冲', 'Phase B: futures hedge'],
-	EVENT_DCA: ['strategies', '事件 DCA daemon', 'Event DCA daemon'],
 	FACTOR_DESIGN: ['strategies', '12 因子设计', '12-factor design'],
 	STRATEGY_REPORT: ['strategies', 'Strategy Report v1', 'Strategy Report v1'],
 	STRATEGY_REPORT_v2: ['strategies', 'Strategy Report v2', 'Strategy Report v2'],

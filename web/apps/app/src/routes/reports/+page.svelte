@@ -7,7 +7,7 @@
 
 <svelte:head><title>{t(lang, 'reports.title')} · Crypto Quant</title></svelte:head>
 
-<main class="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-8">
+<main class="mx-auto w-full max-w-[1600px] px-4 py-8 sm:px-6">
 	<h1 class="text-2xl font-semibold tracking-tight">{t(lang, 'reports.title')}</h1>
 	<p class="mt-1 max-w-3xl text-sm text-muted-foreground">
 		{lang === 'en'
@@ -16,7 +16,7 @@
 	</p>
 
 	<div class="mt-6 grid gap-4 md:grid-cols-2">
-		{#each data.reports as r}
+		{#each data.reports as r, _i (_i)}
 			<a
 				href={`/reports/${r.folder}/`}
 				data-sveltekit-reload
@@ -24,15 +24,15 @@
 			>
 				<div class="flex items-baseline justify-between">
 					<div class="font-semibold">{r.title}</div>
-					<div class="font-mono text-[10px] uppercase text-muted-foreground">
+					<div class="font-mono text-[10px] text-muted-foreground uppercase">
 						{r.pages.length} pages
 					</div>
 				</div>
 				<p class="mt-2 text-sm text-muted-foreground">{r.body}</p>
 				<div class="mt-3 flex flex-wrap gap-1">
-					{#each r.pages.slice(0, 4) as p}
+					{#each r.pages.slice(0, 4) as p, _i (_i)}
 						<span
-							class="rounded bg-secondary px-2 py-0.5 text-[10px] font-mono text-secondary-foreground"
+							class="rounded bg-secondary px-2 py-0.5 font-mono text-[10px] text-secondary-foreground"
 						>
 							{p.replace('.html', '')}
 						</span>
@@ -49,7 +49,9 @@
 	</div>
 
 	{#if data.reports.length === 0}
-		<div class="mt-8 rounded-lg border border-dashed bg-card p-10 text-center text-muted-foreground">
+		<div
+			class="mt-8 rounded-lg border border-dashed bg-card p-10 text-center text-muted-foreground"
+		>
 			{lang === 'en'
 				? 'No reports yet. Generate locally with python scripts/visualize_strategy.py; pnpm build will sync them into static/reports/.'
 				: '暂无报告。在本地 python scripts/visualize_strategy.py 生成，然后 pnpm build 会自动同步到 static/reports/。'}
@@ -62,11 +64,13 @@
 				? 'The following files exceed Cloudflare Pages’ 25 MB per-file limit and are not live yet:'
 				: '以下文件超过 Cloudflare Pages 25 MB 单文件限制，暂未上线：'}
 			<ul class="mt-1 list-disc pl-5 font-mono">
-				{#each data.skipped as s}
+				{#each data.skipped as s, _i (_i)}
 					<li>{s.path} ({s.mb} MB)</li>
 				{/each}
 			</ul>
-			{lang === 'en' ? 'Move to R2 in the future (no size cap).' : '未来可迁到 R2（无 size 限制）。'}
+			{lang === 'en'
+				? 'Move to R2 in the future (no size cap).'
+				: '未来可迁到 R2（无 size 限制）。'}
 		</div>
 	{/if}
 </main>

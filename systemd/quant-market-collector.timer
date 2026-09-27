@@ -1,9 +1,0 @@
-[Unit]
-Description=Market data collection every 30 minutes
-
-[Timer]
-OnCalendar=*:08/30
-Persistent=true
-
-[Install]
-WantedBy=timers.target

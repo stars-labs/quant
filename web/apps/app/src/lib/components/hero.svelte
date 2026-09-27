@@ -9,13 +9,17 @@
 	const en = $derived(lang === 'en');
 </script>
 
-<section class="mb-8 overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/10 via-card to-card p-6 sm:p-8">
+<section
+	class="mb-8 overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/10 via-card to-card p-6 sm:p-8"
+>
 	<div class="max-w-3xl">
-		<p class="text-xs font-medium uppercase tracking-wide text-primary">
+		<p class="text-xs font-medium tracking-wide text-primary uppercase">
 			{en ? 'Open quant research platform' : '开放量化研究平台'}
 		</p>
 		<h1 class="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
-			{en ? 'Backtest your own strategies — see what actually works.' : '回测你自己的策略 —— 看什么真的有效。'}
+			{en
+				? 'Backtest your own strategies — see what actually works.'
+				: '回测你自己的策略 —— 看什么真的有效。'}
 		</h1>
 		<p class="mt-3 text-sm text-muted-foreground sm:text-base">
 			{en

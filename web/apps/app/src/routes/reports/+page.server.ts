@@ -35,10 +35,6 @@ const DESCRIPTIONS: Record<string, { title: string; body: string }> = {
 	walk_forward: {
 		title: '🧭 Walk-Forward 对比',
 		body: '3 策略 × 8 个 regime 窗口的稳定性分析。'
-	},
-	event_dca: {
-		title: '📡 Event DCA 触发历史',
-		body: 'Always-on daemon 捕捉的闪崩加仓事件。'
 	}
 };
 

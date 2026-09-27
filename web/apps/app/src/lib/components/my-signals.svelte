@@ -100,7 +100,8 @@
 	let nameTouched = $state(false);
 	const suggested = $derived.by(() => {
 		if (kind === 'fng_threshold') return `FNG<${params.below} ${en ? 'fear alert' : '恐慌提醒'}`;
-		if (kind === 'vix_threshold') return `VIX>${params.above} ${en ? 'US fear alert' : '美股恐慌提醒'}`;
+		if (kind === 'vix_threshold')
+			return `VIX>${params.above} ${en ? 'US fear alert' : '美股恐慌提醒'}`;
 		if (kind === 'ema_cross') {
 			const d = choiceLabel(String(params.direction));
 			return `${asset} EMA${params.ema_fast}/${params.ema_slow} ${d}`;
@@ -150,10 +151,7 @@
 
 	// ── Create ────────────────────────────────────────────────────────────────
 	function validate(): string | null {
-		if (
-			(kind === 'ema_cross' || kind === 'donchian_breakout') &&
-			!/^[A-Z0-9]{1,6}$/.test(asset)
-		)
+		if ((kind === 'ema_cross' || kind === 'donchian_breakout') && !/^[A-Z0-9]{1,6}$/.test(asset))
 			return en
 				? 'Asset must be 1-6 letters/digits, e.g. TSLA.'
 				: '标的须为 1-6 位字母/数字，如 TSLA。';
@@ -317,7 +315,9 @@
 							<datalist id="signal-assets">
 								{#each CRYPTO_ASSETS as a (a)}<option value={a}>{a}</option>{/each}
 								{#each EQUITY_ASSETS as a (a)}<option value={a}>{a}</option>{/each}
-								{#each COMMODITY_ASSETS as c (c.sym)}<option value={c.sym}>{c.sym} — {en ? c.en : c.zh}</option>{/each}
+								{#each COMMODITY_ASSETS as c (c.sym)}<option value={c.sym}
+										>{c.sym} — {en ? c.en : c.zh}</option
+									>{/each}
 							</datalist>
 							<p class="mt-1 text-[11px] text-muted-foreground">
 								{en
