@@ -57,3 +57,23 @@ def test_portfolio_matches_equal_weight():
     p = sc._portfolio(RECORD)
     assert abs(p["ret"] - (0.066 - 0.07 + 0.15) / 3) < 1e-12
     assert p["closed"] == 30 and abs(p["win_rate"] - 0.4) < 1e-12 and p["best"] == ("SOL", 0.2)
+
+
+def follow(asset, exit_=True, ret=0.05):
+    return {"asset": asset, "entry_ts": datetime(2026, 9, 26, 3, tzinfo=UTC),
+            "entry_price": 0.00001234,
+            "exit_ts": datetime(2026, 9, 27, 9, tzinfo=UTC) if exit_ else None,
+            "exit_price": 0.00001301 if exit_ else None,
+            "net_ret": ret if exit_ else None, "open_ret": None if exit_ else ret}
+
+
+def test_personal_card_with_closed_and_open_follows():
+    summary = {"n_followed": 3, "n_closed": 2, "n_wins": 1, "n_open": 1, "closed_compound": 0.031}
+    rows = [follow("BTC", exit_=False, ret=0.02), follow("PEPE"), follow("ETH", ret=-0.02)]
+    assert size(sc.render_personal(rows, summary, datetime(2026, 9, 28, tzinfo=UTC))) == (sc.W, sc.H)
+
+
+def test_personal_card_with_only_open_follows():
+    summary = {"n_followed": 1, "n_closed": 0, "n_wins": 0, "n_open": 1, "closed_compound": 0.0}
+    rows = [{**follow("BTC", exit_=False), "open_ret": None}]
+    assert size(sc.render_personal(rows, summary, datetime(2026, 9, 28, tzinfo=UTC))) == (sc.W, sc.H)

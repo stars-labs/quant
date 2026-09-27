@@ -1,18 +1,23 @@
 """
-Telegram Alert System
+Operator Telegram alerts (TELEGRAM_CHAT_ID — the operator chat, not users; user pushes are
+alert_dispatcher.py).
 
-1. KOL real-time alerts — when Trump/Musk/BlackRock moves, get notified fast
-2. Sentiment shift alerts — when combined_score changes significantly
-3. Daily report — market + house strategy record (quant.strategy_record) + Kelly verdicts
+1. KOL alerts (--kol / --all, every 30 min via quant-alerts.timer): Google-News KOL
+   headlines scored by kol_tracker.py.
+2. Daily report (--daily, quant-daily-report.timer): house strategy record
+   (quant.strategy_record), growth funnel + the Telegram loop (quant.web_events campaigns,
+   binds, weekly-active subscribers, follows — migration 037), top headlines.
 
-Run every 30 min via systemd timer (separate from the 4-hour pipeline).
+Removed 2026-09-27 (dead sources): the sentiment block / sentiment-shift alert
+(sentiment_data/latest_sentiment.json last written 2026-04-23), the Supabase
+sentiment_snapshots trend (project host no longer resolves) and the Kelly block
+(retired freqtrade HonestTrend* backtests, last 2026-04-20).
 """
 
 import json
 import logging
 import os
 import subprocess
-import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -155,201 +160,6 @@ def check_kol_alerts():
 
 
 # --------------------------------------------------------------------------
-# Alert 2: Sentiment Shift
-# --------------------------------------------------------------------------
-def check_sentiment_shift():
-    """Alert when combined_score changes significantly."""
-    state = load_state()
-    last_score = state.get("last_combined_score", 0.0)
-
-    # Read latest
-    sentiment_file = PROJECT_DIR / "sentiment_data" / "latest_sentiment.json"
-    try:
-        with open(sentiment_file) as f:
-            data = json.loads(f.read())
-        current_score = data.get("combined_score", 0.0)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return
-
-    delta = current_score - last_score
-
-    # Alert on significant shifts (> 0.2 change)
-    if abs(delta) > 0.2:
-        direction = "📈 BULLISH" if delta > 0 else "📉 BEARISH"
-        message = (
-            f"*Sentiment Shift* {direction}\n"
-            f"{'─' * 30}\n"
-            f"Score: {last_score:+.2f} → *{current_score:+.2f}* ({delta:+.2f})\n"
-            f"FnG: {data.get('fng_value', '?')} ({data.get('fng_classification', '?')})\n"
-            f"KOL: {data.get('kol_score', 0):+.2f} ({data.get('kol_mentions', 0)} mentions)\n"
-            f"Signal: *{data.get('signal', '?').upper()}*"
-        )
-        send_telegram(message)
-        logger.info(f"Sentiment shift alert: {last_score:+.2f} → {current_score:+.2f}")
-
-    # Also alert on regime change
-    if current_score > 0.3 and last_score <= 0.3:
-        send_telegram("*Regime Change*: → BULLISH 🟢\nSentiment crossed above +0.3 threshold")
-    elif current_score < -0.3 and last_score >= -0.3:
-        send_telegram("*Regime Change*: → BEARISH 🔴\nSentiment crossed below -0.3 threshold")
-
-    state["last_combined_score"] = current_score
-    save_state(state)
-
-
-# --------------------------------------------------------------------------
-# Helper: per-strategy Kelly verdict
-# --------------------------------------------------------------------------
-# The Kelly sizer (strategies/kelly_sizer.py) lazy-loads per-strategy stats
-# during bot_loop_start; once that's done they live only in the bot process
-# memory. This helper recomputes the same stats on demand so the daily
-# Telegram report and the --kelly CLI can both surface them.
-_KELLY_TRACKED_STRATEGIES = [
-    "HonestTrend15mDry",
-    "HonestTrend15mProtections",
-    "HonestTrend1mLive",
-    "HonestTrend1mMTF",
-    "HonestTrendFutures",
-]
-
-
-def kelly_status_dict() -> dict:
-    """Return Kelly status for tracked strategies as a serialisable dict.
-
-    Shape (one entry per strategy):
-      {
-        "generated_at": "2026-05-13T09:30:00Z",
-        "min_trades_for_kelly": 30,
-        "wilson_z": 1.96,
-        "strategies": [
-          {"name": "...", "status": "ok|negative_edge|insufficient_n|no_data",
-           "win_rate": 0.33, "payoff_ratio": 2.18, "n_trades": 570,
-           "f_half_point": 0.0125, "f_half_shrunk": 0.0, "verdict": "<text>"}
-        ]
-      }
-
-    This is the machine-readable counterpart of format_kelly_report() — same
-    underlying data, useful for dashboards, monitoring, or piping to jq.
-    """
-    sys.path.insert(0, str(PROJECT_DIR / "strategies"))
-    try:
-        from kelly_sizer import (
-            MIN_TRADES_FOR_KELLY,
-            WILSON_Z,
-            latest_strategy_stats,
-        )
-    except Exception as e:
-        logger.debug(f"Kelly status skipped (import failed): {e}")
-        return {"error": f"import failed: {e}", "strategies": []}
-
-    strategies = []
-    for name in _KELLY_TRACKED_STRATEGIES:
-        entry: dict = {"name": name}
-        try:
-            stats = latest_strategy_stats(name)
-        except Exception as e:
-            stats = None
-            entry["error"] = str(e)
-        if stats is None:
-            entry["status"] = "no_data"
-            entry["verdict"] = "no recent backtest"
-            strategies.append(entry)
-            continue
-        f_half_point = stats.half_kelly_clamped(use_lower_bound=False)
-        f_half_shrunk = stats.half_kelly_clamped(use_lower_bound=True)
-        entry.update(
-            win_rate=round(stats.win_rate, 4),
-            payoff_ratio=round(stats.payoff_ratio, 4),
-            n_trades=stats.n_trades,
-            f_half_point=round(f_half_point, 6),
-            f_half_shrunk=round(f_half_shrunk, 6),
-        )
-        if stats.profit_total_pct is not None:
-            entry["profit_total_pct"] = round(stats.profit_total_pct, 2)
-        if stats.backtest_start:
-            entry["backtest_start"] = stats.backtest_start
-        if stats.backtest_end:
-            entry["backtest_end"] = stats.backtest_end
-        if stats.n_trades < MIN_TRADES_FOR_KELLY:
-            entry["status"] = "insufficient_n"
-            entry["verdict"] = f"n={stats.n_trades} below {MIN_TRADES_FOR_KELLY} → fallback"
-        elif f_half_shrunk == 0:
-            entry["status"] = "negative_edge"
-            entry["verdict"] = (
-                f"negative edge after Wilson shrinkage "
-                f"(point f½={f_half_point * 100:.2f}%)"
-            )
-        else:
-            entry["status"] = "ok"
-            entry["verdict"] = (
-                f"size {f_half_shrunk * 100:.2f}% per trade "
-                f"(point f½ {f_half_point * 100:.2f}%)"
-            )
-        strategies.append(entry)
-
-    return {
-        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "min_trades_for_kelly": MIN_TRADES_FOR_KELLY,
-        "wilson_z": WILSON_Z,
-        "strategies": strategies,
-    }
-
-
-def _format_kelly_entry(e: dict) -> str:
-    name = e["name"]
-    status = e.get("status")
-    if status == "no_data":
-        return f"  {name}: _no recent backtest_"
-    if status == "insufficient_n":
-        return f"  {name}: n={e['n_trades']} — _below {e.get('_min_trades', '?')}, fallback_"
-    if status == "negative_edge":
-        return (
-            f"  {name}: ⛔ negative edge after shrinkage "
-            f"(point f½={e['f_half_point'] * 100:.2f}% → 0 after Wilson; "
-            f"p={e['win_rate']:.2f} b={e['payoff_ratio']:.2f} n={e['n_trades']})"
-        )
-    if status == "ok":
-        return (
-            f"  {name}: ✅ {e['f_half_shrunk'] * 100:.2f}% per trade "
-            f"(point f½ would be {e['f_half_point'] * 100:.2f}%; "
-            f"p={e['win_rate']:.2f} b={e['payoff_ratio']:.2f} n={e['n_trades']})"
-        )
-    return f"  {name}: {e.get('verdict', '?')}"
-
-
-def format_kelly_report() -> str:
-    """Return a Markdown block summarising Kelly stats for tracked strategies.
-
-    Empty string if no strategies have a recent backtest — keeps the daily
-    report short when there's nothing useful to say.
-    """
-    payload = kelly_status_dict()
-    strategies = payload.get("strategies", [])
-    if not strategies:
-        return ""
-    min_n = payload.get("min_trades_for_kelly")
-    rows = []
-    for e in strategies:
-        if "_min_trades" not in e and min_n is not None:
-            e["_min_trades"] = min_n
-        rows.append(_format_kelly_entry(e))
-    return "\n*Kelly Sizing:*\n" + "\n".join(rows)
-
-
-def write_kelly_status_json(target: Path) -> Path:
-    """Compute Kelly status and write it as JSON to ``target``.
-
-    Used by the daily report path so external consumers (dashboard, monitoring,
-    jq pipelines) get a fresh snapshot once a day without having to invoke
-    the Python directly.
-    """
-    payload = kelly_status_dict()
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(payload, indent=2))
-    return target
-
-
-# --------------------------------------------------------------------------
 # Helper: house strategy record (quant.strategy_record, migration 032)
 # --------------------------------------------------------------------------
 # The public track record of the house trend rule (趋势突破策略, Donchian 1h 168/72 on
@@ -417,168 +227,147 @@ def strategy_record_block(timescale_url: str) -> str:
 
 
 # --------------------------------------------------------------------------
-# Alert 4: Daily Report
+# Growth: funnel + the Telegram loop (quant.web_events, telegram_links, user_follows)
+# --------------------------------------------------------------------------
+# Every dispatcher link carries ?ref=<channel>; the web stores it in web_events.campaign
+# (landing page_view = that URL's ref; conversions = the browser's first-touch ref).
+GROWTH_SQL = {
+    "funnel": """
+        WITH yest AS (SELECT * FROM quant.web_events WHERE ts >= now() - interval '24 hours')
+        SELECT
+          (SELECT count(DISTINCT visitor) FROM yest WHERE event = 'page_view') AS visitors,
+          (SELECT count(*) FROM yest WHERE event = 'page_view')                AS views,
+          (SELECT count(*) FROM yest WHERE event = 'signup')                   AS signups,
+          (SELECT count(*) FROM yest WHERE event = 'backtest_submit')          AS backtests,
+          (SELECT count(*) FROM yest WHERE event = 'signal_create')            AS signals,
+          -- D1 return: visitors seen in the last 24h AND in the 24h before
+          (SELECT count(DISTINCT y.visitor) FROM yest y
+            WHERE EXISTS (SELECT 1 FROM quant.web_events p
+                           WHERE p.visitor = y.visitor
+                             AND p.ts >= now() - interval '48 hours'
+                             AND p.ts <  now() - interval '24 hours'))        AS d1_return""",
+    "visits": """
+        SELECT campaign,
+               count(DISTINCT visitor) FILTER (WHERE ts >= now() - interval '24 hours') AS d1,
+               count(DISTINCT visitor)                                                AS d7
+          FROM quant.web_events
+         WHERE event = 'page_view' AND campaign IS NOT NULL AND ts >= now() - interval '7 days'
+         GROUP BY campaign ORDER BY d7 DESC, campaign""",
+    "binds": """
+        SELECT count(*) FILTER (WHERE bound_at >= now() - interval '24 hours') AS d1,
+               count(*) FILTER (WHERE bound_at >= now() - interval '7 days')   AS d7,
+               count(*)                                                        AS bound,
+               count(*) FILTER (WHERE last_seen_at >= now() - interval '7 days'
+                                   OR EXISTS (SELECT 1 FROM quant.web_events e
+                                               WHERE e.user_id = l.user_id
+                                                 AND e.ts >= now() - interval '7 days')) AS wau
+          FROM quant.telegram_links l
+         WHERE chat_id IS NOT NULL""",
+    "bind_refs": """
+        SELECT coalesce(campaign, 'direct') AS campaign,
+               count(DISTINCT coalesce(user_id::text, visitor)) AS n
+          FROM quant.web_events
+         WHERE event = 'telegram_bound' AND ts >= now() - interval '7 days'
+         GROUP BY 1 ORDER BY n DESC, 1""",
+    "follows": """
+        SELECT count(*) FILTER (WHERE followed_at >= now() - interval '24 hours') AS d1,
+               count(*) FILTER (WHERE followed_at >= now() - interval '7 days')   AS d7
+          FROM quant.user_follows""",
+}
+
+
+def _code(s: str) -> str:
+    """Campaign names have underscores — Markdown italics unless code-quoted."""
+    return f"`{s}`"
+
+
+def format_growth_block(g: dict) -> str:
+    """Markdown growth block from growth_stats() output (keys of GROWTH_SQL)."""
+    f = g["funnel"]
+    lines = [
+        "\n*Growth (24h):*",
+        f"  Visitors: {f['visitors']}  |  Views: {f['views']}  |  D1 return: {f['d1_return']}",
+        f"  Signups: {f['signups']}  |  Backtests: {f['backtests']}  |  Signals: {f['signals']}",
+        "*Telegram loop (24h / 7d):*",
+    ]
+    visits = ", ".join(f"{_code(v['campaign'])} {v['d1']}/{v['d7']}" for v in g["visits"])
+    lines.append(f"  Visits by ref: {visits or 'none'}")
+    b = g["binds"]
+    refs = ", ".join(f"{_code(r['campaign'])} {r['n']}" for r in g["bind_refs"])
+    lines.append(f"  New binds: {b['d1']}/{b['d7']}" + (f" (7d by first ref: {refs})" if refs else ""))
+    lines.append(f"  Subscribers: {b['bound']} bound, {b['wau']} active this week")
+    fo = g["follows"]
+    lines.append(f"  Follows: {fo['d1']}/{fo['d7']}")
+    return "\n".join(lines)
+
+
+def growth_stats(conn) -> dict:
+    out = {}
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        for key, sql in GROWTH_SQL.items():
+            cur.execute(sql)
+            out[key] = cur.fetchall() if key in ("visits", "bind_refs") else cur.fetchone()
+    return out
+
+
+def growth_block(timescale_url: str) -> str:
+    if psycopg2 is None or not timescale_url:
+        return ""
+    try:
+        conn = psycopg2.connect(timescale_url)
+        try:
+            return format_growth_block(growth_stats(conn))
+        finally:
+            conn.close()
+    except Exception as e:
+        logger.warning(f"growth query failed: {e}")
+        return ""
+
+
+def news_block(timescale_url: str) -> str:
+    """Top headlines of the last 24h (quant.news_items): Fed/SEC/ECB first, then freshest."""
+    if psycopg2 is None or not timescale_url:
+        return ""
+    try:
+        conn = psycopg2.connect(timescale_url)
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT source, title
+                    FROM quant.news_items
+                    WHERE published_at >= now() - interval '24 hours'
+                    ORDER BY CASE WHEN source IN ('Fed','SEC','ECB') THEN 0 ELSE 1 END,
+                             published_at DESC
+                    LIMIT 5
+                """)
+                rows = cur.fetchall()
+        finally:
+            conn.close()
+    except Exception as e:
+        logger.warning(f"news query failed: {e}")
+        return ""
+    if not rows:
+        return ""
+    return "\n*Market wire (24h):*\n" + "\n".join(
+        f"  • [{src}] {(title or '')[:80]}" for src, title in rows)
+
+
+# --------------------------------------------------------------------------
+# Daily Report
 # --------------------------------------------------------------------------
 def send_daily_report():
-    """
-    Send daily summary: portfolio status, sentiment, KOL activity.
-    Call once per day (e.g., via --daily flag or at 00:00 UTC).
-    """
+    """Once per UTC day: strategy record + growth / Telegram loop + headlines."""
     state = load_state()
-    last_report = state.get("last_daily_report", "")
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-
-    if last_report == today:
+    if state.get("last_daily_report", "") == today:
         logger.info("Daily report already sent today")
         return
 
-    # Gather sentiment data
-    sentiment_file = PROJECT_DIR / "sentiment_data" / "latest_sentiment.json"
-    try:
-        with open(sentiment_file) as f:
-            s = json.loads(f.read())
-    except (FileNotFoundError, json.JSONDecodeError):
-        s = {}
-
-    fng = s.get("fng_value", "?")
-    fng_class = s.get("fng_classification", "?")
-    score = s.get("combined_score", 0)
-    kol = s.get("kol_score", 0)
-    kol_n = s.get("kol_mentions", 0)
-    btc = s.get("btc_price", 0)
-
-    # Get Supabase history
-    history_str = ""
-    try:
-        import os
-        su = os.environ.get("SUPABASE_URL", "")
-        sk = os.environ.get("SUPABASE_KEY", "")
-        if su and sk:
-            resp = requests.get(
-                f"{su}/rest/v1/sentiment_snapshots",
-                headers={"apikey": sk, "Authorization": f"Bearer {sk}"},
-                params={"select": "combined_score,signal", "order": "timestamp.desc", "limit": "6"},
-                timeout=10,
-            )
-            if resp.status_code == 200:
-                hist = resp.json()
-                trend = " → ".join(f"{h['combined_score']:+.2f}" for h in reversed(hist))
-                history_str = f"\nTrend (24h): {trend}"
-    except Exception:
-        pass
-
-    # House strategy record (quant.strategy_record, migration 032) — replaces the old
-    # quant.nautilus_trades P&L, which node restarts made misleading (stale "open" rows per
-    # position). Graceful no-op when TIMESCALE_URL isn't provided to this service.
     timescale_url = os.environ.get("TIMESCALE_URL", "")
-    strategy = strategy_record_block(timescale_url)
-
-    # Growth funnel from first-party analytics (quant.web_events, migration 020) —
-    # the validation plan's daily eyes: visitors / signups / activation / D1 return.
-    growth = ""
-    if psycopg2 is not None and timescale_url:
-        try:
-            conn = psycopg2.connect(timescale_url)
-            try:
-                with conn.cursor() as cur:
-                    cur.execute("""
-                        WITH yest AS (
-                          SELECT * FROM quant.web_events
-                          WHERE ts >= now() - interval '24 hours'
-                        )
-                        SELECT
-                          (SELECT count(DISTINCT visitor) FROM yest WHERE event = 'page_view'),
-                          (SELECT count(*) FROM yest WHERE event = 'page_view'),
-                          (SELECT count(*) FROM yest WHERE event = 'signup'),
-                          (SELECT count(*) FROM yest WHERE event = 'backtest_submit'),
-                          (SELECT count(*) FROM yest WHERE event = 'signal_create'),
-                          (SELECT count(*) FROM yest WHERE event = 'telegram_bound'),
-                          -- D1 return: visitors seen yesterday AND in the 24h before
-                          (SELECT count(DISTINCT y.visitor) FROM yest y
-                            WHERE EXISTS (SELECT 1 FROM quant.web_events p
-                                           WHERE p.visitor = y.visitor
-                                             AND p.ts >= now() - interval '48 hours'
-                                             AND p.ts <  now() - interval '24 hours'))
-                    """)
-                    vis, pv, su_n, bt, sig, tg, ret = cur.fetchone()
-            finally:
-                conn.close()
-            if (vis or 0) > 0:
-                growth = (
-                    f"\n*Growth (24h):*\n"
-                    f"  Visitors: {vis}  |  Views: {pv}  |  D1 return: {ret}\n"
-                    f"  Signups: {su_n}  |  Backtests: {bt}  |  Signals: {sig}  |  TG bound: {tg}"
-                )
-        except Exception as e:
-            logger.warning(f"growth query failed: {e}")
-
-    # Top headlines from the news ingest (quant.news_items) — macro/official
-    # sources (Fed/SEC/ECB) first, then the freshest of the last 24h.
-    news = ""
-    if psycopg2 is not None and timescale_url:
-        try:
-            conn = psycopg2.connect(timescale_url)
-            try:
-                with conn.cursor() as cur:
-                    cur.execute("""
-                        SELECT source, title
-                        FROM quant.news_items
-                        WHERE published_at >= now() - interval '24 hours'
-                        ORDER BY CASE WHEN source IN ('Fed','SEC','ECB') THEN 0 ELSE 1 END,
-                                 published_at DESC
-                        LIMIT 5
-                    """)
-                    rows = cur.fetchall()
-            finally:
-                conn.close()
-            if rows:
-                lines = "\n".join(
-                    f"  • [{src}] {(title or '')[:80]}" for src, title in rows
-                )
-                news = f"\n*Market wire (24h):*\n{lines}"
-        except Exception as e:
-            logger.warning(f"news query failed: {e}")
-
-    # Build the message line-by-line. Previous version chained f-strings inside
-    # parentheses with a `... if btc else ""` ternary on one of them — that
-    # binds the conditional at the PYTHON expression level (not string level),
-    # which silently collapsed the *entire* message to "" whenever btc was 0.
-    parts = [
-        f"*Daily Report* 📊 {today}",
-        "─" * 30,
-        "*Market:*",
-    ]
-    if btc:
-        parts.append(f"  BTC: ${btc:,.0f}")
-    parts.extend([
-        f"  Fear & Greed: {fng} ({fng_class})",
-        f"  Sentiment: {score:+.2f}",
-        f"  KOL Activity: {kol:+.2f} ({kol_n} mentions)",
-    ])
-    message = "\n".join(parts) + history_str + strategy + growth + news + format_kelly_report()
-
-    # Snapshot the structured Kelly status alongside the Telegram send so
-    # dashboards / monitoring can read the same numbers without re-running
-    # this script.
-    #
-    # We write to two locations:
-    #   - `sentiment_data/kelly_status.json` — local copy for jq / monitoring
-    #     pipelines that already look in sentiment_data/ for daily artifacts.
-    #   - `web/apps/app/static/kelly_status.json` — the path the dashboard
-    #     fetches. A subsequent `wrangler deploy` is still required to push
-    #     this to Cloudflare, but writing it here means the static asset on
-    #     disk always reflects the most recent backtest data so the next
-    #     deploy carries fresh numbers automatically.
-    for path in (
-        PROJECT_DIR / "sentiment_data" / "kelly_status.json",
-        PROJECT_DIR / "web" / "apps" / "app" / "static" / "kelly_status.json",
-    ):
-        try:
-            if path.parent.exists():
-                write_kelly_status_json(path)
-        except Exception as e:
-            logger.warning(f"Kelly status write to {path} failed: {e}")
-
+    message = (f"*Daily Report* 📊 {today}\n" + "─" * 30
+               + strategy_record_block(timescale_url)
+               + growth_block(timescale_url)
+               + news_block(timescale_url))
     send_telegram(message)
     logger.info("Daily report sent")
 
@@ -593,39 +382,13 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--kol", action="store_true", help="Check KOL alerts only")
-    parser.add_argument("--sentiment", action="store_true", help="Check sentiment shift only")
     parser.add_argument("--daily", action="store_true", help="Send daily report")
-    parser.add_argument("--kelly", action="store_true",
-                        help="Print Kelly verdict per strategy (does not send Telegram)")
-    parser.add_argument("--json", action="store_true",
-                        help="With --kelly, emit machine-readable JSON instead of Markdown")
-    parser.add_argument("--write-kelly-status",
-                        metavar="PATH",
-                        help="Compute Kelly status and write JSON to PATH, then exit")
     parser.add_argument("--all", action="store_true", help="Run all checks (default)")
     args = parser.parse_args()
 
-    if args.write_kelly_status:
-        out = write_kelly_status_json(Path(args.write_kelly_status))
-        print(f"wrote {out}")
-        sys.exit(0)
-
-    if args.kelly:
-        if args.json:
-            print(json.dumps(kelly_status_dict(), indent=2))
-        else:
-            print(format_kelly_report() or "(no Kelly data)")
-        sys.exit(0)
-
-    run_all = args.all or not (args.kol or args.sentiment or args.daily)
-
-    if args.kol or run_all:
+    if args.kol or args.all or not args.daily:
         n = check_kol_alerts()
         print(f"KOL alerts: {n} new")
-
-    if args.sentiment or run_all:
-        check_sentiment_shift()
-        print("Sentiment shift: checked")
 
     if args.daily:
         send_daily_report()

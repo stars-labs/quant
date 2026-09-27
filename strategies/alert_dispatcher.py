@@ -1,12 +1,16 @@
 """User-facing Telegram alert dispatcher — the retention loop behind /start 订阅.
 
 Two jobs, one loop:
-  1. BIND: long-poll Telegram getUpdates for "/start <token>"; match the token to
-     quant.telegram_links.link_token and bind that chat_id (web UI shows 已绑定).
-     This process is the ONLY getUpdates consumer for @freemanXbtc_bot (the other
-     services send only) — do not add a second poller.
+  1. UPDATES: long-poll Telegram getUpdates (messages + inline-button presses). This process
+     is the ONLY getUpdates consumer for @freemanXbtc_bot (the other services send only) —
+     do not add a second poller.
+       "/start <token>"  bind the chat to quant.telegram_links.link_token (web UI: 已绑定)
+       "/me"             the user's own follow record (quant.follow_record) as a share card
+       follow:<trade_id> the entry card's 「我跟了这笔」 button → quant.user_follows
+                         (migration 037; chat → user via telegram_links)
   2. FAN OUT: watch for new events and push them to subscribed chats:
-       'strategy_signals' — the house trend rule's buy/sell calls (sr.ASSETS)
+       'strategy_signals' — the house trend rule's buy/sell calls (sr.ASSETS; per-user coin
+                            filter telegram_links.coins, NULL = all)
                             (quant.strategy_signals, written by signal_evaluator.py)
                             + a Monday (UTC) scorecard from quant.strategy_record;
                             exits and the scorecard go out as share-card images
@@ -21,7 +25,8 @@ Two jobs, one loop:
      plus per-user pushes (fires of the user's own signals, monthly DCA-plan reminder).
 
 Messages are plain-Chinese (glossary tone from /start), always carry a
-"不构成投资建议" line, and link back to the dashboard. Tool, not advice. House
+"不构成投资建议" line, and link back to the dashboard with ?ref=<channel> (link(); the web
+records it in quant.web_events.campaign for the daily report). Tool, not advice. House
 strategy messages are "规则模拟信号": returns are net of 0.1% fee per side, the stats
 come only from quant.strategy_record, and backfilled history (live=false) is labelled
 回溯计算 and never pushed as a call.
@@ -49,6 +54,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import psycopg2
+import psycopg2.errors
 import psycopg2.extras
 import requests
 
@@ -60,7 +66,13 @@ DSN = os.environ.get("TIMESCALE_URL", "")
 INTERVAL = int(os.environ.get("DISPATCH_INTERVAL", "60"))
 STATE_PATH = Path.home() / ".config" / "quant" / "alert-dispatcher.json"
 DASH = "https://starslab.qzz.io"
-RECORD_URL = f"{DASH}/record"
+
+
+def link(path: str, ref: str, anchor: str = "") -> str:
+    """A dashboard URL tagged with the Telegram channel it was sent on (?ref=tg_entry, …).
+    The web keeps it as the visit's campaign (quant.web_events.campaign, migration 037)."""
+    return f"{DASH}{path}?ref={ref}{anchor}"
+
 
 TOPIC_ZH = {
     "strategy_signals": "策略买卖信号 + 每周战绩",
@@ -101,10 +113,13 @@ def tg(method: str, **params):
     return d["result"]
 
 
-def send(chat_id: int, text: str) -> bool:
+def send(chat_id: int, text: str, markup: dict | None = None) -> bool:
+    params = {"chat_id": chat_id, "text": text, "parse_mode": "HTML",
+              "disable_web_page_preview": True}
+    if markup:
+        params["reply_markup"] = markup
     try:
-        tg("sendMessage", chat_id=chat_id, text=text, parse_mode="HTML",
-           disable_web_page_preview=True)
+        tg("sendMessage", **params)
         return True
     except Exception as e:
         log(f"send to {chat_id} failed: {e!r}")
@@ -143,10 +158,11 @@ def render_card(fn: str, *args) -> bytes | None:
 
 
 def broadcast(chats: list[int], text: str, card: bytes | None = None,
-              caption: str | None = None) -> int:
+              caption: str | None = None, markup: dict | None = None) -> int:
     """Send `text` to every chat — as the caption of `card` when there is one (or `caption`
     on the photo followed by `text` as a message, for texts over Telegram's caption limit).
-    A chat whose photo fails still gets the text. Returns how many chats got the text."""
+    A chat whose photo fails still gets the text. `markup` (inline buttons) rides on the text
+    message and is only supported without a card. Returns how many chats got the text."""
     delivered = 0
     photo: bytes | str | None = card
     for chat in chats:
@@ -156,7 +172,7 @@ def broadcast(chats: list[int], text: str, card: bytes | None = None,
             if fid:
                 photo = fid
                 ok = True if caption is None else send(chat, text)
-        delivered += ok or send(chat, text)
+        delivered += ok or (send(chat, text, markup) if markup else send(chat, text))
     return delivered
 
 
@@ -166,52 +182,137 @@ def db():
     return conn
 
 
-# ---------- job 1: bind /start tokens ----------
+# ---------- job 1: Telegram updates (bind, /me, follow buttons) ----------
 
-def poll_bindings(conn, state: dict) -> None:
-    """Short getUpdates poll; bind '/start <token>' messages to telegram_links rows."""
+FOLLOW_PREFIX = "follow:"
+
+
+def follow_markup(trade_id: int) -> dict:
+    """The entry card's inline button; its press comes back as a callback_query."""
+    return {"inline_keyboard": [[{"text": "✋ 我跟了这笔", "callback_data": f"{FOLLOW_PREFIX}{trade_id}"}]]}
+
+
+def parse_follow(data: str | None) -> int | None:
+    """trade id from callback_data 'follow:<id>', else None."""
+    if not data or not data.startswith(FOLLOW_PREFIX):
+        return None
+    tail = data[len(FOLLOW_PREFIX):]
+    return int(tail) if tail.isdigit() else None
+
+
+def user_for_chat(conn, chat_id: int):
+    """The web user bound to this chat (the most recent binding if several accounts share
+    it), stamping last_seen_at — the daily report's weekly-active measure. None if unbound."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """UPDATE quant.telegram_links SET last_seen_at = now()
+                WHERE user_id = (SELECT user_id FROM quant.telegram_links WHERE chat_id = %s
+                                  ORDER BY bound_at DESC NULLS LAST LIMIT 1)
+                RETURNING user_id""",
+            (chat_id,),
+        )
+        row = cur.fetchone()
+    return row[0] if row else None
+
+
+def record_follow(conn, user_id, trade_id: int) -> str:
+    """'ok' (recorded), 'dup' (already recorded) or 'not_live' (unknown or backfilled trade —
+    migration 037's trigger refuses those)."""
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """INSERT INTO quant.user_follows (user_id, trade_id, source)
+                   VALUES (%s, %s, 'telegram') ON CONFLICT DO NOTHING RETURNING trade_id""",
+                (user_id, trade_id),
+            )
+            return "ok" if cur.fetchone() else "dup"
+    except psycopg2.errors.CheckViolation:
+        return "not_live"
+
+
+FOLLOW_ANSWER = {
+    "ok": "已记下 ✅ 发 /me 查看你的跟单记录",
+    "dup": "这笔已经记过了。发 /me 查看你的跟单记录",
+    "not_live": "这笔信号不能记录(只有实时推送过的信号可以)",
+    "unbound": "请先在 starslab.qzz.io 绑定 Telegram,才能记录跟单",
+}
+
+
+def handle_follow(conn, cq: dict) -> None:
+    chat_id = ((cq.get("message") or {}).get("chat") or {}).get("id") or (cq.get("from") or {}).get("id")
+    trade_id = parse_follow(cq.get("data"))
+    if trade_id is None or not chat_id:
+        outcome = None
+    else:
+        user_id = user_for_chat(conn, chat_id)
+        outcome = record_follow(conn, user_id, trade_id) if user_id else "unbound"
+        log(f"follow trade {trade_id} from chat {chat_id}: {outcome}")
+    try:
+        tg("answerCallbackQuery", callback_query_id=cq["id"],
+           text=FOLLOW_ANSWER.get(outcome, ""), show_alert=outcome == "unbound")
+    except Exception as e:
+        log(f"answerCallbackQuery failed: {e!r}")
+
+
+def handle_start(conn, chat_id: int, token: str) -> None:
+    if not token:
+        send(chat_id, "你好!请从 starslab.qzz.io 的订阅页面点「绑定 Telegram」进入,"
+                      "这样我才知道你是谁。")
+        return
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """UPDATE quant.telegram_links
+                      SET chat_id = %s, bound_at = now(), last_seen_at = now()
+                    WHERE link_token = %s
+                    RETURNING user_id, topics""",
+                (chat_id, token),
+            )
+            row = cur.fetchone()
+    except Exception as e:
+        log(f"bind update failed: {e!r}")
+        return
+    if row:
+        topics = row[1] or []
+        topic_zh = "、".join(TOPIC_ZH.get(t, t) for t in topics) or "(暂未选择)"
+        send(chat_id,
+             f"✅ 绑定成功!已订阅:{topic_zh}\n\n"
+             f"信号触发时会在这里通知你。收到买入信号后点「我跟了这笔」,"
+             f"随时发 /me 查看你自己的跟单记录。\n"
+             f"策略规则与全部历史战绩:{link('/record', 'tg_bind')}"
+             f"{DISCLAIMER}")
+        log(f"bound chat {chat_id} to user {row[0]}")
+    else:
+        send(chat_id, "这个绑定链接无效或已过期,请回到网站重新点「绑定 Telegram」。")
+
+
+def poll_updates(conn, state: dict) -> None:
+    """Short getUpdates poll: /start binds, /me records, 「我跟了这笔」 button presses."""
     try:
         updates = tg("getUpdates", offset=state["tg_offset"] + 1, timeout=20,
-                     allowed_updates=["message"])
+                     allowed_updates=["message", "callback_query"])
     except Exception as e:
         log(f"getUpdates failed: {e!r}")
         return
     for u in updates:
         state["tg_offset"] = max(state["tg_offset"], u["update_id"])
-        msg = u.get("message") or {}
-        text = (msg.get("text") or "").strip()
-        chat_id = (msg.get("chat") or {}).get("id")
-        if not chat_id or not text.startswith("/start"):
-            continue
-        parts = text.split(maxsplit=1)
-        token = parts[1].strip() if len(parts) > 1 else ""
-        if not token:
-            send(chat_id, "你好!请从 starslab.qzz.io 的订阅页面点「绑定 Telegram」进入,"
-                          "这样我才知道你是谁。")
-            continue
         try:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """UPDATE quant.telegram_links
-                          SET chat_id = %s, bound_at = now()
-                        WHERE link_token = %s
-                        RETURNING user_id, topics""",
-                    (chat_id, token),
-                )
-                row = cur.fetchone()
+            if u.get("callback_query"):
+                handle_follow(conn, u["callback_query"])
+                continue
+            msg = u.get("message") or {}
+            text = (msg.get("text") or "").strip()
+            chat_id = (msg.get("chat") or {}).get("id")
+            if not chat_id:
+                continue
+            cmd, _, arg = text.partition(" ")
+            cmd = cmd.split("@", 1)[0]  # "/me@freemanXbtc_bot" in groups
+            if cmd == "/start":
+                handle_start(conn, chat_id, arg.strip())
+            elif cmd == "/me":
+                handle_me(conn, chat_id)
         except Exception as e:
-            log(f"bind update failed: {e!r}")
-            continue
-        if row:
-            topics = row[1] or []
-            topic_zh = "、".join(TOPIC_ZH.get(t, t) for t in topics) or "(暂未选择)"
-            send(chat_id,
-                 f"✅ 绑定成功!已订阅:{topic_zh}\n\n"
-                 f"信号触发时会在这里通知你。策略规则与全部历史战绩:{RECORD_URL}"
-                 f"{DISCLAIMER}")
-            log(f"bound chat {chat_id} to user {row[0]}")
-        else:
-            send(chat_id, "这个绑定链接无效或已过期,请回到网站重新点「绑定 Telegram」。")
+            log(f"update {u.get('update_id')} failed (skipped): {e!r}")
 
 
 # ---------- job 2: fan out new events ----------
@@ -223,6 +324,21 @@ def subscribers(conn, topic: str) -> list[int]:
             (topic,),
         )
         return [r[0] for r in cur.fetchall()]
+
+
+def strategy_subscribers(conn) -> list[tuple[int, list[str] | None]]:
+    """(chat_id, coins) of every 'strategy_signals' subscriber; coins NULL = all coins."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT chat_id, coins FROM quant.telegram_links "
+            "WHERE chat_id IS NOT NULL AND 'strategy_signals' = ANY(topics)"
+        )
+        return [(r[0], r[1]) for r in cur.fetchall()]
+
+
+def chats_for_asset(subs: list[tuple[int, list[str] | None]], asset: str) -> list[int]:
+    """The chats that want entries/exits for `asset` (per-coin subscription, migration 037)."""
+    return [chat for chat, coins in subs if coins is None or asset in coins]
 
 
 # ---------- house strategy: 趋势突破策略 (migration 032) ----------
@@ -316,7 +432,7 @@ def format_entry(t: dict, record: list[dict], now: datetime) -> str:
     hint = _hint(record, now)
     if hint:
         lines.append(hint)
-    lines.append(f"👉 全部信号与实时持仓:{RECORD_URL}")
+    lines.append(f"👉 全部信号与实时持仓:{link('/record', 'tg_entry')}")
     return "\n".join(lines) + SIM_DISCLAIMER
 
 
@@ -332,7 +448,7 @@ def format_exit(t: dict) -> str:
     ]
     if not t["live"]:
         lines.append("(这笔的买入在服务上线前,是按规则回溯计算的,当时没有推送)")
-    lines.append(f"👉 全部信号与实时持仓:{RECORD_URL}")
+    lines.append(f"👉 全部信号与实时持仓:{link('/record', 'tg_exit')}")
     return "\n".join(lines) + SIM_DISCLAIMER
 
 
@@ -392,7 +508,7 @@ def format_weekly_scorecard(record: list[dict], recent: list[dict],
     if backfilled_at:
         note += f";{_md(backfilled_at)} 服务上线前的记录是按规则回溯计算的,不是当时的实时推送"
     lines.append(note + "。")
-    lines.append(f"\n👉 全部信号与实时持仓:{RECORD_URL}")
+    lines.append(f"\n👉 全部信号与实时持仓:{link('/record', 'tg_weekly')}")
     return "\n".join(lines) + SIM_DISCLAIMER
 
 
@@ -437,7 +553,7 @@ def fan_out_strategy_signals(conn, now: datetime | None = None) -> None:
         return
     now = now or datetime.now(timezone.utc)
     record = load_record(conn)
-    chats = subscribers(conn, "strategy_signals")
+    subs = strategy_subscribers(conn)
     legs = []
     for t in rows:
         if t["live"] and t["entry_notified_at"] is None:
@@ -445,10 +561,11 @@ def fan_out_strategy_signals(conn, now: datetime | None = None) -> None:
         if t["exit_ts"] is not None and t["exit_notified_at"] is None:
             legs.append((t["exit_ts"], 1, "exit", t))
     legs.sort(key=lambda x: (x[0], x[1]))
-    log(f"strategy fan-out: {len(legs)} signal(s) -> {len(chats)} subscriber(s)")
+    log(f"strategy fan-out: {len(legs)} signal(s) -> {len(subs)} subscriber(s)")
     for _ts, _order, leg, t in legs:
+        chats = chats_for_asset(subs, t["asset"])
         if leg == "entry":
-            delivered = broadcast(chats, format_entry(t, record, now))
+            delivered = broadcast(chats, format_entry(t, record, now), markup=follow_markup(t["id"]))
         else:
             card = render_card("render_exit_card", t, record) if chats else None
             delivered = broadcast(chats, format_exit(t), card)
@@ -497,12 +614,74 @@ def fan_out_weekly_scorecard(conn, state: dict, now: datetime | None = None) -> 
                                    backfilled_at(conn))
     chats = subscribers(conn, "strategy_signals")
     card = render_card("render_scorecard", record, now) if chats else None
-    delivered = broadcast(chats, text, card, caption="📊 <b>趋势突破策略 · 每周战绩</b>(明细见下条)")
+    caption = f"📊 <b>趋势突破策略 · 每周战绩</b>(明细见下条)\n{link('/record', 'tg_weekly')}"
+    delivered = broadcast(chats, text, card, caption=caption)
     if chats and not delivered:
         log(f"weekly scorecard {week}: 0/{len(chats)} delivered, retrying next tick")
         return
     state["last_scorecard_week"] = week
     log(f"weekly scorecard {week} -> {delivered}/{len(chats)} subscriber(s)")
+
+
+# ---------- personal follow record (/me, migration 037) ----------
+
+PERSONAL_RECENT = 6
+
+
+def format_personal(rows: list[dict], summary: dict | None) -> str:
+    """The /me reply. rows = quant.follow_trades rows of one user (newest first), summary =
+    their quant.follow_record row (None when they have followed nothing)."""
+    mine = link("/record", "tg_me", "#mine")
+    if not summary or not summary["n_followed"]:
+        return ("📒 <b>我的跟单记录</b>\n"
+                "你还没有记录跟单。收到买入信号时点「我跟了这笔」,或在网页战绩页标记你跟过的信号。\n"
+                f"👉 {mine}" + SIM_DISCLAIMER)
+    n_closed, n_open = summary["n_closed"], summary["n_open"]
+    lines = ["📒 <b>我的跟单记录</b>",
+             f"记录了 {summary['n_followed']} 笔:已平仓 {n_closed} 笔,持有中 {n_open} 笔"]
+    if n_closed:
+        lines.append(f"已平仓的依次复利 {_pct(summary['closed_compound'])},"
+                     f"胜率 {summary['n_wins'] / n_closed * 100:.0f}%({summary['n_wins']}/{n_closed})")
+    lines.append("")
+    for r in rows[:PERSONAL_RECENT]:
+        head = f"• {r['asset']} {_md(r['entry_ts'])} {_money(r['entry_price'])}"
+        if r["exit_ts"] is not None:
+            lines.append(f"{head} → {_md(r['exit_ts'])} {_money(r['exit_price'])},{_pct(r['net_ret'])}")
+        elif r["open_ret"] is not None:
+            lines.append(f"{head} 持有中,浮动 {_pct(r['open_ret'])}")
+        else:
+            lines.append(f"{head} 持有中")
+    if len(rows) > PERSONAL_RECENT:
+        lines.append(f"…共 {len(rows)} 笔")
+    lines.append("\n按信号价格计算、已扣买卖各 0.1% 手续费,不是你的真实成交;"
+                 "每笔按相同资金依次复利。")
+    lines.append(f"👉 在网页上查看或修改:{mine}")
+    return "\n".join(lines) + SIM_DISCLAIMER
+
+
+def load_personal(conn, user_id) -> tuple[list[dict], dict | None]:
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT * FROM quant.follow_trades WHERE user_id = %s ORDER BY entry_ts DESC",
+                    (user_id,))
+        rows = cur.fetchall()
+        cur.execute("SELECT * FROM quant.follow_record WHERE user_id = %s", (user_id,))
+        return rows, cur.fetchone()
+
+
+def handle_me(conn, chat_id: int) -> None:
+    """Reply to /me with the chat's own follow record — a share card (render_personal) when
+    there is something to show, the text as its caption / fallback."""
+    user_id = user_for_chat(conn, chat_id)
+    if not user_id:
+        send(chat_id, "这个 Telegram 还没有绑定网站账号。请在 starslab.qzz.io 的订阅卡片点"
+                      "「绑定 Telegram」。" + DISCLAIMER)
+        return
+    rows, summary = load_personal(conn, user_id)
+    text = format_personal(rows, summary)
+    card = render_card("render_personal", rows, summary,
+                       datetime.now(timezone.utc)) if summary else None
+    broadcast([chat_id], text, card)
+    log(f"/me for chat {chat_id}: {len(rows)} follow(s)")
 
 
 # ---------- smart-DCA boost days ----------
@@ -523,7 +702,7 @@ def format_dca_boost(row: dict) -> str:
         parts.append(f"{'极度恐慌' if row['fng'] <= 15 else '恐慌'}加 {row['fear_add']:g} 份")
     if row["dip_add"]:
         parts.append(f"大跌加 {row['dip_add']:g} 份")
-    lines = [f"🟢 <b>今天是定投加倍日 · BTC</b>"]
+    lines = ["🟢 <b>今天是定投加倍日 · BTC</b>"]
     mood = "极度恐慌" if row["fng"] <= 15 else "恐慌" if row["fng"] <= 25 else "中性"
     lines.append(f"恐惧贪婪指数 {row['fng']}({mood})")
     if row["drawdown"] is not None:
@@ -537,7 +716,7 @@ def format_dca_boost(row: dict) -> str:
         lines.append(f"2026 年至今按这条规则每天定投,平均成本 ${row['ytd_smart_cost']:,.0f},"
                      f"比每天固定金额定投(${row['ytd_plain_cost']:,.0f}){'低' if diff < 0 else '高'} "
                      f"{abs(diff) * 100:.1f}%;{row['ytd_days']} 天里有 {row['ytd_boosted_days']} 天是加倍日。")
-    lines.append(f"👉 记一笔、看你的真实均价:{DASH}/dca")
+    lines.append(f"👉 记一笔、看你的真实均价:{link('/dca', 'tg_boost')}")
     return "\n".join(lines) + SIM_DISCLAIMER
 
 
@@ -613,7 +792,7 @@ def format_daily_scan(scan: list[dict], funding: list[dict], now: datetime,
         lines.append("• 暂无极端费率")
 
     lines += format_markets(markets, vix)
-    lines.append(f"\n👉 实时雷达:{DASH}/scan")
+    lines.append(f"\n👉 实时雷达:{link('/scan', 'tg_scan')}")
     return "\n".join(lines) + "\n\n⚠️ 规则观察,不构成投资建议。"
 
 
@@ -717,11 +896,11 @@ def fan_out_equity(conn, state: dict) -> None:
             ret = f"{ppct * 100:+.2f}%" if ppct is not None else "—"
             text = (f"📈 <b>美股模拟盘平仓:{inst}</b>\n"
                     f"{side} {orate} → {crate},收益 {ret}\n"
-                    f"完整记录:{DASH}/nautilus")
+                    f"完整记录:{link('/nautilus', 'tg_equity')}")
         else:
             text = (f"📈 <b>美股模拟盘开仓:{inst}</b>\n"
                     f"{side} @ {orate}(IB 模拟盘,真实信号)\n"
-                    f"实时持仓:{DASH}/nautilus")
+                    f"实时持仓:{link('/nautilus', 'tg_equity')}")
         text += DISCLAIMER
         for chat in chats:
             send(chat, text)
@@ -765,7 +944,7 @@ def fan_out_plan_reminders(conn, state: dict) -> None:
             send(chat_id,
                  f"📅 <b>今天是你的定投日</b>\n"
                  f"按你保存的计划:本月投入 ${monthly:,.0f} {split}\n\n"
-                 f"买完回来记一笔,看看你的真实均价:{DASH}/dca\n"
+                 f"买完回来记一笔,看看你的真实均价:{link('/dca', 'tg_plan')}\n"
                  f"连跌的时候最难坚持 —— 也最重要。"
                  f"{DISCLAIMER}")
             sent += 1
@@ -801,7 +980,7 @@ def fan_out_user_fires(conn) -> None:
         if chat_id:  # unbound users still see fires in the web UI; nothing to push
             text = (f"🔔 <b>你的信号「{name}」触发了</b>\n"
                     f"{asset} · {tf}\n{d.get('message', '')}\n\n"
-                    f"这是你自己设定的规则提醒。管理信号:{DASH}/backtest"
+                    f"这是你自己设定的规则提醒。管理信号:{link('/backtest', 'tg_fire')}"
                     f"{DISCLAIMER}")
             ok = send(chat_id, text)
         if ok:
@@ -824,7 +1003,7 @@ def main() -> int:
         try:
             if conn is None or conn.closed:
                 conn = db()
-            poll_bindings(conn, state)  # ~20s long-poll = the loop's natural tick
+            poll_updates(conn, state)  # ~20s long-poll = the loop's natural tick
             if time.time() - last_fan >= INTERVAL:
                 # One failing stream (e.g. a missing grant) must not starve the others.
                 for job, args in ((fan_out_strategy_signals, (conn,)),
