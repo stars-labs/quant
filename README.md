@@ -56,15 +56,15 @@ nautilus live nodes            (+ Supabase: auth + realtime)          starslab.q
 nautilus_crypto/    Crypto engine (Nautilus): accumulator.py, donchian.py, signal_*.py, live_*/run_* nodes
 nautilus_equity/    US-equity engine via Interactive Brokers (own .venv with nautilus_trader[ib])
 nautilus_options/   Deribit CSP backtests
-strategies/         Standalone bots + collectors (risk_manager, kelly_sizer, dca_executor,
-                    deribit_monitor, news_collector, stress_index, market_collector, quant_lab, …)
+strategies/         Standalone bots + collectors (kelly_sizer, deribit_monitor, health_check,
+                    news_collector, stress_index, market_collector, quant_lab, …)
 scripts/            Ops scripts (TimescaleDB sync, Binance data download, testnet USDT recycler, …)
 migrations/         TimescaleDB schema (db `api`, schema `quant`) → PostgREST `api.*` views
 web/apps/app/       SvelteKit dashboard (Cloudflare Workers) · web/apps/docs/ = Astro docs site
 tests/              pytest-style tests (run via the venv directly)
 ```
 
-Key docs: [`CLAUDE.md`](CLAUDE.md) / [`AGENTS.md`](AGENTS.md) (contributor & agent guide), [`STRATEGY_LEADERBOARD.md`](STRATEGY_LEADERBOARD.md) (strategy research log), [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md), [`TUTORIAL_FOR_BEGINNERS.md`](TUTORIAL_FOR_BEGINNERS.md).
+Key docs: [`CLAUDE.md`](CLAUDE.md) / [`AGENTS.md`](AGENTS.md) (contributor & agent guide), [`STRATEGY_LEADERBOARD.md`](STRATEGY_LEADERBOARD.md) (strategy research log), [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md).
 
 ---
 

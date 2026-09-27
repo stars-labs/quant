@@ -1,5 +1,0 @@
-Metadata-Version: 2.4
-Name: crypto_scraper
-Version: 1.0
-Requires-Dist: scrapy>=2.11
-Dynamic: requires-dist

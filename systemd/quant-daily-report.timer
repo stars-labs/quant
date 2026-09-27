@@ -1,0 +1,9 @@
+[Unit]
+Description=Send daily crypto report at 08:00 SGT (00:00 UTC)
+
+[Timer]
+OnCalendar=*-*-* 08:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,11 +1,12 @@
 [Unit]
-Description=Crypto KOL & Health Alerts (every 30 min)
+Description=Sync walk-forward results (walk_forward_history/) to TimescaleDB
 After=network-online.target
 
 [Service]
 Type=oneshot
 WorkingDirectory=/home/freeman.xiong/Documents/github/stars-labs/quant
-ExecStart=/home/freeman.xiong/Documents/github/stars-labs/quant/start_telegram_alerts.sh
+# Inner command is ONE single-quoted string so `sops exec-env` doesn't eat its flags.
+ExecStart=/run/current-system/sw/bin/bash -c 'sops exec-env secrets.env "/home/freeman.xiong/Documents/github/stars-labs/quant/.venv-bots/bin/python scripts/sync_local_state_to_timescale.py --quiet"'
 Environment=PATH=/run/current-system/sw/bin:/home/freeman.xiong/Documents/github/stars-labs/quant/.venv-bots/bin:/etc/profiles/per-user/freeman.xiong/bin:/usr/bin:/bin
 Environment=GNUPGHOME=/home/freeman.xiong/.gnupg
 
