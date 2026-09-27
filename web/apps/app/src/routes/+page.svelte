@@ -51,9 +51,7 @@
 		return { top, bottom, total: entries.length };
 	});
 
-	// Recent DCA event timeline: last 8 triggers with kind, amount, age
 	// Per-strategy profit sparkline (last 5 runs, sorted by date)
-	// DCA capital deployment timeline (USDT per week from triggers)
 	// Timeframe distribution of recent runs
 	// Top pairs across recent runs by frequency
 	// Sharpe leaderboard: best Sharpe per strategy from recent runs
@@ -112,7 +110,7 @@
 
 <main class="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-10">
 	<Hero />
-	<GreetingBanner ohlcByCoin={data.ohlcByCoin} events={data.triggers} />
+	<GreetingBanner ohlcByCoin={data.ohlcByCoin} />
 
 	<div class="mb-10">
 		<div class="bdv-eyebrow mb-2 text-[var(--gold-500)]">BearDawnVerse · Quant</div>

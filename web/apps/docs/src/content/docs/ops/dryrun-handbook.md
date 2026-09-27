@@ -390,7 +390,6 @@ Trend 策略不碰 BTC，BTC 由这套 DCA 组合负责累积：
 - 限制：72h cooldown，最多 3 次/月
 - 状态文件：`event_dca_state.json`
 - 自检：`python strategies/event_dca_bot.py --self-test`
-- 详情：[EVENT_DCA.md](EVENT_DCA.md)
 
 两个通道**预算独立**（不共享），都调 `dca_executor.py` 执行。**打开 live**：在 SOPS `secrets.env` 加 `DCA_LIVE_ENABLED=true` + Binance spot API key，两个通道同时生效。
 

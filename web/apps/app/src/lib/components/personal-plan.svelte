@@ -11,7 +11,6 @@
 		type DcaResult,
 		type OhlcByCoin
 	} from '$lib/dcaSim';
-	import type { EventDcaTrigger } from '$lib/types';
 	import { fmtUSD, fmtPct } from '$lib/utils';
 	import { t, type Lang } from '$lib/i18n';
 
@@ -27,10 +26,7 @@
 		return (window as any).Plotly;
 	}
 
-	let {
-		ohlcByCoin,
-		events
-	}: { ohlcByCoin: OhlcByCoin; events: EventDcaTrigger[] } = $props();
+	let { ohlcByCoin }: { ohlcByCoin: OhlcByCoin } = $props();
 
 	const lang = $derived<Lang>($page.data.lang ?? 'zh');
 
@@ -39,7 +35,6 @@
 	let plan = $state<DcaPlan>({
 		start_date: '2022-01-01',
 		monthly_usdt: 500,
-		include_event: true,
 		mix: { BTC: 60, ETH: 20, BNB: 10, SOL: 10 }
 	});
 	let saveStatus = $state<'idle' | 'saving' | 'ok' | 'err'>('idle');
@@ -54,7 +49,7 @@
 	const mixValid = $derived(Math.abs(mixTotal - 100) < 0.5);
 
 	const result = $derived<DcaResult | null>(
-		$session && mixValid ? simulateDca(plan, ohlcByCoin, events) : null
+		$session && mixValid ? simulateDca(plan, ohlcByCoin) : null
 	);
 
 	let chartEl = $state<HTMLDivElement | null>(null);
@@ -65,7 +60,6 @@
 		const dates = r.timeline.map((t) => t.date);
 		const values = r.timeline.map((t) => t.value);
 		const invested = r.timeline.map((t) => t.cum_invested);
-		const eventDays = r.timeline.filter((t) => t.source === 'event' && t.invested > 0);
 
 		Plotly.newPlot(
 			chartEl,
@@ -87,14 +81,6 @@
 					mode: 'lines',
 					name: t(lang, 'plan.result.value'),
 					line: { color: 'hsl(210 100% 66%)', width: 2 }
-				},
-				{
-					x: eventDays.map((d) => d.date),
-					y: eventDays.map((d) => d.value),
-					type: 'scatter',
-					mode: 'markers',
-					name: t(lang, 'plan.result.event'),
-					marker: { size: 7, color: '#f59e0b', symbol: 'triangle-up' }
 				}
 			],
 			{
@@ -195,7 +181,7 @@
 	{:else if !loaded}
 		<p class="mt-2 text-sm text-muted-foreground">{t(lang, 'plan.loading')}</p>
 	{:else}
-		<div class="mt-4 grid gap-4 lg:grid-cols-5">
+		<div class="mt-4 grid gap-4 lg:grid-cols-3">
 			<label class="flex flex-col gap-1 text-xs text-muted-foreground lg:col-span-1">
 				{t(lang, 'plan.start')}
 				<input
@@ -214,10 +200,6 @@
 					bind:value={plan.monthly_usdt}
 					class="rounded-md border border-border bg-background px-3 py-2 font-mono text-sm text-foreground"
 				/>
-			</label>
-			<label class="flex items-center gap-2 text-xs text-muted-foreground lg:col-span-2">
-				<input type="checkbox" bind:checked={plan.include_event} class="h-4 w-4" />
-				{t(lang, 'plan.includeEvent')}
 			</label>
 			<div class="flex items-end lg:col-span-1">
 				<button
@@ -285,7 +267,7 @@
 		</div>
 
 		{#if result && result.summary.total_invested > 0}
-			<div class="mt-5 grid gap-3 text-center font-mono sm:grid-cols-4 lg:grid-cols-6">
+			<div class="mt-5 grid gap-3 text-center font-mono sm:grid-cols-3 lg:grid-cols-5">
 				<div class="rounded-lg border bg-card p-3">
 					<div class="text-[10px] uppercase text-muted-foreground">{t(lang, 'plan.result.invested')}</div>
 					<div class="mt-1 text-lg font-semibold">{fmtUSD(result.summary.total_invested)}</div>
@@ -307,10 +289,6 @@
 				<div class="rounded-lg border bg-card p-3">
 					<div class="text-[10px] uppercase text-muted-foreground">{t(lang, 'plan.result.scheduled')}</div>
 					<div class="mt-1 text-lg font-semibold">{result.summary.n_scheduled_buys}</div>
-				</div>
-				<div class="rounded-lg border bg-card p-3">
-					<div class="text-[10px] uppercase text-muted-foreground">{t(lang, 'plan.result.event')}</div>
-					<div class="mt-1 text-lg font-semibold">{result.summary.n_event_buys}</div>
 				</div>
 				<div class="rounded-lg border bg-card p-3">
 					<div class="text-[10px] uppercase text-muted-foreground">{t(lang, 'plan.result.coins')}</div>

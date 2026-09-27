@@ -23,7 +23,6 @@ hero:
 | Component | Docs |
 |------|------|
 | HonestTrend family (15mDry / 1mMTF / Futures) | [Strategies](/docs/en/strategies/honest-trend-report/) |
-| Smart DCA event channel | [Event DCA](/docs/en/strategies/event-dca/) |
 | Phase B futures L+S hedge | [Phase B](/docs/en/strategies/phase-b-futures-short/) |
 | Walk-Forward methodology | [WF](/docs/en/research/walk-forward-full-history/) |
 | Hyperopt parameter tuning | [Hyperopt](/docs/en/research/hyperopt-pyramid-tuning/) |

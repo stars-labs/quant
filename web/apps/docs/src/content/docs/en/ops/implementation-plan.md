@@ -21,7 +21,6 @@ description: "IMPLEMENTATION_PLAN"
 
 - [README.md](../README.md) — User-facing overview + documentation index
 - [PHASE_B_FUTURES_SHORT.md](PHASE_B_FUTURES_SHORT.md) — Phase B design and backtest
-- [EVENT_DCA.md](EVENT_DCA.md) — Event-driven DCA daemon
 - [HYPEROPT_PYRAMID_TUNING.md](HYPEROPT_PYRAMID_TUNING.md) — Parameter tuning history (including rejected experiments)
 - [DRYRUN_HANDBOOK.md](DRYRUN_HANDBOOK.md) — Daily operations
 - [GO_LIVE_CHECKLIST.md](GO_LIVE_CHECKLIST.md) — Live-switchover checklist

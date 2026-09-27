@@ -1,13 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { vps, supabase } from '$lib/api';
-import type { EventDcaTrigger, DcaLogRow, OhlcRow } from '$lib/types';
-
-export interface DcaKindAgg {
-	kind: string;
-	count: number;
-	total_usdt: number;
-	avg_severity: number | null;
-}
+import type { DcaLogRow, OhlcRow } from '$lib/types';
 
 export const load: PageServerLoad = async ({ fetch, cookies }) => {
 	const jwt = cookies.get('qt_jwt');
@@ -23,39 +16,18 @@ export const load: PageServerLoad = async ({ fetch, cookies }) => {
 					.publicOhlcDaily(fetch, pair, { from: '2017-01-01', limit: 4000 })
 					.catch(() => [] as OhlcRow[]);
 
-	const [triggersRaw, logRaw, btcOhlc, ethOhlc, bnbOhlc, solOhlc] = await Promise.all([
-		isAuthed
-			? vps
-					.eventDcaTriggers(fetch, { limit: 500, authHeader: auth })
-					.catch(() => [] as EventDcaTrigger[])
-			: vps.publicEventTriggers(fetch, { limit: 500 }).catch(() => [] as EventDcaTrigger[]),
+	const [logRaw, btcOhlc, ethOhlc, bnbOhlc, solOhlc] = await Promise.all([
 		supabase.dcaLog(fetch, { limit: 200 }).catch(() => [] as DcaLogRow[]),
 		ohlcFor('BTC/USDT'),
 		ohlcFor('ETH/USDT'),
 		ohlcFor('BNB/USDT'),
 		ohlcFor('SOL/USDT')
 	]);
-	// Coerce to arrays: a malformed 200 (PostgREST/Supabase returning a non-array body during a
+	// Coerce to an array: a malformed 200 (Supabase returning a non-array body during a
 	// transient hiccup) passes req()'s ok-check, so the post-processing below would otherwise
 	// crash with a 500 and take the whole page down. Be resilient instead.
-	const triggers = Array.isArray(triggersRaw) ? triggersRaw : [];
 	const log = Array.isArray(logRaw) ? logRaw : [];
 	const ohlcByCoin = { BTC: btcOhlc, ETH: ethOhlc, BNB: bnbOhlc, SOL: solOhlc };
-
-	const byKind = new Map<string, EventDcaTrigger[]>();
-	for (const t of triggers) {
-		const k = t.kind || 'UNKNOWN';
-		if (!byKind.has(k)) byKind.set(k, []);
-		byKind.get(k)!.push(t);
-	}
-	const kindAggs: DcaKindAgg[] = [...byKind]
-		.map(([kind, xs]) => {
-			const total = xs.reduce((s, x) => s + (x.amount_usdt ?? 0), 0);
-			const sevs = xs.map((x) => x.severity).filter((v): v is number => v != null);
-			const avg = sevs.length ? sevs.reduce((s, v) => s + v, 0) / sevs.length : null;
-			return { kind, count: xs.length, total_usdt: total, avg_severity: avg };
-		})
-		.sort((a, b) => b.count - a.count);
 
 	const sortedLog = [...log].sort((a, b) => (a.timestamp ?? '').localeCompare(b.timestamp ?? ''));
 	let cum = 0;
@@ -64,22 +36,14 @@ export const load: PageServerLoad = async ({ fetch, cookies }) => {
 		return { ts: r.timestamp, amount: r.amount_usdt ?? 0, cum, mode: r.mode };
 	});
 
-	const totalEventUsdt = triggers.reduce((s, t) => s + (t.amount_usdt ?? 0), 0);
-	const totalScheduledUsdt = log.reduce((s, r) => s + (r.amount_usdt ?? 0), 0);
-
 	return {
 		isAuthed,
-		triggers,
 		log,
-		kindAggs,
 		cumulative,
 		ohlcByCoin,
 		summary: {
-			event_count: triggers.length,
-			event_total_usdt: totalEventUsdt,
 			scheduled_count: log.length,
-			scheduled_total_usdt: totalScheduledUsdt,
-			last_event: triggers[0]?.ts ?? null,
+			scheduled_total_usdt: log.reduce((s, r) => s + (r.amount_usdt ?? 0), 0),
 			last_scheduled: log[0]?.timestamp ?? null
 		}
 	};

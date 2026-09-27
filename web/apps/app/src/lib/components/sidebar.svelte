@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { realtimeStatus } from '$lib/realtime';
 	import { t, type Lang } from '$lib/i18n';
 	import bearMark from '$lib/assets/bear-mark.svg';
 	import { BookOpen } from 'lucide-svelte';
@@ -25,16 +24,6 @@
 			external: true
 		}
 	]);
-
-	const liveDotCls = $derived(
-		$realtimeStatus === 'open'
-			? 'bg-[var(--profit)] shadow-[0_0_8px_color-mix(in_oklab,var(--profit)_50%,transparent)]'
-			: 'bg-muted-foreground/40'
-	);
-	const liveDotPulse = $derived($realtimeStatus === 'open' ? 'animate-pulse' : '');
-	const liveLabel = $derived(
-		t(lang, $realtimeStatus === 'open' ? 'nav.realtimeOn' : 'nav.realtimeOff')
-	);
 </script>
 
 <!-- eslint-disable svelte/no-navigation-without-resolve -->
@@ -95,9 +84,7 @@
 						onclick={() => onclose?.()}
 					>
 						<span class="bdv-side-icon grid h-4 w-4 shrink-0 place-items-center" aria-hidden="true">
-							{#if n.labelKey === 'nav.live'}
-								<span class="inline-block h-2 w-2 rounded-full {liveDotCls} {liveDotPulse}"></span>
-							{:else if n.icon}
+							{#if n.icon}
 								<svelte:component this={n.icon} size={16} strokeWidth={1.75} />
 							{/if}
 						</span>
@@ -146,21 +133,6 @@
 		</ul>
 	</nav>
 
-	<!-- Footer: realtime status -->
-	<div class="border-t border-border px-4 py-3 {collapsed ? 'md:px-0' : ''}">
-		<div
-			class="flex items-center gap-2 {collapsed ? 'md:justify-center' : ''}"
-			title={collapsed ? liveLabel : undefined}
-		>
-			<span
-				class="inline-block h-1.5 w-1.5 rounded-full {liveDotCls} {liveDotPulse}"
-				aria-hidden="true"
-			></span>
-			<span class="bdv-eyebrow text-[9px] text-muted-foreground {collapsed ? 'md:hidden' : ''}"
-				>{liveLabel}</span
-			>
-		</div>
-	</div>
 </aside>
 
 <style>

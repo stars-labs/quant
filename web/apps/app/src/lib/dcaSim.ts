@@ -1,14 +1,7 @@
-// Pure DCA simulator — replay a user's monthly-budget plan against BTC OHLC
-// history, optionally layering in the event DCA triggers we've collected in
-// quant.event_dca_triggers. No I/O; caller provides rows.
-//
-// Intended flow (in +page.server.ts):
-//   1. Load BTC OHLC daily rows from plan.start_date to today.
-//   2. Load event DCA triggers in the same window.
-//   3. simulate(plan, ohlc, events) -> {timeline, summary}
-//   4. Render on the page.
+// Pure DCA simulator — replay a user's monthly-budget plan against daily OHLC
+// history. No I/O; caller provides rows.
 
-import type { OhlcRow, EventDcaTrigger } from './types';
+import type { OhlcRow } from './types';
 
 export type CoinSymbol = 'BTC' | 'ETH' | 'BNB' | 'SOL';
 export const COIN_SYMBOLS: CoinSymbol[] = ['BTC', 'ETH', 'BNB', 'SOL'];
@@ -16,7 +9,6 @@ export const COIN_SYMBOLS: CoinSymbol[] = ['BTC', 'ETH', 'BNB', 'SOL'];
 export interface DcaPlan {
 	start_date: string; // ISO date (YYYY-MM-DD)
 	monthly_usdt: number;
-	include_event: boolean;
 	/** Percentage allocation (0-100) per coin. Must sum to 100 (client enforces). */
 	mix?: Partial<Record<CoinSymbol, number>>;
 }
@@ -31,7 +23,7 @@ export interface DcaTick {
 	/** Portfolio USD value at that day's close. */
 	value: number;
 	cum_invested: number;
-	source: 'scheduled' | 'event' | '';
+	source: 'scheduled' | '';
 }
 
 export interface DcaSummary {
@@ -40,7 +32,6 @@ export interface DcaSummary {
 	current_holdings: Partial<Record<CoinSymbol, number>>;
 	roi_pct: number;
 	n_scheduled_buys: number;
-	n_event_buys: number;
 	avg_cost_by_coin: Partial<Record<CoinSymbol, number>>;
 	first_date: string;
 	last_date: string;
@@ -49,12 +40,6 @@ export interface DcaSummary {
 export interface DcaResult {
 	timeline: DcaTick[];
 	summary: DcaSummary;
-}
-
-/** Event severity → extra % of monthly budget to throw in. Tuned conservatively. */
-function eventAmountUsdt(severity: number, monthlyBudget: number): number {
-	const clamped = Math.max(0, Math.min(1, severity));
-	return Math.round(clamped * monthlyBudget * 0.5);
 }
 
 function defaultMix(): Record<CoinSymbol, number> {
@@ -88,11 +73,7 @@ function buildPriceIndex(ohlc: OhlcRow[]): Map<string, number> {
 	return m;
 }
 
-export function simulateDca(
-	plan: DcaPlan,
-	byCoin: OhlcByCoin,
-	events: EventDcaTrigger[]
-): DcaResult {
+export function simulateDca(plan: DcaPlan, byCoin: OhlcByCoin): DcaResult {
 	const mix = normalizeMix(plan.mix);
 	const priceByCoin = new Map<CoinSymbol, Map<string, number>>();
 	for (const c of COIN_SYMBOLS) {
@@ -112,7 +93,6 @@ export function simulateDca(
 				current_holdings: {},
 				roi_pct: 0,
 				n_scheduled_buys: 0,
-				n_event_buys: 0,
 				avg_cost_by_coin: {},
 				first_date: plan.start_date,
 				last_date: plan.start_date
@@ -140,25 +120,11 @@ export function simulateDca(
 		}
 	}
 
-	// Event buys — bucket by day + max severity, event signals are BTC-only in
-	// this dataset so they route 100% to BTC (event channel philosophy matches).
-	const eventsByDay = new Map<string, { severity: number }>();
-	if (plan.include_event) {
-		for (const e of events) {
-			const day = e.ts.slice(0, 10);
-			if (day < plan.start_date) continue;
-			const sev = e.severity ?? 0;
-			const cur = eventsByDay.get(day);
-			if (!cur || sev > cur.severity) eventsByDay.set(day, { severity: sev });
-		}
-	}
-
 	const timeline: DcaTick[] = [];
 	const holdings: Record<CoinSymbol, number> = { BTC: 0, ETH: 0, BNB: 0, SOL: 0 };
 	const investedByCoin: Record<CoinSymbol, number> = { BTC: 0, ETH: 0, BNB: 0, SOL: 0 };
 	let invested = 0;
 	let nScheduled = 0;
-	let nEvent = 0;
 	let firstDate = '';
 
 	for (const day of allDays) {
@@ -184,18 +150,6 @@ export function simulateDca(
 			}
 		}
 
-		const ev = eventsByDay.get(day);
-		if (ev) {
-			const extra = eventAmountUsdt(ev.severity, plan.monthly_usdt);
-			const btcPx = priceByCoin.get('BTC')?.get(day);
-			if (extra > 0 && btcPx) {
-				holdings.BTC += extra / btcPx;
-				investedByCoin.BTC += extra;
-				dayInvested += extra;
-				nEvent++;
-				source = source || 'event';
-			}
-		}
 		invested += dayInvested;
 		if (!firstDate && invested > 0) firstDate = day;
 
@@ -234,7 +188,6 @@ export function simulateDca(
 			current_holdings: { ...holdings },
 			roi_pct: invested > 0 ? ((currentValue - invested) / invested) * 100 : 0,
 			n_scheduled_buys: nScheduled,
-			n_event_buys: nEvent,
 			avg_cost_by_coin: avgCostByCoin,
 			first_date: firstDate || plan.start_date,
 			last_date: last?.date ?? plan.start_date

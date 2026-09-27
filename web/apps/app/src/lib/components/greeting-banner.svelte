@@ -4,16 +4,12 @@
 	import { session } from '$lib/auth';
 	import { loadPrefs } from '$lib/userPrefs';
 	import { simulateDca, type OhlcByCoin } from '$lib/dcaSim';
-	import type { EventDcaTrigger } from '$lib/types';
 	import { fmtUSD, fmtPct } from '$lib/utils';
 	import { t, type Lang } from '$lib/i18n';
 
 	// Home-page personal greeting. Empty state (nothing rendered) if not
 	// logged in — the rest of the home page covers the anon case.
-	let {
-		ohlcByCoin,
-		events
-	}: { ohlcByCoin: OhlcByCoin; events: EventDcaTrigger[] } = $props();
+	let { ohlcByCoin }: { ohlcByCoin: OhlcByCoin } = $props();
 
 	const lang = $derived<Lang>($page.data.lang ?? 'zh');
 	const name = $derived(
@@ -31,7 +27,7 @@
 		try {
 			const p = await loadPrefs(fetch);
 			if (p?.dca_plan) {
-				const r = simulateDca(p.dca_plan, ohlcByCoin, events);
+				const r = simulateDca(p.dca_plan, ohlcByCoin);
 				summary = {
 					invested: r.summary.total_invested,
 					value: r.summary.current_value,

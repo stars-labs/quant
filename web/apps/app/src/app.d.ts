@@ -16,11 +16,6 @@ declare global {
 			env: {
 				/** AES-GCM KEK for Binance credential encryption. 32-byte base64. */
 				BINANCE_KEK?: string;
-				/** Shared HS256 secret (= Auth0 API signing secret) used to verify
-				 * Auth0 access tokens and mint realtime tokens with a top-level
-				 * `role` claim (Auth0 strips non-namespaced custom claims, but
-				 * supabase-realtime requires `role`). */
-				REALTIME_SIGNING_SECRET?: string;
 			};
 		}
 	}

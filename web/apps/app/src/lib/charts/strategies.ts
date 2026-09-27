@@ -1,6 +1,6 @@
 // Bilingual descriptions of each tradable strategy in the system.
 // Used by <StrategyInfo strategy="HonestTrend15mDry" /> popovers across
-// /strategies, /strategies/[name], /signals, /live, and the home leaderboard
+// /strategies, /strategies/[name], /signals, and the home leaderboard
 // so beginners can click the ⓘ next to a strategy name and learn what it
 // actually does without leaving the page.
 //

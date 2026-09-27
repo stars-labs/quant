@@ -31,9 +31,7 @@
 		"AUTH0_CLIENT_ID": "8aAbuMhZlFa94TbPozNZIKSxfSlv0B4r",
 		"AUTH0_AUDIENCE": "https://api.panda.qzz.io",
 		"SUPABASE_URL": "https://rhweqsxothaezsbxjwaj.supabase.co",
-		"SUPABASE_ANON": "sb_publishable_RRSWxhXvvaUqk3S9nF7m9A_loMqoxxw",
-		"REALTIME_URL": "wss://quant.realtime.panda.qzz.io/socket",
-		"REALTIME_ANON_JWT": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiYXVkIjoiYXV0aGVudGljYXRlZCIsInJlZiI6InF1YW50IiwiaWF0IjoxNzc2OTM2NDk1LCJleHAiOjIwOTIyOTY0OTV9.aC_P6oyLp42zVbdWCMjd0Kw3EOpPUT2LuqEBmQi9d8c"
+		"SUPABASE_ANON": "sb_publishable_RRSWxhXvvaUqk3S9nF7m9A_loMqoxxw"
 	},
 
 	"observability": {

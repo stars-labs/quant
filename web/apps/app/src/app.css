@@ -233,7 +233,7 @@ h1 {
 }
 
 /* StatusPill — pulsing dot + uppercase mono label.
-   Used for bot/trade state on /live and /signals. */
+   Used for bot/trade state on /signals. */
 .bdv-status-pill {
 	display: inline-flex;
 	align-items: center;

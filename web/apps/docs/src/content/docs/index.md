@@ -23,7 +23,6 @@ hero:
 | 组件 | 文档 |
 |------|------|
 | HonestTrend 家族（15mDry / 1mMTF / Futures） | [策略](/docs/strategies/honest-trend-report/) |
-| Smart DCA 事件通道 | [Event DCA](/docs/strategies/event-dca/) |
 | Phase B 期货 L+S 对冲 | [Phase B](/docs/strategies/phase-b-futures-short/) |
 | Walk-Forward 验证方法 | [WF](/docs/research/walk-forward-full-history/) |
 | Hyperopt 参数调优 | [Hyperopt](/docs/research/hyperopt-pyramid-tuning/) |

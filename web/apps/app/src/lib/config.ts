@@ -11,14 +11,7 @@ export const CONFIG = {
 	AUTH0_AUDIENCE: import.meta.env.VITE_AUTH0_AUDIENCE ?? 'https://api.panda.qzz.io',
 	SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL ?? 'https://rhweqsxothaezsbxjwaj.supabase.co',
 	SUPABASE_ANON:
-		import.meta.env.VITE_SUPABASE_ANON ?? 'sb_publishable_RRSWxhXvvaUqk3S9nF7m9A_loMqoxxw',
-	// Base URL without /websocket — RealtimeClient appends it itself.
-	REALTIME_URL: import.meta.env.VITE_REALTIME_URL ?? 'wss://quant.realtime.panda.qzz.io/socket',
-	// Signed with the Auth0 API signing secret (= the realtime API_JWT_SECRET
-	// since the Auth0 cutover). Public by design: role=anon.
-	REALTIME_ANON_JWT:
-		import.meta.env.VITE_REALTIME_ANON_JWT ??
-		'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiYXVkIjoiYXV0aGVudGljYXRlZCIsInJlZiI6InF1YW50IiwiaWF0IjoxNzc2OTM2NDk1LCJleHAiOjIwOTIyOTY0OTV9.aC_P6oyLp42zVbdWCMjd0Kw3EOpPUT2LuqEBmQi9d8c'
+		import.meta.env.VITE_SUPABASE_ANON ?? 'sb_publishable_RRSWxhXvvaUqk3S9nF7m9A_loMqoxxw'
 };
 
 export const DEFAULT_PAIRS = [
