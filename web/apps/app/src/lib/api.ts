@@ -23,6 +23,7 @@ import type {
 	MarketStress,
 	StrategyRecord,
 	StrategyTrade,
+	StrategyLiveRecord,
 	OpportunityScan,
 	MarketScanRow,
 	FundingRate
@@ -120,6 +121,9 @@ export const vps = {
 		req<StrategyRecord[]>(CONFIG.API_BASE, '/strategy_record', { order: 'asset.asc' }, f),
 	strategyTrades: (f: Fetch = fetch, { limit = 1000 }: { limit?: number } = {}) =>
 		req<StrategyTrade[]>(CONFIG.API_BASE, '/strategy_trades', { order: 'entry_ts.desc', limit }, f),
+	// Live-only stats: signals pushed since launch (anon-accessible; migration 037).
+	strategyLiveRecord: (f: Fetch = fetch) =>
+		req<StrategyLiveRecord[]>(CONFIG.API_BASE, '/strategy_live_record', {}, f),
 
 	// 机会雷达 (anon-accessible; migration 035): distance of every house coin to its trigger / exit
 	// line / 30-day high, and perp funding for spot-listed coins (hottest first).

@@ -1,6 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { vps } from '$lib/api';
-import type { StrategyRecord, StrategyTrade } from '$lib/types';
+import type { StrategyLiveRecord, StrategyRecord, StrategyTrade } from '$lib/types';
 
 // Portfolio view of api.strategy_record. The view is the single source of truth for every
 // stat; here we only average across assets (equal-weight, no rebalancing), exactly as the
@@ -65,9 +65,11 @@ function summarize(record: StrategyRecord[], trades: StrategyTrade[]): RecordSum
 }
 
 export const load: PageServerLoad = async ({ fetch }) => {
-	const [recordRaw, tradesRaw] = await Promise.all([
+	const [recordRaw, tradesRaw, liveRaw] = await Promise.all([
 		vps.strategyRecord(fetch).catch(() => null),
-		vps.strategyTrades(fetch).catch(() => null)
+		vps.strategyTrades(fetch).catch(() => null),
+		// Live-only stats (migration 037). Optional: a failure hides that block, nothing else.
+		vps.strategyLiveRecord(fetch).catch(() => null)
 	]);
 	// Both or nothing. The stats come from strategy_record, the backfilled/live split and the
 	// history from strategy_trades: rendering one without the other shows a false "0
@@ -75,11 +77,15 @@ export const load: PageServerLoad = async ({ fetch }) => {
 	// (non-array body, same class as /nautilus), from EITHER shows the error state instead of
 	// an honest "not started yet" empty state.
 	if (!Array.isArray(recordRaw) || !Array.isArray(tradesRaw)) {
-		return { record: [], trades: [], summary: null, failed: true };
+		return { record: [], trades: [], summary: null, live: null, failed: true };
 	}
 	const record = recordRaw.filter((r): r is StrategyRecord => typeof r?.asset === 'string');
 	const trades = tradesRaw.filter(
 		(t): t is StrategyTrade => typeof t?.asset === 'string' && t.entry_price != null
 	);
-	return { record, trades, summary: summarize(record, trades), failed: false };
+	// null = no live signal yet (the view has no row until then); undefined = request failed.
+	const live: StrategyLiveRecord | null | undefined = Array.isArray(liveRaw)
+		? (liveRaw.find((r) => r?.strategy === 'donchian_1h') ?? null)
+		: undefined;
+	return { record, trades, summary: summarize(record, trades), live, failed: false };
 };

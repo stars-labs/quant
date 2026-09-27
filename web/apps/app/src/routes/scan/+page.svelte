@@ -592,5 +592,10 @@
 		<AlertSubscribe />
 	</section>
 
-	<p class="mt-6 text-xs text-muted-foreground">⚠️ {t(lang, 'scan.disclaimer')}</p>
+	<p class="mt-6 text-sm">
+		<a href={resolve('/method')} class="font-medium text-primary hover:underline"
+			>{t(lang, 'scan.methodLink')}</a
+		>
+	</p>
+	<p class="mt-3 text-xs text-muted-foreground">⚠️ {t(lang, 'scan.disclaimer')}</p>
 </main>

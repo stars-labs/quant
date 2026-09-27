@@ -29,7 +29,7 @@ from strategy_record import net_return  # noqa: E402
 
 UTC = timezone.utc
 NOW = datetime(2026, 9, 25, 13, 5, tzinfo=UTC)
-LINK = "👉 全部信号与实时持仓:https://starslab.qzz.io/record"
+LINK = "👉 全部信号与实时持仓:https://starslab.qzz.io/record?ref="
 DISCLAIMER = "\n\n⚠️ 规则模拟信号,不构成投资建议。"
 
 
@@ -150,7 +150,7 @@ def test_entry_card_full_text():
         "1 小时收盘 $88,000.00(9/25 13:00 UTC),突破过去 7 天最高点 $87,395.67\n"
         "离场规则:1 小时收盘跌破过去 3 天最低点(当前 $82,874.93,距现价 -5.8%)\n"
         "提示:趋势信号约 6 成会亏损离场,赚钱靠少数大行情(今年最大一笔 SOL +29.5%)。\n"
-        + LINK + DISCLAIMER
+        + LINK + "tg_entry" + DISCLAIMER
     )
 
 
@@ -192,7 +192,7 @@ def test_exit_card_full_text():
         "🔴 <b>策略信号 · ETH 跌破离场</b>\n"
         "1 小时收盘 $2,376.61(9/2 10:00 UTC),跌破过去 3 天最低点 $2,390.00\n"
         "本次 8/19 $1,937.21 → 9/2 $2,376.61,+22.4%(已扣手续费),持有 13.9 天\n"
-        + LINK + DISCLAIMER
+        + LINK + "tg_exit" + DISCLAIMER
     )
 
 
@@ -236,7 +236,7 @@ def test_weekly_scorecard_full_text():
         "同期买入持有 → $946(-5.4%)\n"
         "已平仓 38 笔,胜率 37%,最大一笔 SOL +29.5%\n"
         "收益已扣买卖各 0.1% 手续费;9/25 服务上线前的记录是按规则回溯计算的,不是当时的实时推送。\n"
-        "\n" + LINK + DISCLAIMER
+        "\n" + LINK + "tg_weekly" + DISCLAIMER
     )
 
 
@@ -276,13 +276,22 @@ def test_every_strategy_message_ends_with_the_disclaimer():
 
 # ---------- fan-out: ordering, marking, zero subscribers ----------
 
-def run_fan_out(rows: list[dict], chats: list[int], reachable=lambda chat: True):
-    """Returns (every send attempt, every leg marked). reachable(chat) = send()'s result."""
+def run_fan_out(rows: list[dict], chats: list, reachable=lambda chat: True, markups=None):
+    """Returns (every send attempt, every leg marked). reachable(chat) = send()'s result.
+    chats: chat ids (all coins) or (chat_id, coins) pairs."""
     sent, marked = [], []
+    subs = [c if isinstance(c, tuple) else (c, None) for c in chats]
+
+    def fake_send(chat, text, markup=None):
+        sent.append((chat, text))
+        if markups is not None:
+            markups.append(markup)
+        return reachable(chat)
+
     with patched(ad, pending_strategy_trades=lambda conn: rows,
                  load_record=lambda conn: record_now(),
-                 subscribers=lambda conn, topic: chats,
-                 send=lambda chat, text: sent.append((chat, text)) or reachable(chat),
+                 strategy_subscribers=lambda conn: subs,
+                 send=fake_send,
                  mark_notified=lambda conn, tid, leg: marked.append((tid, leg)),
                  render_card=lambda *a: None,  # text path; the photo path has its own tests
                  log=lambda msg: None):
@@ -429,8 +438,8 @@ def run_broadcast(chats, text, card, caption=None, photo_ok=lambda chat: True,
         calls.append(("photo", chat, photo if isinstance(photo, str) else "<png>", cap))
         return f"fid-{chat}" if photo_ok(chat) else None
 
-    def fake_send(chat, t):
-        calls.append(("text", chat, t))
+    def fake_send(chat, t, markup=None):
+        calls.append(("text", chat, t) if markup is None else ("text", chat, t, markup))
         return text_ok(chat)
 
     with patched(ad, send_photo=fake_photo, send=fake_send, log=lambda msg: None):
@@ -466,10 +475,10 @@ def test_exit_leg_goes_out_as_card_with_the_exit_text_as_caption():
     photos = []
     with patched(ad, pending_strategy_trades=lambda conn: rows,
                  load_record=lambda conn: record_now(),
-                 subscribers=lambda conn, topic: [7],
+                 strategy_subscribers=lambda conn: [(7, None)],
                  render_card=lambda fn, *a: fn.encode(),
                  send_photo=lambda chat, photo, cap: photos.append((photo, cap)) or "fid",
-                 send=lambda chat, text: False,
+                 send=lambda chat, text, markup=None: False,
                  mark_notified=lambda conn, tid, leg: None,
                  log=lambda msg: None):
         ad.fan_out_strategy_signals(None, now=NOW)
@@ -696,3 +705,223 @@ def test_daily_scan_retries_when_nobody_reachable():
     state: dict = {}
     run_scan(state, datetime(2026, 9, 27, 1, 0, tzinfo=UTC), reachable=False)
     assert state == {}
+
+
+# ---------- attribution: every link carries ?ref=<channel> ----------
+
+def test_link_tags_the_channel_and_keeps_the_anchor_last():
+    assert ad.link("/record", "tg_me", "#mine") == "https://starslab.qzz.io/record?ref=tg_me#mine"
+
+
+def test_every_dashboard_link_in_user_messages_has_a_ref():
+    import re
+    texts = [ad.format_entry(btc_entry(), record_btc_long(), NOW), ad.format_exit(eth_trade()),
+             ad.format_weekly_scorecard(record_now(), btc_recent(), BACKFILLED_AT),
+             ad.format_dca_boost(boost_row("2026-09-27")),
+             ad.format_daily_scan(SCAN, FUNDING, NOW, MARKETS, 18.2),
+             ad.format_personal([], None)]
+    urls = [u for t in texts for u in re.findall(r"https://starslab\.qzz\.io\S*", t)]
+    assert len(urls) == len(texts) and all(re.search(r"\?ref=tg_[a-z]+", u) for u in urls)
+
+
+# ---------- per-coin subscription (telegram_links.coins, NULL = all) ----------
+
+def test_chats_for_asset_honours_the_coin_list():
+    subs = [(1, None), (2, ["BTC", "ETH"]), (3, []), (4, ["PEPE"])]
+    assert (ad.chats_for_asset(subs, "BTC"), ad.chats_for_asset(subs, "PEPE")) == ([1, 2], [1, 4])
+
+
+def test_fan_out_sends_each_leg_only_to_chats_that_want_the_coin():
+    rows = [trade("BTC", LAST - timedelta(hours=9), 88000.0, 87395.67, id=3),
+            trade("SOL", LAST - timedelta(hours=4), 120.0, 119.0, id=6)]
+    sent, marked = run_fan_out(rows, [(1, None), (2, ["SOL"]), (3, [])])
+    assert [(c, t.split("·")[1][:4]) for c, t in sent] == [(1, " BTC"), (1, " SOL"), (2, " SOL")]
+    assert marked == [(3, "entry"), (6, "entry")]
+
+
+def test_fan_out_marks_a_leg_nobody_subscribed_to_without_sending():
+    rows = [trade("WLD", LAST, 1.0, 0.99, id=8)]
+    assert run_fan_out(rows, [(1, ["BTC"])]) == ([], [(8, "entry")])
+
+
+def test_entry_cards_carry_the_follow_button_and_exit_cards_do_not():
+    rows = [trade("BTC", LAST - timedelta(hours=9), 88000.0, 87395.67,
+                  exit_ts=LAST, exit_price=86000.0, exit_level=86500.0, id=3)]
+    markups: list = []
+    run_fan_out(rows, [1], markups=markups)
+    assert markups == [{"inline_keyboard": [[{"text": "✋ 我跟了这笔", "callback_data": "follow:3"}]]},
+                       None]
+
+
+# ---------- follow button (callback_query) ----------
+
+def test_parse_follow():
+    assert [ad.parse_follow(d) for d in ("follow:41", "follow:", "follow:x1", "other:1", None)] == \
+        [41, None, None, None, None]
+
+
+def run_callback(data, user="u-1", outcome="ok"):
+    answers, follows = [], []
+
+    def fake_tg(method, **params):
+        answers.append((method, params["text"], params["show_alert"]))
+
+    with patched(ad, tg=fake_tg, user_for_chat=lambda conn, chat: user,
+                 record_follow=lambda conn, u, tid: follows.append((u, tid)) or outcome,
+                 log=lambda msg: None):
+        ad.handle_follow(None, {"id": "cq1", "data": data, "message": {"chat": {"id": 5}}})
+    return answers, follows
+
+
+def test_follow_button_records_the_follow_and_answers():
+    answers, follows = run_callback("follow:41")
+    assert follows == [("u-1", 41)]
+    assert answers == [("answerCallbackQuery", ad.FOLLOW_ANSWER["ok"], False)]
+
+
+def test_follow_button_from_an_unbound_chat_asks_to_bind():
+    answers, follows = run_callback("follow:41", user=None)
+    assert follows == [] and answers == [("answerCallbackQuery", ad.FOLLOW_ANSWER["unbound"], True)]
+
+
+def test_follow_button_twice_and_backfilled_trades_say_so():
+    assert run_callback("follow:41", outcome="dup")[0][0][1] == ad.FOLLOW_ANSWER["dup"]
+    assert run_callback("follow:41", outcome="not_live")[0][0][1] == ad.FOLLOW_ANSWER["not_live"]
+
+
+def test_unknown_callback_is_answered_silently():
+    answers, follows = run_callback("bogus")
+    assert follows == [] and answers == [("answerCallbackQuery", "", False)]
+
+
+def test_poll_updates_routes_commands_and_buttons_and_advances_the_offset():
+    calls = []
+    updates = [
+        {"update_id": 10, "message": {"chat": {"id": 5}, "text": "/start tok123"}},
+        {"update_id": 11, "message": {"chat": {"id": 5}, "text": "/me@freemanXbtc_bot"}},
+        {"update_id": 12, "callback_query": {"id": "c", "data": "follow:3"}},
+        {"update_id": 13, "message": {"chat": {"id": 5}, "text": "hello"}},
+    ]
+    seen = {}
+
+    def fake_tg(method, **params):
+        seen.update(params)
+        return updates
+
+    state = {"tg_offset": 9}
+    with patched(ad, tg=fake_tg,
+                 handle_start=lambda conn, chat, tok: calls.append(("start", chat, tok)),
+                 handle_me=lambda conn, chat: calls.append(("me", chat)),
+                 handle_follow=lambda conn, cq: calls.append(("follow", cq["data"])),
+                 log=lambda msg: None):
+        ad.poll_updates(None, state)
+    assert calls == [("start", 5, "tok123"), ("me", 5), ("follow", "follow:3")]
+    assert state["tg_offset"] == 13 and seen["allowed_updates"] == ["message", "callback_query"]
+
+
+# ---------- /me: the personal follow record ----------
+
+def follow_row(asset, entry_ts, entry_price, exit_ts=None, exit_price=None, open_ret=None):
+    return {"asset": asset, "entry_ts": entry_ts, "entry_price": entry_price,
+            "exit_ts": exit_ts, "exit_price": exit_price,
+            "net_ret": net_return(entry_price, exit_price) if exit_ts else None,
+            "open_ret": open_ret}
+
+
+def personal():
+    rows = [follow_row("BTC", bar_close(2026, 9, 28, 12), 88000.0, open_ret=0.021),
+            follow_row("ETH", bar_close(2026, 9, 26, 12), 2700.0,
+                       bar_close(2026, 9, 27, 8), 2800.0),
+            follow_row("SOL", bar_close(2026, 9, 25, 12), 120.0,
+                       bar_close(2026, 9, 26, 1), 114.0)]
+    compound = (1 + rows[1]["net_ret"]) * (1 + rows[2]["net_ret"]) - 1
+    summary = {"n_followed": 3, "n_closed": 2, "n_wins": 1, "n_open": 1,
+               "closed_compound": compound, "best_ret": rows[1]["net_ret"],
+               "first_entry_ts": rows[2]["entry_ts"]}
+    return rows, summary
+
+
+def test_personal_record_full_text():
+    rows, summary = personal()
+    assert ad.format_personal(rows, summary) == (
+        "📒 <b>我的跟单记录</b>\n"
+        "记录了 3 笔:已平仓 2 笔,持有中 1 笔\n"
+        "已平仓的依次复利 -1.9%,胜率 50%(1/2)\n"
+        "\n"
+        "• BTC 9/28 $88,000.00 持有中,浮动 +2.1%\n"
+        "• ETH 9/26 $2,700.00 → 9/27 $2,800.00,+3.5%\n"
+        "• SOL 9/25 $120.00 → 9/26 $114.00,-5.2%\n"
+        "\n按信号价格计算、已扣买卖各 0.1% 手续费,不是你的真实成交;每笔按相同资金依次复利。\n"
+        "👉 在网页上查看或修改:https://starslab.qzz.io/record?ref=tg_me#mine" + DISCLAIMER
+    )
+
+
+def test_personal_record_without_follows_explains_how():
+    text = ad.format_personal([], None)
+    assert "你还没有记录跟单" in text and "我跟了这笔" in text and text.endswith(DISCLAIMER)
+
+
+def test_personal_record_only_open_trades_has_no_compound_line():
+    rows, _ = personal()
+    summary = {"n_followed": 1, "n_closed": 0, "n_wins": 0, "n_open": 1, "closed_compound": 0.0}
+    text = ad.format_personal(rows[:1], summary)
+    assert "依次复利 " not in text.split("\n\n")[0] and "持有中 1 笔" in text
+
+
+def test_me_for_unbound_chat_asks_to_bind():
+    sent = []
+    with patched(ad, user_for_chat=lambda conn, chat: None,
+                 send=lambda chat, text, markup=None: sent.append(text) or True):
+        ad.handle_me(None, 5)
+    assert len(sent) == 1 and "还没有绑定" in sent[0]
+
+
+def test_me_sends_the_personal_card_with_the_text_as_caption():
+    rows, summary = personal()
+    photos = []
+    with patched(ad, user_for_chat=lambda conn, chat: "u-1",
+                 load_personal=lambda conn, u: (rows, summary),
+                 render_card=lambda fn, *a: fn.encode(),
+                 send_photo=lambda chat, photo, cap: photos.append((chat, photo, cap)) or "fid",
+                 log=lambda msg: None):
+        ad.handle_me(None, 5)
+    assert photos == [(5, b"render_personal", ad.format_personal(rows, summary))]
+
+
+# ---------- operator daily report: growth + Telegram loop ----------
+
+def growth(**kw):
+    g = {"funnel": {"visitors": 12, "views": 30, "signups": 1, "backtests": 0, "signals": 0,
+                    "d1_return": 2},
+         "visits": [{"campaign": "tg_entry", "d1": 3, "d7": 9},
+                    {"campaign": "tg_scan", "d1": 0, "d7": 2}],
+         "binds": {"d1": 1, "d7": 2, "bound": 4, "wau": 3},
+         "bind_refs": [{"campaign": "tg_bind", "n": 1}, {"campaign": "direct", "n": 1}],
+         "follows": {"d1": 0, "d7": 5}}
+    g.update(kw)
+    return g
+
+
+def test_daily_growth_block_full_text():
+    assert ta.format_growth_block(growth()) == (
+        "\n*Growth (24h):*\n"
+        "  Visitors: 12  |  Views: 30  |  D1 return: 2\n"
+        "  Signups: 1  |  Backtests: 0  |  Signals: 0\n"
+        "*Telegram loop (24h / 7d):*\n"
+        "  Visits by ref: `tg_entry` 3/9, `tg_scan` 0/2\n"
+        "  New binds: 1/2 (7d by first ref: `tg_bind` 1, `direct` 1)\n"
+        "  Subscribers: 4 bound, 3 active this week\n"
+        "  Follows: 0/5"
+    )
+
+
+def test_daily_growth_block_without_ref_traffic():
+    text = ta.format_growth_block(growth(visits=[], bind_refs=[]))
+    assert "  Visits by ref: none\n  New binds: 1/2\n" in text
+
+
+def test_daily_report_code_reads_no_dead_source():
+    import inspect
+    code = inspect.getsource(ta).split('"""', 2)[2]  # past the module docstring
+    assert all(dead not in code for dead in
+               ("latest_sentiment", "sentiment_snapshots", "kelly", "Kelly", "SUPABASE"))

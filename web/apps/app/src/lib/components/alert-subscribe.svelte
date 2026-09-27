@@ -2,7 +2,8 @@
 	// Telegram alert-subscription card — self-contained, drop anywhere.
 	// Anonymous → one-line login prompt. Logged in → create link row → bind via
 	// t.me deep link (an external dispatcher flips `bound`; we poll every 5s for
-	// up to ~2 min) → pick topics (PATCH on change, optimistic).
+	// up to ~2 min) → pick topics and, for strategy signals, which house coins
+	// (telegram_links.coins, null = all; PATCH on change, optimistic).
 	import { onDestroy } from 'svelte';
 	import { page } from '$app/stores';
 	import { user } from '$lib/auth';
@@ -11,11 +12,13 @@
 		getMyLink,
 		createLink,
 		updateTopics,
+		updateCoins,
 		TELEGRAM_BOT_URL,
 		type TelegramLink,
 		type TelegramTopic
 	} from '$lib/alerts';
 	import { track } from '$lib/track';
+	import { HOUSE_COINS, hasCoin, toggleCoin } from '$lib/growth';
 
 	const lang = $derived<Lang>($page.data.lang ?? 'zh');
 	const en = $derived(lang === 'en');
@@ -23,8 +26,8 @@
 	const TOPICS: { id: TelegramTopic; zh: string; en: string }[] = [
 		{
 			id: 'strategy_signals',
-			zh: '策略买卖信号 — BTC、ETH、SOL 等 13 个主流币的趋势突破买入与离场 + 每周战绩',
-			en: 'Strategy buy/sell signals — trend breakouts and exits on BTC, ETH, SOL and 10 more major coins + weekly scorecard'
+			zh: '策略买卖信号 — BTC、ETH、SOL 等 13 个主流币的趋势突破买入与离场(可按币种选择)+ 每周战绩',
+			en: 'Strategy buy/sell signals — trend breakouts and exits on BTC, ETH, SOL and 10 more major coins (pick your coins) + weekly scorecard'
 		},
 		{
 			id: 'dca_boost',
@@ -140,6 +143,27 @@
 	}
 
 	let savedTimer: ReturnType<typeof setTimeout> | null = null;
+	function flashSaved() {
+		saved = true;
+		if (savedTimer) clearTimeout(savedTimer);
+		savedTimer = setTimeout(() => (saved = false), 2000);
+	}
+
+	async function setCoins(next: string[] | null) {
+		const sub = $user?.sub;
+		const cur = link;
+		if (!sub || !cur) return;
+		link = { ...cur, coins: next }; // optimistic
+		err = '';
+		try {
+			await updateCoins(sub, next);
+			flashSaved();
+		} catch (e) {
+			link = cur; // revert
+			err = (e as Error).message;
+		}
+	}
+
 	async function toggleTopic(id: TelegramTopic) {
 		const sub = $user?.sub;
 		const cur = link;
@@ -149,9 +173,7 @@
 		err = '';
 		try {
 			await updateTopics(sub, next);
-			saved = true;
-			if (savedTimer) clearTimeout(savedTimer);
-			savedTimer = setTimeout(() => (saved = false), 2000);
+			flashSaved();
 		} catch (e) {
 			link = cur; // revert
 			err = (e as Error).message;
@@ -242,6 +264,48 @@
 					/>
 					<span>{en ? tp.en : tp.zh}</span>
 				</label>
+				{#if tp.id === 'strategy_signals' && link.topics.includes('strategy_signals')}
+					{@const coins = link.coins}
+					<div class="mb-1 ml-6">
+						<div class="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+							<span>{en ? 'Buy/sell signals for:' : '只推这些币的买卖信号:'}</span>
+							<button
+								type="button"
+								onclick={() => setCoins(coins == null ? [] : null)}
+								class="font-medium text-primary hover:underline"
+								>{coins == null
+									? en
+										? 'Clear all'
+										: '全不选'
+									: en
+										? 'Select all'
+										: '全选'}</button
+							>
+						</div>
+						<div class="mt-1.5 flex flex-wrap gap-1.5">
+							{#each HOUSE_COINS as c (c)}
+								{@const on = hasCoin(coins, c)}
+								<button
+									type="button"
+									aria-pressed={on}
+									onclick={() => setCoins(toggleCoin(coins, c))}
+									class="rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors {on
+										? 'border-primary bg-primary/10 text-foreground'
+										: 'border-border text-muted-foreground hover:bg-muted/30'}">{c}</button
+								>
+							{/each}
+						</div>
+						<p class="mt-1.5 text-[11px] text-muted-foreground">
+							{coins != null && coins.length === 0
+								? en
+									? 'No coin selected: you will only get the weekly scorecard.'
+									: '没选任何币:只会收到每周战绩。'
+								: en
+									? 'The weekly scorecard always covers every coin.'
+									: '每周战绩总是包含全部币种。'}
+						</p>
+					</div>
+				{/if}
 			{/each}
 		</div>
 		<p class="mt-3 text-xs text-muted-foreground">

@@ -3,20 +3,24 @@
 // when logged in so the row gets the authenticated role). Mirrors alerts.ts
 // for CONFIG.API_BASE/getToken usage. Tracking must NEVER block or break the
 // UI: every entry point is SSR-safe and swallows all errors.
+//
+// Attribution (migration 037, web_events.campaign): links we send carry ?ref=<channel>
+// (tg_entry, tg_scan, …). A page_view records the ref of the URL it landed on; every other
+// event (signup, telegram_bound, …) records the browser's FIRST-touch ref, kept in
+// localStorage, so a bind can be credited to the push that brought the visitor in.
 import { get } from 'svelte/store';
 import { browser } from '$app/environment';
 import { CONFIG } from './config';
 import { getToken, session } from './auth';
+import { REF_RE, refFromSearch } from './growth';
 
 /** The only event names the backend accepts. */
 export type TrackEvent =
-	| 'page_view'
-	| 'signup'
-	| 'backtest_submit'
-	| 'signal_create'
-	| 'telegram_bound';
+	'page_view' | 'signup' | 'backtest_submit' | 'signal_create' | 'telegram_bound';
 
 const VID_KEY = 'qt_vid';
+/** localStorage — the first ?ref= this browser arrived with (never overwritten). */
+const FIRST_REF_KEY = 'qt_first_ref';
 /** sessionStorage flag — `ref` is sent only on the first event of a session. */
 const REF_SENT_KEY = 'qt_ref_sent';
 /** sessionStorage map {path: epoch_ms} — page_view de-dupe window per path. */
@@ -74,6 +78,32 @@ function firstEventRef(): string | null {
 	}
 }
 
+/** The URL's own ?ref=, remembered as the first touch when this browser has none yet. */
+function landingRef(): string | null {
+	try {
+		const r = refFromSearch(location.search);
+		if (r && !localStorage.getItem(FIRST_REF_KEY)) localStorage.setItem(FIRST_REF_KEY, r);
+		return r;
+	} catch {
+		return null;
+	}
+}
+
+function firstTouchRef(): string | null {
+	try {
+		const r = localStorage.getItem(FIRST_REF_KEY);
+		return r && REF_RE.test(r) ? r : null;
+	} catch {
+		return null;
+	}
+}
+
+/** campaign column: the landing URL's ref on page_view, the first-touch ref otherwise. */
+function campaignFor(event: TrackEvent): string | null {
+	const here = landingRef();
+	return event === 'page_view' ? here : firstTouchRef();
+}
+
 /**
  * Record an analytics event. Fire-and-forget: returns immediately, never
  * throws, never blocks the UI, no-op during SSR.
@@ -82,6 +112,8 @@ export function track(event: TrackEvent, path?: string): void {
 	if (!browser) return;
 	try {
 		const p = path ?? location.pathname;
+		// Before the de-dupe: a landing ?ref= must be remembered even if this view is dropped.
+		const campaign = campaignFor(event);
 		if (event === 'page_view' && !shouldSendPageView(p)) return;
 
 		const body: Record<string, unknown> = { event, path: p, visitor: visitorId() };
@@ -92,6 +124,7 @@ export function track(event: TrackEvent, path?: string): void {
 		if (lang) body.lang = lang;
 		const ref = firstEventRef();
 		if (ref) body.ref = ref;
+		if (campaign) body.campaign = campaign;
 
 		const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 		const t = getToken();

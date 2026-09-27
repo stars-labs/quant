@@ -4,21 +4,77 @@
 	// (api.strategy_record + api.strategy_trades, migration 032). Every stat comes from
 	// strategy_record; the load only averages across assets. Honesty rules: returns are net of
 	// 0.1% fee per side, buy-and-hold and win rate always sit next to the strategy return, and
-	// backfilled trades carry a "Backfilled" badge wherever they appear.
+	// backfilled trades carry a "Backfilled" badge wherever they appear. Live-only stats
+	// (api.strategy_live_record) sit in their own block with a small-sample note; logged-in
+	// users can mark live trades they followed (api.user_follows, owner-only) and see their own
+	// record (我的跟单) — both migration 037.
 	import type { PageData } from './$types';
-	import type { StrategyRecord, StrategyTrade } from '$lib/types';
+	import type { MyFollow, MyFollowRecord, StrategyRecord, StrategyTrade } from '$lib/types';
+	import { resolve } from '$app/paths';
 	import { t, type Lang } from '$lib/i18n';
 	import { fmtPct, fmtPrice } from '$lib/utils';
 	import Kpi from '$lib/components/kpi.svelte';
 	import StatusPill from '$lib/components/status-pill.svelte';
 	import Callout from '$lib/components/callout.svelte';
 	import AlertSubscribe from '$lib/components/alert-subscribe.svelte';
+	import MyFollows from './my-follows.svelte';
+	import { user } from '$lib/auth';
+	import { followTrade, getMyFollowRecord, getMyFollows, unfollowTrade } from '$lib/alerts';
+	import { LIVE_MIN_SAMPLE, liveSummary } from '$lib/growth';
 
 	let { data }: { data: PageData } = $props();
 	const lang = $derived<Lang>(data.lang ?? 'zh');
 	const s = $derived(data.summary);
 	const record = $derived<StrategyRecord[]>(data.record ?? []);
 	const trades = $derived<StrategyTrade[]>(data.trades ?? []);
+	// undefined = the live-record request failed → the block is hidden, nothing else is.
+	const live = $derived(data.live === undefined ? null : liveSummary(data.live));
+
+	// ── 我的跟单: client-side, only for a logged-in user (the views are owner-only).
+	let follows = $state<MyFollow[]>([]);
+	let mine = $state<MyFollowRecord | null>(null);
+	let mineStatus = $state<'loading' | 'ready' | 'error'>('loading');
+	let busyId = $state<number | null>(null);
+	const followed = $derived(new Set(follows.map((f) => f.trade_id)));
+	let scrolledToMine = false;
+
+	async function loadMine() {
+		try {
+			[follows, mine] = await Promise.all([getMyFollows(), getMyFollowRecord()]);
+			mineStatus = 'ready';
+			// Telegram /me links to #mine, which only exists once this section has rendered.
+			if (!scrolledToMine && location.hash === '#mine') {
+				scrolledToMine = true;
+				requestAnimationFrame(() => document.getElementById('mine')?.scrollIntoView());
+			}
+		} catch {
+			mineStatus = 'error';
+		}
+	}
+
+	$effect(() => {
+		if ($user?.sub) {
+			mineStatus = 'loading';
+			void loadMine();
+		} else {
+			follows = [];
+			mine = null;
+		}
+	});
+
+	async function toggleFollow(tradeId: number) {
+		if (busyId != null) return;
+		busyId = tradeId;
+		try {
+			if (followed.has(tradeId)) await unfollowTrade(tradeId);
+			else await followTrade(tradeId);
+			await loadMine();
+		} catch {
+			mineStatus = 'error';
+		} finally {
+			busyId = null;
+		}
+	}
 
 	const PREVIEW = 12;
 	let showAll = $state(false);
@@ -122,6 +178,27 @@
 	>
 {/snippet}
 
+{#snippet followButton(tr: StrategyTrade)}
+	{#if tr.live}
+		{@const on = followed.has(tr.id)}
+		<button
+			type="button"
+			aria-pressed={on}
+			disabled={busyId != null}
+			title={t(lang, on ? 'record.follow.unmark' : 'record.follow.markHint')}
+			onclick={() => toggleFollow(tr.id)}
+			class="rounded-full border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap transition-colors disabled:opacity-50 {on
+				? 'border-[var(--profit)] text-[var(--profit)]'
+				: 'border-border text-muted-foreground hover:bg-accent hover:text-foreground'}"
+			>{t(lang, on ? 'record.follow.marked' : 'record.follow.mark')}</button
+		>
+	{:else}
+		<span class="text-[11px] text-muted-foreground" title={t(lang, 'record.follow.backfillHint')}
+			>—</span
+		>
+	{/if}
+{/snippet}
+
 {#snippet stat(label: string, value: string, cls: string = 'text-foreground')}
 	<div class="flex items-baseline justify-between gap-3">
 		<span class="text-muted-foreground">{label}</span>
@@ -218,6 +295,66 @@
 			</p>
 		</section>
 
+		<!-- (1b) Live only: signals pushed since launch, apart from the backfilled history. -->
+		{#if live}
+			<section class="mt-8 rounded-xl border border-border bg-card p-4 sm:p-5">
+				<div class="flex flex-wrap items-center justify-between gap-2">
+					<h2 class="text-lg font-semibold tracking-tight">{t(lang, 'record.live.title')}</h2>
+					{@render sourceBadge(true)}
+				</div>
+				<p class="mt-1 text-sm text-muted-foreground">{t(lang, 'record.live.sub')}</p>
+				{#if live.nSignals === 0}
+					<p class="mt-3 text-sm text-foreground">{t(lang, 'record.live.none')}</p>
+				{:else}
+					<div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+						<Kpi
+							label={t(lang, 'record.live.signals')}
+							value={live.nSignals}
+							sub={fmt('record.live.signalsSub', { c: live.nClosed, o: live.nOpen })}
+						/>
+						<Kpi
+							label={t(lang, 'record.kpi.winRate')}
+							value={winRate(live.winRate)}
+							sub={live.nClosed
+								? fmt('record.live.winRateSub', {
+										n: live.nClosed,
+										w: Math.round((live.winRate ?? 0) * live.nClosed)
+									})
+								: ''}
+						/>
+						<div class="col-span-2 sm:col-span-1">
+							<Kpi
+								label={t(lang, 'record.live.ret')}
+								value={pct(live.ret)}
+								sub={t(lang, 'record.live.retSub')}
+								tone={live.ret == null ? 'default' : kpiTone(live.ret)}
+							/>
+						</div>
+					</div>
+					<p class="mt-3 text-xs text-muted-foreground">
+						{live.firstEntry ? fmt('record.live.first', { ts: minute(live.firstEntry) }) : ''}
+						{t(lang, 'record.live.method')}
+					</p>
+				{/if}
+				{#if live.smallSample}
+					<Callout type="warning">
+						<p>{fmt('record.live.small', { n: live.nClosed, min: LIVE_MIN_SAMPLE })}</p>
+					</Callout>
+				{/if}
+			</section>
+		{/if}
+
+		{#if $user}
+			<MyFollows
+				{lang}
+				{follows}
+				record={mine}
+				status={mineStatus}
+				{busyId}
+				onUnfollow={toggleFollow}
+			/>
+		{/if}
+
 		<!-- (2) Per-asset state: holding (entry → exit line) or waiting (distance to trigger). -->
 		<section class="mt-10">
 			<h2 class="text-lg font-semibold tracking-tight">{t(lang, 'record.assets.title')}</h2>
@@ -306,6 +443,11 @@
 					<li>{t(lang, k)}</li>
 				{/each}
 			</ul>
+			<a
+				href={resolve('/method')}
+				class="mt-3 inline-block text-sm font-medium text-primary hover:underline"
+				>{t(lang, 'record.methodLink')}</a
+			>
 		</div>
 		<div class="md:grid md:grid-cols-2 md:gap-x-4">
 			<Callout type="warning" title={t(lang, 'record.honest.title')}>
@@ -373,8 +515,11 @@
 							{day(tr.entry_ts)} → {open ? t(lang, 'record.trades.holding') : day(tr.exit_ts)}
 							· {heldDays(tr.hold_days)}
 						</div>
-						<div class="bdv-num text-[11px] text-muted-foreground">
-							{fmtPrice(tr.entry_price)} → {open ? '—' : fmtPrice(tr.exit_price)}
+						<div class="flex items-center justify-between gap-2">
+							<div class="bdv-num text-[11px] text-muted-foreground">
+								{fmtPrice(tr.entry_price)} → {open ? '—' : fmtPrice(tr.exit_price)}
+							</div>
+							{#if $user && tr.live}{@render followButton(tr)}{/if}
 						</div>
 					</li>
 				{/each}
@@ -390,6 +535,7 @@
 							<th class="px-3 py-2 text-right">{t(lang, 'record.col.ret')}</th>
 							<th class="px-3 py-2 text-right">{t(lang, 'record.col.days')}</th>
 							<th class="px-3 py-2">{t(lang, 'record.col.source')}</th>
+							{#if $user}<th class="px-3 py-2">{t(lang, 'record.follow.col')}</th>{/if}
 						</tr>
 					</thead>
 					<tbody>
@@ -424,6 +570,7 @@
 									{heldDays(tr.hold_days)}
 								</td>
 								<td class="px-3 py-2">{@render sourceBadge(tr.live)}</td>
+								{#if $user}<td class="px-3 py-2">{@render followButton(tr)}</td>{/if}
 							</tr>
 						{/each}
 					</tbody>

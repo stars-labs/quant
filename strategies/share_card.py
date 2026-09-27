@@ -3,6 +3,8 @@ has to stand alone: the number, what it is, the honest comparison, and the link.
 
 render_exit_card(trade, record)   one closed trade (a strategy_trades row + strategy_record)
 render_scorecard(record, as_of)   the since-start record (Monday scorecard)
+render_personal(rows, summary, as_of)  one user's follow record (Telegram /me; quant.follow_trades
+                                  + quant.follow_record, migration 037) — no name or id on it
 
 Numbers come from the same view rows the text messages use (quant.strategy_record is the
 single source of stats). Font: SHARE_CARD_FONT (Noto Sans CJK; the variable .ttc is fine) or
@@ -153,4 +155,46 @@ def render_scorecard(record: list[dict], as_of: datetime) -> bytes:
         parts += [f"{r['asset']} {_pct(r['open_ret'])}" for r in held[:3]]
     d.text((60, 438), "  ·  ".join(parts), font=_font(24), fill=MUTED)
     _footer(d, record)
+    return _png(img)
+
+
+PERSONAL_NOTE = "按信号价、已扣手续费,非真实成交 · 规则模拟信号,不构成投资建议"
+
+
+def render_personal(rows: list[dict], summary: dict, as_of: datetime) -> bytes:
+    """rows = the user's quant.follow_trades rows (newest first), summary = their
+    quant.follow_record row. Anonymous by design: forwarding it shows no name or account."""
+    img, d = _canvas()
+    d.text((60, 44), f"我的跟单记录 · 趋势突破策略  {as_of.astimezone(timezone.utc):%Y-%m-%d}",
+           font=_font(26), fill=MUTED)
+    n_closed = summary["n_closed"]
+    if n_closed:
+        ret = summary["closed_compound"]
+        d.text((60, 92), "已平仓的信号依次复利", font=_font(40, "Bold"), fill=TEXT)
+        d.text((60, 150), _pct(ret), font=_font(130, "Black"), fill=GREEN if ret >= 0 else RED)
+        stats = (f"记录 {summary['n_followed']} 笔 · 已平仓 {n_closed} 笔 · "
+                 f"胜率 {summary['n_wins'] / n_closed * 100:.0f}% · 持有中 {summary['n_open']} 笔")
+    else:
+        d.text((60, 92), "跟了的信号都还在持有中", font=_font(40, "Bold"), fill=TEXT)
+        d.text((60, 170), f"{summary['n_open']} 笔持有中", font=_font(96, "Black"), fill=ACCENT)
+        stats = f"记录 {summary['n_followed']} 笔 · 平仓后计入收益"
+    d.text((60, 320), stats, font=_font(28), fill=TEXT)
+    d.rounded_rectangle([60, 372, W - 60, 590], radius=18, fill=PANEL)
+    y = 392
+    for r in rows[:4]:
+        left = f"{r['asset']}  {_md(r['entry_ts'])} {_money(r['entry_price'])}"
+        if r["exit_ts"] is not None:
+            left += f" → {_md(r['exit_ts'])} {_money(r['exit_price'])}"
+            ret, tag = r["net_ret"], ""
+        else:
+            ret, tag = r["open_ret"], "持有中 "
+        d.text((90, y), left, font=_font(28), fill=TEXT)
+        if ret is not None:
+            d.text((W - 90, y), f"{tag}{_pct(ret)}", font=_font(28, "Bold"),
+                   fill=GREEN if ret >= 0 else RED, anchor="ra")
+        else:
+            d.text((W - 90, y), tag.strip(), font=_font(28), fill=MUTED, anchor="ra")
+        y += 48
+    d.text((60, 614), SITE, font=_font(26, "Bold"), fill=ACCENT)
+    d.text((W - 60, 618), PERSONAL_NOTE, font=_font(18), fill=MUTED, anchor="ra")
     return _png(img)
