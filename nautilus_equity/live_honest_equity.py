@@ -32,6 +32,12 @@ Strategy config (defaults = recommended live config; override via env):
   EQ_RISK_FRAC      (default 0.10)
   EQ_STOP_LOSS_PCT  (default 0.08 = −8% exchange-side protective stop)
   EQ_RTH_ONLY       (default 1 = gate entries to US regular trading hours; 0 disables)
+  EQ_WARMUP_DAYS    (default 60 = calendar days of history requested at start to warm the
+                    indicators; without it EMA 100 on 1h RTH bars needs ~14 trading days of
+                    uptime and the node never trades)
+
+Restarts are safe: the strategy does not flatten on stop, and each instance claims its
+instrument's reconciled position + GTC stop (external_order_claims) and resumes managing it.
 
 The IB instrument provider does NOT support load_all — instruments are loaded by id
 (NVDA.NASDAQ, AMD.NASDAQ, QQQ.NASDAQ), matching the ids produced by download_ib.py.
@@ -167,6 +173,9 @@ def build_node() -> TradingNode:
             HonestTrendEquityConfig(
                 instrument_id=iid,
                 bar_type=BarType.from_str(f"{iid}-{bar_spec}"),
+                external_order_claims=[InstrumentId.from_str(iid)],
+                flatten_on_stop=False,
+                warmup_days=int(os.environ.get("EQ_WARMUP_DAYS", "60")),
                 ema_fast=int(os.environ.get("EQ_EMA_FAST", _DEFAULT_EMA_FAST)),
                 ema_slow=int(os.environ.get("EQ_EMA_SLOW", _DEFAULT_EMA_SLOW)),
                 adx_threshold=float(os.environ.get("EQ_ADX_THRESHOLD", "18.0")),
