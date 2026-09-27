@@ -343,16 +343,6 @@ export interface WfResult {
 	avg_profit_pct: number | null;
 }
 
-export interface EventDcaTrigger {
-	ts: string;
-	kind: 'FLASH' | 'FAST' | 'SUSTAIN' | 'CAPITUL' | string;
-	price: number | null;
-	severity: number | null;
-	fng: number | null;
-	amount_usdt: number | null;
-	mode: string | null;
-}
-
 // Curated market-news headlines (quant.news_items — English originals, reposted verbatim)
 export interface NewsItem {
 	published_at: string;

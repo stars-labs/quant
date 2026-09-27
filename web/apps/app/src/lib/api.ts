@@ -9,7 +9,6 @@ import type {
 	LiveTrade,
 	NautilusTrade,
 	WfResult,
-	EventDcaTrigger,
 	HyperoptEpoch,
 	KolEvent,
 	DcaLogRow,
@@ -134,14 +133,6 @@ export const vps = {
 	// US equities + commodities vs their 52-week closing high / 200-day average (migration 036).
 	marketScan: (f: Fetch = fetch) =>
 		req<MarketScanRow[]>(CONFIG.API_BASE, '/market_scan', { order: 'from_high_52w.desc' }, f),
-
-	publicEventTriggers: (f: Fetch = fetch, { limit = 500 }: { limit?: number } = {}) =>
-		req<EventDcaTrigger[]>(
-			CONFIG.API_BASE,
-			'/public_event_triggers',
-			{ order: 'ts.desc', limit },
-			f
-		),
 
 	// ---- authenticated endpoints (anon 401) ----
 	backtestRuns: (
@@ -272,18 +263,6 @@ export const vps = {
 		if (strategy) params.strategy = `eq.${strategy}`;
 		return req<WfResult[]>(CONFIG.API_BASE, '/wf_results', params, f, vpsAuth(authHeader));
 	},
-
-	eventDcaTriggers: (
-		f: Fetch = fetch,
-		{ limit = 100, authHeader }: { limit?: number } & WithAuth = {}
-	) =>
-		req<EventDcaTrigger[]>(
-			CONFIG.API_BASE,
-			'/event_dca_triggers',
-			{ order: 'ts.desc', limit },
-			f,
-			vpsAuth(authHeader)
-		),
 
 	hyperoptEpochs: (
 		f: Fetch = fetch,

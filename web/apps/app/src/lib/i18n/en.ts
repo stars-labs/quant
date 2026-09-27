@@ -8,7 +8,6 @@ export default {
 	// --- topbar ---
 	'nav.home': 'Home',
 	'nav.start': 'Getting started',
-	'nav.live': 'Live',
 	'nav.nautilus': 'Engine',
 	'nav.semis': 'Semis',
 	'nav.commodities': 'Commodities',
@@ -32,8 +31,6 @@ export default {
 	'nav.record': 'Track record',
 	'nav.scan': 'Opportunity radar',
 	'nav.method': 'Methodology',
-	'nav.realtimeOn': 'Realtime · Connected',
-	'nav.realtimeOff': 'Data · Scheduled',
 	'topbar.login': 'Log in',
 	'topbar.logout': 'Log out',
 	'topbar.title': 'Quant',
@@ -152,8 +149,7 @@ export default {
 	'detail.table.sharpe': 'Sharpe',
 	'detail.table.sortino': 'Sortino',
 	'detail.table.pf': 'PF',
-	'detail.empty':
-		'No archived backtests yet. Re-run and scripts/import_backtest_zip.py will ingest automatically.',
+	'detail.empty': 'No archived backtests yet.',
 	'detail.wf': '🧭 Walk-Forward stability',
 	'detail.wfRunDate': 'run_date {d}',
 	'detail.wfFoot':
@@ -165,24 +161,12 @@ export default {
 	// --- dca ---
 	'dca.title': '💰 Smart DCA',
 	'dca.subtitle':
-		'Dual-channel DCA: Scheduled (weekly FnG/cycle/news-weighted multiplier) plus Event (listens for flash crashes and buys live). Under a long-term BTC-bullish thesis, the event channel catches panic lows to pull the average cost down while the scheduled channel keeps the discipline.',
+		'Smart DCA: one base buy a day, +3 units when Fear & Greed is ≤ 25 (+5 at ≤ 15), and +2 more when BTC is 20%+ below its 30-day high. Buy more in panic and less otherwise to pull the average cost down; boost days are pushed to Telegram.',
 	'dca.kpi.scheduled': 'Scheduled buys',
 	'dca.kpi.scheduledSub': 'Weekly DCA',
 	'dca.kpi.scheduledUsdt': 'Scheduled total',
-	'dca.kpi.event': 'Event triggers',
-	'dca.kpi.eventSub': 'flash / fast / sustain / capitul',
-	'dca.kpi.eventUsdt': 'Event total',
-	'dca.cumTitle': '📈 Cumulative stack',
 	'dca.cumEmpty': 'No scheduled DCA records yet (dry_run).',
-	'dca.kindsTitle': '🏷️ Trigger kinds',
-	'dca.kindsEmpty': 'No event triggers yet (daemon running, waiting for market signal).',
-	'dca.timelineTitle': '⚡ Event trigger timeline',
-	'dca.timelineFilter': '(filter: {k})',
-	'dca.table.kind': 'Kind',
-	'dca.table.price': 'Price',
-	'dca.table.sev': 'Severity',
 	'dca.table.fng': 'FnG',
-	'dca.table.amount': 'Amount',
 	'dca.table.mode': 'Mode',
 	'dca.log.title': '🗓️ Scheduled DCA log (weekly)',
 	'dca.log.base': 'Base',
@@ -196,12 +180,6 @@ export default {
 	'dca.report.weekly.desc': 'Flat weekly vs. FnG/cycle/news-weighted multiplier',
 	'dca.report.dist.title': 'Multiplier distribution',
 	'dca.report.dist.desc': 'Per-buy multiplier distribution overlaid on BTC price',
-	'dca.report.event.title': 'Event DCA backtest',
-	'dca.report.event.desc': 'Historical simulation of FLASH / FAST / SUSTAIN / CAPITUL triggers',
-	'dca.how': 'How it works:',
-	'dca.howText':
-		'dca_smart.py runs as a weekly systemd timer (scheduled channel, writes to Supabase dca_log). event_dca.py runs as an always-on daemon (event channel, writes to Timescale quant.event_dca_triggers). Both share the same kill-switch: if drawdown > 20% they pause automatically. Everything is DRY_RUN today — flip live with DCA_LIVE_ENABLED=true.',
-	'dca.howLink': 'Read more →',
 
 	// --- personal DCA plan (post-login) ---
 	'plan.title': '🎯 Your DCA plan (personal simulation)',
@@ -211,7 +189,6 @@ export default {
 	'plan.loading': 'Simulating…',
 	'plan.start': 'Start date',
 	'plan.monthly': 'Monthly (USDT)',
-	'plan.includeEvent': 'Stack event-DCA signals (buy extra on flash crashes)',
 	'plan.save': 'Save plan',
 	'plan.saved': '✓ Saved',
 	'plan.preview': 'Preview',
@@ -221,7 +198,6 @@ export default {
 	'plan.result.btc': 'BTC stacked',
 	'plan.result.roi': 'ROI',
 	'plan.result.scheduled': 'Scheduled buys',
-	'plan.result.event': 'Event buys',
 	'plan.result.avgCost': 'Avg cost',
 	'plan.digest': '📧 Email me a weekly summary of the bots',
 	'plan.digestHint': '(delivery pipeline in progress — your preference is saved now)',
@@ -340,28 +316,6 @@ export default {
 		'Each strategy runs independently across 8 market-regime windows from 2018-2026 ($10K per window). The LUNA 2022 window (W5) matters most — spot long-only dies there; futures long+short recovers.',
 
 	// --- live ---
-	'live.pnl.title': 'Open Position P&L',
-	'live.pnl.empty': 'No open positions',
-	'live.pnl.entry': 'Entry',
-	'live.pnl.current': 'Current',
-	'live.pnl.change': 'Chg%',
-	'live.pnl.upnl': 'uPnL (USDT)',
-	'live.pnl.stake': 'Stake',
-	'live.pnl.duration': 'Duration',
-	'live.pnl.total': 'Total',
-	'live.pnl.refreshed': 'Prices updated',
-	'live.title': '🔴 Live',
-	'live.subtitle':
-		'Subscribes to CDC for 3 tables via wss://quant.realtime.panda.qzz.io. New backtests / trades / event DCA triggers get pushed here the instant they happen.',
-	'live.wsStatus': 'WS',
-	'live.feed.title': '📡 Event feed (last 100)',
-	'live.feed.empty':
-		'Waiting for events… this scrolls in real time when backtests, trades, or DCA triggers happen.',
-	'live.backtests.title': '📦 Recent backtests',
-	'live.trades.title': '💼 Recent trades',
-	'live.trades.empty': 'Bots are on dry-run; nothing closed yet.',
-	'live.how':
-		'How this works: SvelteKit SSR loads the initial snapshot → the browser opens a WebSocket to quant.realtime.panda.qzz.io → subscribes to postgres_changes. Supabase Realtime pushes row changes to every client via logical replication.',
 
 	// --- reports ---
 	'reports.title': '📁 Backtest reports',
@@ -415,9 +369,6 @@ export default {
 	// --- signals ---
 	'signals.title': '📡 Signal Log',
 	'signals.subtitle': 'Strategy signals · DCA event triggers · Backtest runs · All searchable',
-	'signals.tab.all': 'All',
-	'signals.tab.events': 'DCA Events',
-	'signals.tab.backtests': 'Backtests',
 	'signals.search': 'Search signals…',
 	'signals.empty': 'No signals yet',
 	'signals.gate.title': 'Log in to see the full signal log',

@@ -182,7 +182,6 @@
 </script>
 
 <!-- Both links carry runtime query strings (login ?next=, external t.me deep link). -->
-<!-- eslint-disable svelte/no-navigation-without-resolve -->
 <section class="rounded-xl border border-border bg-card p-5">
 	{#if !$user}
 		<p class="text-sm text-muted-foreground">
