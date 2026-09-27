@@ -17,10 +17,10 @@ from nautilus_trader.model.data import BarType
 from nautilus_trader.model.enums import AccountType, OmsType
 from nautilus_trader.model.identifiers import Venue
 from nautilus_trader.model.objects import Money
-from nautilus_trader.persistence.wranglers import BarDataWrangler
 from nautilus_trader.test_kit.providers import TestInstrumentProvider
 
 from honest_trend_equity import HonestTrendEquity, HonestTrendEquityConfig
+from crypto_data import bars_from_frame  # noqa: E402  (pandas-3-safe bar builder)
 
 
 def _bars_from_closes(closes, vols=None):
@@ -57,7 +57,7 @@ def _run(df, **cfg):
     )
     engine.add_instrument(instrument)
     bar_type = BarType.from_str(f"{instrument.id}-1-DAY-LAST-EXTERNAL")
-    bars = BarDataWrangler(bar_type, instrument).process(df)
+    bars = bars_from_frame(df, bar_type, instrument)
     engine.add_data(bars)
     base = dict(instrument_id=str(instrument.id), bar_type=bar_type)
     base.update(cfg)

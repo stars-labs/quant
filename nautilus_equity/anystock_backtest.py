@@ -22,7 +22,6 @@ from nautilus_trader.model.data import BarType
 from nautilus_trader.model.enums import AccountType, OmsType
 from nautilus_trader.model.identifiers import Venue
 from nautilus_trader.model.objects import Money
-from nautilus_trader.persistence.wranglers import BarDataWrangler
 from nautilus_trader.test_kit.providers import TestInstrumentProvider
 
 _HERE = Path(__file__).resolve().parent
@@ -32,6 +31,7 @@ for _p in (str(_HERE), str(_HERE.parent / "strategies")):
 
 from grid_honest_equity_real import _max_drawdown, _sharpe  # noqa: E402  (same metric defs)
 from honest_trend_equity import HonestTrendEquity, HonestTrendEquityConfig  # noqa: E402
+from crypto_data import bars_from_frame  # noqa: E402  (pandas-3-safe bar builder)
 
 _START_BALANCE = 100_000
 _VIX_CSV = _HERE.parent / "data" / "vix_history.csv"
@@ -77,7 +77,7 @@ def run_any(symbol: str, ema_fast: int, ema_slow: int, since_years: float | None
     )
     engine.add_instrument(instrument)
     bar_type = BarType.from_str(f"{instrument.id}-1-DAY-LAST-EXTERNAL")
-    engine.add_data(BarDataWrangler(bar_type, instrument).process(df))
+    engine.add_data(bars_from_frame(df, bar_type, instrument))
 
     strategy = HonestTrendEquity(
         HonestTrendEquityConfig(

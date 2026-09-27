@@ -11,8 +11,8 @@ import csv
 from pathlib import Path
 
 import pandas as pd
-from nautilus_trader.model.data import BarType
-from nautilus_trader.persistence.wranglers import BarDataWrangler
+from nautilus_trader.model.data import Bar, BarType
+from nautilus_trader.model.objects import Price, Quantity
 
 _REPO = Path(__file__).resolve().parent.parent
 _BINANCE = _REPO / "user_data" / "data" / "binance"
@@ -22,8 +22,27 @@ _FNG_CSV = _REPO / "data" / "fng_history.csv"
 def load_bars(instrument, pair_file: str, bar_type: BarType):
     """pair_file e.g. 'BTC_USDT-1d'. Returns a list of Nautilus Bar objects."""
     df = pd.read_feather(_BINANCE / f"{pair_file}.feather")
-    df = df.set_index("date")[["open", "high", "low", "close", "volume"]]
-    return BarDataWrangler(bar_type, instrument).process(df)
+    return bars_from_frame(df.set_index("date"), bar_type, instrument)
+
+
+def bars_from_frame(df: pd.DataFrame, bar_type: BarType, instrument) -> list[Bar]:
+    """OHLCV frame (DatetimeIndex = bar open time) → Nautilus bars; ts_event = ts_init = index.
+
+    Replaces BarDataWrangler.process: under pandas 3 copy-on-write, DataFrame.values is a
+    read-only view and the wrangler's typed memoryview raises "buffer source array is
+    read-only". Shared by the crypto and equity backtests/tests.
+    """
+    idx = pd.DatetimeIndex(df.index)
+    idx = idx.tz_localize("UTC") if idx.tz is None else idx.tz_convert("UTC")
+    ts = idx.as_unit("ns").asi8
+    pp, sp = instrument.price_precision, instrument.size_precision
+    return [
+        Bar(bar_type, Price(o, pp), Price(h, pp), Price(lo, pp), Price(c, pp), Quantity(v, sp),
+            int(t), int(t))
+        for t, o, h, lo, c, v in zip(ts, df["open"].tolist(), df["high"].tolist(),
+                                     df["low"].tolist(), df["close"].tolist(),
+                                     df["volume"].tolist())
+    ]
 
 
 class FngSeries:
