@@ -31,6 +31,7 @@ export default {
 	'nav.docs': 'Docs',
 	'nav.record': 'Track record',
 	'nav.scan': 'Opportunity radar',
+	'nav.method': 'Methodology',
 	'nav.realtimeOn': 'Realtime · Connected',
 	'nav.realtimeOff': 'Data · Scheduled',
 	'topbar.login': 'Log in',
@@ -561,6 +562,43 @@ export default {
 	'record.error.title': 'The track record could not be loaded',
 	'record.error.body':
 		'The data service is unreachable right now. Please refresh in a little while.',
+	'record.live.title': 'Live signals since launch',
+	'record.live.sub':
+		'Only signals pushed to subscribers in real time after launch — no backfilled trades.',
+	'record.live.signals': 'Buy signals pushed',
+	'record.live.signalsSub': '{c} closed · {o} still held',
+	'record.live.winRateSub': '{w} of {n} live closed trades made money',
+	'record.live.ret': 'Closed trades, compounded',
+	'record.live.retSub': 'net of fees',
+	'record.live.small':
+		'Small sample: only {n} live trades have closed (fewer than {min}), so the win rate and return will swing a lot. Most of the full record above is backfilled.',
+	'record.live.none':
+		'No new buy signal since launch yet. Breakouts need the market to move; it can take days.',
+	'record.live.first': 'First live signal: {ts} UTC.',
+	'record.live.method':
+		'Compounded = every trade followed in turn with the same money — not the equal split across coins used above.',
+	'record.mine.title': 'My follows',
+	'record.mine.sub': 'Signals you marked as "I followed this". Only you can see this section.',
+	'record.mine.empty':
+		'Nothing marked yet. Tap "I followed this" under a Telegram buy signal, or "I followed" in the trade list below. Only signals that were pushed live can be marked.',
+	'record.mine.followed': 'Marked',
+	'record.mine.followedSub': '{c} closed · {o} still held',
+	'record.mine.ret': 'Closed trades, compounded',
+	'record.mine.retSub': 'at signal prices, net of fees',
+	'record.mine.winRateSub': '{w} of {n} made money',
+	'record.mine.note':
+		'Computed at the signal price with 0.1% fees per side — not your real fills; every trade compounded in turn with the same money. Your actual prices, size and timing differ, and so will your result.',
+	'record.mine.tg':
+		'Send /me to the Telegram bot for a shareable card of this record (no name on it).',
+	'record.mine.error': 'Could not load your follows. Please refresh in a little while.',
+	'record.mine.loading': 'Loading…',
+	'record.follow.col': 'Follow',
+	'record.follow.mark': 'I followed',
+	'record.follow.marked': 'Followed ✓',
+	'record.follow.unmark': 'Unmark',
+	'record.follow.markHint': 'Mark that you followed this signal; it counts toward "My follows"',
+	'record.follow.backfillHint': 'Backfilled trades were never pushed, so they cannot be marked',
+	'record.methodLink': 'Rules, costs, data sources and rejected ideas — see the methodology →',
 
 	// --- nautilus (execution engine) ---
 	'nautilus.superseded': 'Superseded',
@@ -643,6 +681,8 @@ export default {
 		'Bind Telegram and tick "Daily opportunity radar": every day at 08:30 Beijing time you get the coins near a trigger, the deep dips, the extreme funding and the stock and commodity highs and drawdowns.',
 	'scan.disclaimer':
 		'Rule-based observations, not investment advice. We do not manage money or give position sizing advice.',
+	'scan.methodLink':
+		'Radar thresholds, and why funding is only a sentiment gauge — see the methodology →',
 	'scan.empty.title': 'The radar is warming up',
 	'scan.empty.body': 'No price data yet; it updates after every hourly close.',
 	'scan.error.title': 'The radar could not load',

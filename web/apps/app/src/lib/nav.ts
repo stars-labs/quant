@@ -22,7 +22,8 @@ import {
 	FlaskConical,
 	Skull,
 	Trophy,
-	Radar
+	Radar,
+	BookOpen
 } from 'lucide-svelte';
 
 export type NavItem = {
@@ -39,6 +40,7 @@ export const PRIMARY_NAV: NavItem[] = [
 	{ href: '/start', labelKey: 'nav.start', icon: Compass },
 	{ href: '/record', labelKey: 'nav.record', icon: Trophy },
 	{ href: '/scan', labelKey: 'nav.scan', icon: Radar },
+	{ href: '/method', labelKey: 'nav.method', icon: BookOpen },
 	{ href: '/live', labelKey: 'nav.live' },
 	{ href: '/nautilus', labelKey: 'nav.nautilus', icon: Cpu },
 	{ href: '/signals', labelKey: 'nav.signals', icon: Radio },
