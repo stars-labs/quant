@@ -15,13 +15,13 @@ for stage status and `STRATEGY_LEADERBOARD.md` for the strategy research log.
 - `nautilus_equity/` — US-equity engine via IB (own `.venv`, has `nautilus_trader[ib]`). LIVE on
   IB paper via `quant-equity.service` (see Local services).
 - `nautilus_options/` — Deribit CSP backtests (verdict: not deployed).
-- `strategies/` — standalone bots/helpers (NOT freqtrade strategies anymore), ~30 modules:
-  `telegram_alerts.py`, `kelly_sizer.py`, `risk_manager.py`, `dca_executor.py`, `deribit_monitor.py`,
+- `strategies/` — standalone bots/helpers (NOT freqtrade strategies anymore):
+  `telegram_alerts.py`, `kelly_sizer.py`, `kol_tracker.py`, `deribit_monitor.py`, `health_check.py`,
   plus the collectors/evaluators the services run (`news_collector.py`, `stress_index.py`,
   `market_collector.py`, `alert_dispatcher.py`, `signal_evaluator.py`, `quant_lab.py`, …).
   `strategy_record.py` is the pure Donchian state machine behind the public track record (below).
-- `scripts/` — `sync_local_state_to_timescale.py` (wf → TimescaleDB), `md_http_server.py`
-  (localhost :3001 dashboard), `testnet_usdt_recycler.py`, misc backtest/sync/report helpers.
+- `scripts/` — `sync_local_state_to_timescale.py` (wf → TimescaleDB), `testnet_usdt_recycler.py`,
+  misc backtest/sync/report helpers.
   (`download_binance.py` lives in `nautilus_crypto/`, not here.)
 - `web/apps/app/` — SvelteKit dashboard on Cloudflare Workers (one route dir per page under
   `src/routes/`). Deploy: `pnpm run deploy` (NOT `pnpm deploy`). The `/nautilus` route shows live
@@ -32,19 +32,22 @@ for stage status and `STRATEGY_LEADERBOARD.md` for the strategy research log.
   (auth + Realtime), not the trade DB.
 - `systemd/` — source copies of the game-box user units (`quant-*.{service,timer}` incl.
   `quant-equity-watchdog.*`); the installed copies live in `~/.config/systemd/user/` — keep in sync.
+  No wrapper scripts: units needing secrets inline `bash -c 'sops exec-env secrets.env "<py> <args>"'`.
   They hard-code the checkout path: moving the repo breaks every unit (203/EXEC) until the installed
   copies are re-pointed + `systemctl --user daemon-reload`.
 - `docs/` — runbooks/checklists (`GO_LIVE_CHECKLIST.md`, `DRYRUN_HANDBOOK.md`,
   `RETIRED_STRATEGIES.md`) and `docs/research/` (AI-semis research data behind `/research`, `/semis`).
-- Legacy, do-not-touch: `web-vanilla/`, `dashboard/`, `configs/`, `user_data/`, `freqaimodels/`,
-  `tradesv3_*.sqlite`, root `start_*.sh` — freqtrade/pre-Nautilus era, kept for history only.
+- `user_data/` (gitignored, lives only in the main checkout) — `data/binance/*.feather` (written by
+  `download_binance.py`, read by every crypto backtest), `data/findata/`, `backtest_results/`
+  (read by `kelly_sizer.py`). The freqtrade-era tree (web-vanilla, dashboard, configs, start_*.sh,
+  the retired bots) is deleted — it lives on in the commit history.
 - `AGENTS.md` duplicates part of this file for other agents — update both when commands change.
 - `flake.nix` + `.envrc` provide the direnv/Nix dev shell.
 
 ## venvs (uv; symlink to external python so they survive dir moves)
 - `.venv-bots` — the standalone bots' interpreter (ccxt/websockets/psycopg2/pandas/requests). NO
   nautilus_trader.
-- `nautilus_equity/.venv` — has nautilus_trader 1.227.0 (+ ib). Used to run crypto AND equity
+- `nautilus_equity/.venv` — has nautilus_trader 1.231.0 (+ ib) and pandas 3. Used to run crypto AND equity
   Nautilus backtests/tests (`sys.path.insert(0, <module dir>)` is how tests import siblings).
 - pytest is NOT installed in either venv. Most tests are plain `test_*` funcs; three modules
   (`tests/test_kelly_sizer.py`, `nautilus_crypto/test_crypto_accumulator.py`,
@@ -62,8 +65,10 @@ Python (no Makefile/pytest — invoke the venv interpreter directly; `P=nautilus
   `uv run --no-project --python $P --with pytest -m pytest -q tests/test_kelly_sizer.py`
   (append `::test_name` for one test). `tests/*` add `strategies/` to `sys.path` themselves; other
   tests sit next to their module (`nautilus_crypto/test_*.py`, `nautilus_equity/test_*.py`).
-  Known pre-existing failure: `test_crypto_accumulator.py`'s module fixture errors with
-  `ValueError: buffer source array is read-only` (6 errors; the rest pass).
+  pandas 3 hands `BarDataWrangler.process()` a READ-ONLY `.values` view → `ValueError: buffer
+  source array is read-only`; build bars like `nautilus_crypto/crypto_data.load_bars` does (writable
+  float64 copy + `wrangler._build_bar`). Known failure: `nautilus_equity/test_honest_trend_equity.py`
+  (and `run_honest_equity.py`/`anystock_backtest.py`/`backtest_spike.py`) still call `.process()`.
 
 Web dashboard (`cd web/apps/app`, pnpm):
 - `pnpm run dev` — local dev server.   `pnpm run check` — svelte-check typecheck.
@@ -82,7 +87,7 @@ mainland browsers, so a SvelteKit `load` that hit Binance directly would fail in
   `INSERT` into `quant.*` on TimescaleDB@oracle-arm-002.
 - Each table is exposed as a read-only PostgREST `api.*` view (anon-selectable). The web reads them
   through the single `vps` client in `src/lib/api.ts`; backend URLs live in `src/lib/config.ts`
-  (`API_BASE`=api.panda.qzz.io PostgREST, `AUTH_BASE`=gotrue, `SUPABASE_*`, `REALTIME_URL`=WS).
+  (`API_BASE`=api.panda.qzz.io PostgREST, `AUTH0_*`, `SUPABASE_*`).
   The lone deliberate exception is the topbar BTC ticker, which calls Binance client-side only.
 - **Adding a data-backed page** = migration (new `quant` table + `api` view) → collector or writer →
   a `vps.*` helper in `api.ts` + a `+page.server.ts` `load`. Apply a migration to prod with
@@ -162,8 +167,9 @@ new service/table to its lists when you add one. `--dry-run` prints results and 
 
 ## Local services (game box, `~/.config/systemd/user/quant-*`)
 Monitoring/reporting on `.venv-bots`: `quant-ts-sync` (wf sync, reads local wf files), `quant-alerts`
-(telegram reports), `quant-deribit`, `quant-risk-monitor`, `quant-daily-report`, `quant-dashboard`
-(md_http :3001), `quant-account-snapshot` (needs the equity IB venv). The game-box copies of
+(telegram reports), `quant-deribit`, `quant-daily-report`, `quant-health-check`, `quant-account-snapshot`
+(needs the equity IB venv). `quant-dashboard` (freqtrade md_http :3001) and `quant-risk-monitor`
+(read frozen freqtrade SQLite) are retired — their code is deleted. The game-box copies of
 `quant-market-collector`/`quant-signal-evaluator`/`quant-alert-dispatcher` are STOPPED+disabled
 (moved to arm-002 2026-07-29 — do not re-enable, the dispatcher must stay single-instance),
 `quant-testnet-recycler` (hourly `:50`) — keeps the arm-002 accumulator soak funded: the
