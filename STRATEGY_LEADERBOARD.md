@@ -175,6 +175,25 @@ breakout (≈trend), mean-reversion (catches knives), accumulation (rides BTC), 
 - **Return-focused single:** ETH 1h EMA+pyramid → +119% / Sharpe 1.80
 - **Smoothness single:** ETH 1h Donchian 168/72 → +47% / Sharpe 2.71
 
+## 2026-09-27 — house universe screen (Donchian 1h 168/72) — 3 → 13 assets
+`scripts/screen_universe.py`. Binance top-30 USDT pairs by volume. **Selected on in-sample
+2024-01-01..2025-12-31 only**, criteria fixed before looking at 2026: two full years of data, net
+return > 0 (0.1%/side), strategy maxDD shallower than buy-and-hold's, return/|maxDD| ≥ 0.5.
+Selected (13): BTC ETH SOL XRP DOGE ADA AVAX SUI NEAR UNI ZEC PEPE WLD. Rejected by criteria: BNB
+(ret/DD 0.28), LINK, ARB, DASH, QNT, RUNE, LTC, RARE, FIL; too short a history: ENA TAO SAGA BABY
+MUBARAK XPL PUMP GRAM.
+
+| out-of-sample 2026-01-01..09-26 | strategy (eq-wt) | buy&hold | strat maxDD | hold maxDD | beat hold |
+|---|---|---|---|---|---|
+| **selected 13** | **+48.5%** | +34.2% | −31.3% | −59.4% | 9/13 |
+| rejected 9 | +24.6% | +31.0% | −35.3% | −56.2% | 3/9 |
+| old house set BTC/ETH/SOL | +5.0% | −5.4% | −25.0% | −51.3% | 3/3 |
+
+Means are pulled up by ZEC (+302%); medians of the selected: strategy +6.6% vs hold −3.8%. The
+selection discriminates out of sample (selected beat hold 9/13, rejected 3/9) and halves drawdown.
+Losers kept honestly: WLD −56%, DOGE −23%, AVAX −13%. Deployed as `strategy_record.ASSETS`
+(public /record backfilled from 2026-01-01, labelled 回溯). Re-screen yearly on a fresh in-sample.
+
 ## Crypto — accumulation (fear-driven DCA)
 | Variant | avg cost vs naive | ROI | notes |
 |---|---|---|---|

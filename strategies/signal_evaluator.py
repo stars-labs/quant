@@ -19,7 +19,7 @@ pushes them to the owner's bound Telegram chat. Wording stays "你的信号触�
 own rule, never advice.
 
 House strategy (the public track record, migration 032): every sweep ALSO runs the house
-trend rule (strategy_record.py — Donchian 1h 168/72 long-only on BTC/ETH/SOL, the rule
+trend rule (strategy_record.py — Donchian 1h 168/72 long-only on sr.ASSETS, the rule
 nautilus_crypto/donchian.py trades) on closed Binance 1h bars, independent of whether any
 user signals exist. New entries INSERT quant.strategy_signals (live=true, un-notified — the
 dispatcher pushes them to 'strategy_signals' subscribers), exits close the open row, and
@@ -34,6 +34,10 @@ Smart-DCA boost days (sweep_dca): once per FNG day, the accumulator's rule
 quant.dca_boost_days, with the rule replayed from 2026-01-01 vs a plain DCA. The alert
 dispatcher turns boosted days into the "定投加倍日" push.
 
+Funding (sweep_funding, hourly): Binance USDT-perp funding for the top-30 perps by volume ∪
+the house assets → quant.funding_rates (7-day actual funding annualised), feeding the
+opportunity scan (quant.opportunity_scan, migration 035).
+
 Env: TIMESCALE_URL (sops). EVAL_INTERVAL seconds between sweeps (default 300).
 Run: .venv-bots/bin/python strategies/signal_evaluator.py [--once]
      .venv-bots/bin/python strategies/signal_evaluator.py --backfill 2026-01-01 [--dry-run]
@@ -45,6 +49,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 import time
 from datetime import datetime, timedelta, timezone
@@ -363,17 +368,18 @@ def _upsert_asset(cur, asset: str, bars: list[sr.Bar], start: sr.Bar | None = No
     ch = sr.channels(bars)
     cur.execute(
         """INSERT INTO quant.strategy_assets
-             (strategy, asset, last_ts, last_close, channel_high, channel_low,
+             (strategy, asset, last_ts, last_close, channel_high, channel_low, high_30d,
               start_ts, start_price, updated_at)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, now())
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, now())
            ON CONFLICT (strategy, asset) DO UPDATE
              SET last_ts = EXCLUDED.last_ts, last_close = EXCLUDED.last_close,
                  channel_high = EXCLUDED.channel_high, channel_low = EXCLUDED.channel_low,
+                 high_30d = coalesce(EXCLUDED.high_30d, strategy_assets.high_30d),
                  start_ts = coalesce(EXCLUDED.start_ts, strategy_assets.start_ts),
                  start_price = coalesce(EXCLUDED.start_price, strategy_assets.start_price),
                  updated_at = now()""",
         (sr.STRATEGY, asset, _ms_to_dt(ch["last_ts"]), ch["last_close"],
-         ch["channel_high"], ch["channel_low"],
+         ch["channel_high"], ch["channel_low"], ch["high_30d"],
          _ms_to_dt(start[0]) if start else None, start[3] if start else None),
     )
 
@@ -650,6 +656,72 @@ def sweep_dca(conn) -> bool:
     return True
 
 
+# ---------- perp funding (opportunity scan) ----------
+
+_FAPI = "https://fapi.binance.com/fapi/v1"
+FUNDING_TOP = 30
+
+
+def perp_asset(symbol: str) -> str:
+    """'1000PEPEUSDT' → 'PEPE' (low-priced coins trade per 1000 on the perp); 'BTCUSDT' → 'BTC'."""
+    return re.sub(r"^\d+", "", symbol[:-4])
+
+
+def funding_universe(tickers: list[dict], spot: set[str]) -> dict[str, dict]:
+    """asset → its 24h perp ticker: the top FUNDING_TOP USDT perps by quote volume ∪ sr.ASSETS,
+    only for assets that also trade as <ASSET>USDT on Binance spot — without a spot leg the
+    spot-long / perp-short carry the scan points at can't be done (and many top perps are
+    perp-only listings)."""
+    usdt = {t["symbol"]: t for t in tickers
+            if t["symbol"].endswith("USDT") and f"{perp_asset(t['symbol'])}USDT" in spot}
+    top = sorted(usdt.values(), key=lambda t: -float(t["quoteVolume"]))[:FUNDING_TOP]
+    out = {perp_asset(t["symbol"]): t for t in top}
+    for a in sr.ASSETS:
+        for sym in (f"{a}USDT", f"1000{a}USDT"):
+            if sym in usdt:
+                out.setdefault(a, usdt[sym])
+                break
+    return out
+
+
+def sweep_funding(conn) -> int:
+    """Refresh quant.funding_rates at most hourly; returns the number of symbols written."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT max(updated_at) > now() - interval '55 minutes' FROM quant.funding_rates")
+        if cur.fetchone()[0]:
+            return 0
+    r = requests.get(f"{_FAPI}/ticker/24hr", timeout=20)
+    r.raise_for_status()
+    s = requests.get("https://api.binance.com/api/v3/ticker/price", timeout=20)
+    s.raise_for_status()
+    universe = funding_universe(r.json(), {t["symbol"] for t in s.json()})
+    since = int(time.time() * 1000) - 7 * 24 * _HOUR_MS
+    rows = []
+    for asset, t in universe.items():
+        h = requests.get(f"{_FAPI}/fundingRate", params={"symbol": t["symbol"], "startTime": since,
+                                                         "limit": 1000}, timeout=15)
+        h.raise_for_status()
+        rates = [float(x["fundingRate"]) for x in h.json()]
+        if rates:
+            rows.append((asset, t["symbol"], rates[-1], sum(rates) * 365 / 7, len(rates),
+                         float(t["quoteVolume"])))
+    with conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM quant.funding_rates WHERE NOT (asset = ANY(%s))",
+                        ([row[0] for row in rows],))
+            for row in rows:
+                cur.execute(
+                    """INSERT INTO quant.funding_rates
+                         (asset, symbol, last_rate, ann_7d, n_7d, quote_volume_24h, updated_at)
+                       VALUES (%s,%s,%s,%s,%s,%s, now())
+                       ON CONFLICT (asset) DO UPDATE SET symbol = EXCLUDED.symbol,
+                         last_rate = EXCLUDED.last_rate, ann_7d = EXCLUDED.ann_7d,
+                         n_7d = EXCLUDED.n_7d, quote_volume_24h = EXCLUDED.quote_volume_24h,
+                         updated_at = now()""", row)
+    log(f"funding: {len(rows)} perps refreshed")
+    return len(rows)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="User-signal + house-strategy evaluator.")
     ap.add_argument("--once", action="store_true", help="run a single sweep and exit")
@@ -689,6 +761,10 @@ def main() -> int:
                 sweep_dca(conn)
             except Exception as e:
                 log(f"dca sweep error (continuing): {e!r}")
+            try:
+                sweep_funding(conn)
+            except Exception as e:
+                log(f"funding sweep error (continuing): {e!r}")
             finally:
                 conn.close()
         if args.once:

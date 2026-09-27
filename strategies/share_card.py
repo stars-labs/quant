@@ -20,6 +20,8 @@ from functools import lru_cache
 
 from PIL import Image, ImageDraw, ImageFont
 
+from strategy_record import assets_label, price_decimals
+
 W, H = 1200, 675
 BG = (18, 16, 31)
 PANEL = (28, 25, 46)
@@ -56,7 +58,7 @@ def _font(size: int, weight: str = "Regular") -> ImageFont.FreeTypeFont:
 
 
 def _money(x: float) -> str:
-    return f"${x:,.2f}" if x < 1000 else f"${x:,.0f}"
+    return f"${x:,.0f}" if x >= 1000 else f"${x:,.{price_decimals(x)}f}"
 
 
 def _pct(x: float) -> str:
@@ -94,7 +96,7 @@ def _footer(d: ImageDraw.ImageDraw, record: list[dict]) -> None:
     p = _portfolio(record)
     d.rounded_rectangle([60, 470, W - 60, 590], radius=18, fill=PANEL)
     start = f"{p['start']:%Y-%m-%d} 起" if p["start"] else "至今"
-    d.text((90, 490), f"{start} · $1,000 平均分给 {'/'.join(r['asset'] for r in record)}",
+    d.text((90, 490), f"{start} · $1,000 平均分给 {assets_label([r['asset'] for r in record])}",
            font=_font(24), fill=MUTED)
     follow = f"跟随全部信号 ${1000 * (1 + p['ret']):,.0f}"
     d.text((90, 528), follow, font=_font(34, "Bold"), fill=GREEN if p["ret"] >= 0 else RED)
@@ -142,8 +144,13 @@ def render_scorecard(record: list[dict], as_of: datetime) -> bytes:
     if p["best"]:
         stats += f" · 最大一笔 {p['best'][0]} {_pct(p['best'][1])}"
     d.text((60, 402), stats, font=_font(28), fill=TEXT)
-    held = [f"{r['asset']} 持有 {_pct(r['open_ret'])}" if r["open_entry_ts"] else f"{r['asset']} 空仓"
-            for r in record]
-    d.text((60, 438), "  ·  ".join(held), font=_font(24), fill=MUTED)
+    held = sorted((r for r in record if r["open_entry_ts"]), key=lambda r: -r["open_ret"])
+    if len(record) <= 4:
+        parts = [f"{r['asset']} 持有 {_pct(r['open_ret'])}" if r["open_entry_ts"]
+                 else f"{r['asset']} 空仓" for r in record]
+    else:
+        parts = [f"持有 {len(held)} 个", f"空仓 {len(record) - len(held)} 个"]
+        parts += [f"{r['asset']} {_pct(r['open_ret'])}" for r in held[:3]]
+    d.text((60, 438), "  ·  ".join(parts), font=_font(24), fill=MUTED)
     _footer(d, record)
     return _png(img)

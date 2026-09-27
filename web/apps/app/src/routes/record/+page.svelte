@@ -1,5 +1,6 @@
 <script lang="ts">
-	// 策略战绩 — public track record of the house trend rule on BTC/ETH/SOL
+	// 策略战绩 — public track record of the house trend rule (Donchian 1h breakout) on
+	// the house coin universe
 	// (api.strategy_record + api.strategy_trades, migration 032). Every stat comes from
 	// strategy_record; the load only averages across assets. Honesty rules: returns are net of
 	// 0.1% fee per side, buy-and-hold and win rate always sit next to the strategy return, and
@@ -34,6 +35,7 @@
 		'record.rules.sell',
 		'record.rules.scope',
 		'record.rules.portfolio',
+		'record.rules.universe',
 		'record.rules.fees'
 	];
 
@@ -43,12 +45,19 @@
 		return out;
 	}
 
-	// Returns are fractions in the view → signed percent. Prices keep cents (SOL trades ~$100).
+	// Returns are fractions in the view → signed percent. Prices >= $1 keep cents (commas from
+	// $1,000); sub-dollar coins show 4 significant digits so PEPE (~$0.00001) never reads $0.00.
 	const pct = (v: number | null | undefined) => (v == null ? '—' : fmtPct(v * 100, 1));
 	const price = (v: number | null | undefined) =>
 		v == null
 			? '—'
-			: '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+			: '$' +
+				(Math.abs(v) >= 1 || v === 0
+					? v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+					: v.toLocaleString('en-US', {
+							minimumSignificantDigits: 4,
+							maximumSignificantDigits: 4
+						}));
 	const dollars = (v: number) => '$' + Math.round(v).toLocaleString('en-US');
 	// Always UTC: signals fire on UTC hourly closes, whatever the server or browser zone is.
 	const utc = (ts: string | null | undefined) => (ts ? new Date(ts).toISOString() : '');
@@ -95,10 +104,13 @@
 				? 'text-[var(--profit)]'
 				: 'text-[var(--loss)]';
 	const kpiTone = (v: number) => (v > 0 ? 'good' : v < 0 ? 'bad' : 'default');
+	// Name the coins while the list is short; past 4 a count reads better than a wall of tickers.
 	const assetList = (xs: string[]) =>
-		lang === 'en' && xs.length > 1
-			? `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`
-			: xs.join('、');
+		xs.length > 4
+			? fmt('record.assets.count', { n: xs.length })
+			: lang === 'en' && xs.length > 1
+				? `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`
+				: xs.join('、');
 
 	function floating(tr: StrategyTrade): number | null {
 		const r = openByAsset[tr.asset];
@@ -151,7 +163,7 @@
 		</div>
 		{#if s}
 			<p class="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-				{fmt('record.subtitle', { start: day(s.startTs) })}
+				{fmt('record.subtitle', { start: day(s.startTs), assets: assetList(s.assets) })}
 			</p>
 		{/if}
 	</header>
@@ -221,10 +233,10 @@
 		<section class="mt-10">
 			<h2 class="text-lg font-semibold tracking-tight">{t(lang, 'record.assets.title')}</h2>
 			<p class="mt-1 text-sm text-muted-foreground">{t(lang, 'record.assets.sub')}</p>
-			<div class="mt-4 grid gap-4 lg:grid-cols-3">
+			<div class="mt-4 grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
 				{#each record as r (r.asset)}
 					{@const long = r.open_entry_ts != null}
-					<article class="flex flex-col rounded-xl border border-border bg-card p-5">
+					<article class="flex flex-col rounded-xl border border-border bg-card p-4 sm:p-5">
 						<div class="flex items-center justify-between gap-3">
 							<h3 class="text-lg font-bold">{r.asset}</h3>
 							<StatusPill
@@ -232,7 +244,7 @@
 								label={t(lang, long ? 'record.state.long' : 'record.state.flat')}
 							/>
 						</div>
-						<div class="mt-4 flex flex-col gap-2 text-[13px]">
+						<div class="mt-3 flex flex-col gap-2 text-[13px] sm:mt-4">
 							{#if long}
 								<div>
 									{@render stat(t(lang, 'record.card.bought'), price(r.open_entry_price))}
@@ -263,10 +275,11 @@
 								</div>
 							{/if}
 						</div>
-						<p class="mt-3 text-xs text-muted-foreground">
+						<!-- Same sentence on every card: skip it on phones, where 13 stacked cards get long. -->
+						<p class="mt-3 hidden text-xs text-muted-foreground sm:block">
 							{t(lang, long ? 'record.card.exitHint' : 'record.card.triggerHint')}
 						</p>
-						<div class="mt-auto pt-4">
+						<div class="mt-auto pt-3 sm:pt-4">
 							<div
 								class="flex flex-col gap-1 border-t border-border pt-3 text-xs text-muted-foreground"
 							>

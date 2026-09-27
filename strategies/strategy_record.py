@@ -18,11 +18,33 @@ fee math for logs and --backfill --dry-run summaries.
 from __future__ import annotations
 
 STRATEGY = "donchian_1h"
-ASSETS = ("BTC", "ETH", "SOL")
+# Screened 2026-09-27 from Binance's top-30 USDT pairs using ONLY 2024-2025 data
+# (pre-registered: 2 full years, net return > 0, max drawdown shallower than buy-and-hold,
+# return / |max drawdown| >= 0.5), so 2026 is out-of-sample. See STRATEGY_LEADERBOARD.md.
+ASSETS = ("BTC", "ETH", "SOL", "XRP", "DOGE", "ADA", "AVAX", "SUI", "NEAR", "UNI", "ZEC",
+          "PEPE", "WLD")
 ENTRY_LB = 168   # 7 days of 1h bars — breakout lookback
 EXIT_LB = 72     # 3 days of 1h bars — trailing-low exit lookback
 FEE = 0.001      # Binance spot taker, per side
+HIGH_30D_LB = 720  # 30 days of 1h bars — dip reference for the opportunity scan
 RECORD_START = "2026-01-01"  # UTC — start of the published record (buy&hold baseline)
+
+def price_decimals(x: float) -> int:
+    """Decimals that keep ~4 significant digits below $1 (PEPE trades near $0.00001);
+    2 at or above $1. Shared by the Telegram texts and the share cards."""
+    if x <= 0 or x >= 1:
+        return 2
+    d = 0
+    while x < 0.1 and d < 12:
+        x *= 10
+        d += 1
+    return d + 4
+
+
+def assets_label(assets: list[str]) -> str:
+    """'BTC/ETH/SOL' for a few assets, '13 个币种' once a list would not fit a line."""
+    return "/".join(assets) if len(assets) <= 4 else f"{len(assets)} 个币种"
+
 
 # (close_ts_ms, high, low, close) — CLOSED bars only, oldest → newest.
 Bar = tuple[int, float, float, float]
@@ -60,6 +82,7 @@ def channels(bars: list[Bar]) -> dict:
 
     channel_high = max HIGH of the last ENTRY_LB bars (a close above it = entry),
     channel_low  = min LOW of the last EXIT_LB bars  (a close below it = exit).
+    high_30d     = max HIGH of the last 30 days (720 bars) — the opportunity scan's dip test.
     An edge is None when there aren't enough bars for its full lookback.
     """
     if not bars:
@@ -70,6 +93,7 @@ def channels(bars: list[Bar]) -> dict:
         "last_close": last_close,
         "channel_high": max(b[1] for b in bars[-ENTRY_LB:]) if len(bars) >= ENTRY_LB else None,
         "channel_low": min(b[2] for b in bars[-EXIT_LB:]) if len(bars) >= EXIT_LB else None,
+        "high_30d": max(b[1] for b in bars[-HIGH_30D_LB:]) if len(bars) >= HIGH_30D_LB else None,
     }
 
 

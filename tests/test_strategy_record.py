@@ -15,6 +15,7 @@ from pathlib import Path
 _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT / "strategies"))
 
+import strategy_record as sr  # noqa: E402
 from strategy_record import (  # noqa: E402
     ENTRY_LB,
     EXIT_LB,
@@ -146,7 +147,15 @@ def test_channels_for_next_bar_include_last_bar():
         "last_close": 115,
         "channel_high": 120,
         "channel_low": 80,
+        "high_30d": None,  # needs 720 bars
     }
+
+
+def test_channels_high_30d_uses_last_720_bars():
+    bars = flat(sr.HIGH_30D_LB + 5)
+    bars[-sr.HIGH_30D_LB] = (bars[-sr.HIGH_30D_LB][0], 150, 90, 95)          # oldest in window
+    bars[-sr.HIGH_30D_LB - 1] = (bars[-sr.HIGH_30D_LB - 1][0], 999, 90, 95)  # just outside
+    assert channels(bars)["high_30d"] == 150
 
 
 def test_channels_use_their_own_lookbacks():
@@ -174,3 +183,14 @@ def test_channels_require_a_bar():
 def test_net_return_charges_fee_both_sides():
     assert abs(net_return(100.0, 110.0) - (1.1 * 0.999 * 0.999 - 1)) < 1e-12
     assert net_return(100.0, 100.0) < 0  # flat round trip loses the fees
+
+
+def test_price_decimals_keeps_four_significant_digits_below_one_dollar():
+    assert f"{0.0000123456:.{sr.price_decimals(0.0000123456)}f}" == "0.00001235"
+    assert f"{0.5123:.{sr.price_decimals(0.5123)}f}" == "0.5123"
+    assert sr.price_decimals(1.5) == 2 and sr.price_decimals(84099.99) == 2
+
+
+def test_assets_label_lists_a_few_and_counts_many():
+    assert sr.assets_label(["BTC", "ETH", "SOL"]) == "BTC/ETH/SOL"
+    assert sr.assets_label(list(sr.ASSETS)) == f"{len(sr.ASSETS)} 个币种"

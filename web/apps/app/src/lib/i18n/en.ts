@@ -465,7 +465,7 @@ export default {
 	// --- record (house trend-rule track record, /record) ---
 	'record.metaTitle': 'Track record',
 	'record.metaDesc':
-		'Every trade of our trend-breakout rule on BTC, ETH and SOL — net of fees, with win rate and a buy-and-hold comparison, losses included. Rule-based simulated signals, not investment advice.',
+		'Every trade of our trend-breakout rule across major coins — net of fees, with win rate and a buy-and-hold comparison, losses included. Rule-based simulated signals, not investment advice.',
 	'record.metaDescLive':
 		'Since {start}, $1,000 following every signal → {follow} vs {hold} buying and holding; {n} closed trades, {win} win rate, net of fees, losses included. Rule-based simulated signals, not investment advice.',
 	'record.share': 'Share',
@@ -473,7 +473,7 @@ export default {
 	'record.eyebrow': 'Rule-based simulated signals · public record',
 	'record.title': 'Track record',
 	'record.subtitle':
-		'One trend-breakout rule, applied to BTC, ETH and SOL: buy when an hourly candle closes above the highest price of the past 7 days, sell when one closes below the lowest price of the past 3 days. Below is every trade since {start}, winners and losers alike, with fees already deducted.',
+		'One trend-breakout rule, applied to {assets}: buy when an hourly candle closes above the highest price of the past 7 days, sell when one closes below the lowest price of the past 3 days. Below is every trade since {start}, winners and losers alike, with fees already deducted.',
 	'record.headline': 'If you had put $1,000 in on {start}, split equally across {assets}',
 	'record.kpi.follow': 'Following every signal',
 	'record.kpi.followSub': '{ret} after fees',
@@ -489,6 +489,7 @@ export default {
 	'record.asOf': 'Data as of {ts} UTC, updated after every hourly close.',
 	'record.split': '{b} trades are backfilled, {l} recorded live.',
 	'record.assets.title': 'Where each coin stands now',
+	'record.assets.count': '{n} coins',
 	'record.assets.sub': 'Binance spot hourly closes, refreshed after every hourly close.',
 	'record.state.long': 'Holding',
 	'record.state.flat': 'Waiting',
@@ -536,7 +537,9 @@ export default {
 	'record.rules.scope':
 		'Long only, no leverage. Each coin runs on its own and is either fully in or fully out.',
 	'record.rules.portfolio':
-		'Portfolio: the money is split into three equal parts for BTC, ETH and SOL, each following its own signals, never rebalanced. The buy-and-hold comparison is split the same way and starts at the same moment.',
+		'Portfolio: the money is split equally across the coins, each following its own signals, never rebalanced. The buy-and-hold comparison is split the same way and starts at the same moment.',
+	'record.rules.universe':
+		"How the coins were chosen: on 2026-09-27 they were screened from Binance's top 30 USDT pairs by trading volume, using only 2024–2025 data and criteria fixed in advance — two full years of data, a positive return after fees, a maximum drawdown shallower than buy and hold, and return / max drawdown of at least 0.5. So the 2026 record shown here is out-of-sample for that selection; it is still a backfilled replay, not calls made at the time, and is labelled as such below.",
 	'record.rules.fees':
 		'Fees: 0.1% is deducted on every buy and every sell (Binance spot taker rate). Open trades are valued as if sold at the latest hourly close, fees included.',
 	'record.honest.title': 'Honestly',

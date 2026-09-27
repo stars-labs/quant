@@ -448,7 +448,7 @@ export default {
 	// --- record (house trend-rule track record, /record) ---
 	'record.metaTitle': '策略战绩',
 	'record.metaDesc':
-		'趋势突破策略在 BTC、ETH、SOL 上的每一笔买卖:扣费后收益、胜率、与买入持有对比,亏损照样公开。规则模拟信号,不构成投资建议。',
+		'趋势突破策略在多个主流币上的每一笔买卖:扣费后收益、胜率、与买入持有对比,亏损照样公开。规则模拟信号,不构成投资建议。',
 	'record.metaDescLive':
 		'{start} 起 $1,000 跟随全部信号 → {follow},同期买入持有 → {hold};已平仓 {n} 笔,胜率 {win},已扣手续费,亏损照样公开。规则模拟信号,不构成投资建议。',
 	'record.share': '分享战绩',
@@ -456,7 +456,7 @@ export default {
 	'record.eyebrow': '规则模拟信号 · 公开战绩',
 	'record.title': '策略战绩',
 	'record.subtitle':
-		'同一条趋势突破规则,同时盯 BTC、ETH、SOL:1 小时收盘价突破过去 7 天最高点就买入,跌破过去 3 天最低点就离场。下面是 {start} 以来的每一笔交易,赚的亏的都在,收益均已扣除手续费。',
+		'同一条趋势突破规则,同时盯 {assets}:1 小时收盘价突破过去 7 天最高点就买入,跌破过去 3 天最低点就离场。下面是 {start} 以来的每一笔交易,赚的亏的都在,收益均已扣除手续费。',
 	'record.headline': '假如 {start} 投入 $1,000,平均分给 {assets}',
 	'record.kpi.follow': '跟随全部信号',
 	'record.kpi.followSub': '{ret},已扣手续费',
@@ -471,7 +471,8 @@ export default {
 	'record.kpi.bestSub': '{asset},已扣手续费',
 	'record.asOf': '数据截至 {ts} UTC,每小时收盘后更新。',
 	'record.split': '{b} 笔为回溯计算,{l} 笔为实时记录。',
-	'record.assets.title': '三个币现在的状态',
+	'record.assets.title': '各币种现在的状态',
+	'record.assets.count': '{n} 个币种',
 	'record.assets.sub': '价格为币安现货 1 小时收盘价,每小时收盘后自动更新。',
 	'record.state.long': '持有中',
 	'record.state.flat': '空仓等待',
@@ -515,7 +516,9 @@ export default {
 	'record.rules.sell': '卖出:持有期间,1 小时收盘价低于过去 3 天(72 根 1 小时 K 线)的最低价。',
 	'record.rules.scope': '只做多、不加杠杆;每个币独立运行,要么全仓持有,要么空仓。',
 	'record.rules.portfolio':
-		'组合口径:资金平均分成三份给 BTC、ETH、SOL,各自跟随信号,中途不再平衡;买入持有对照组同样三等分,从同一时刻开始。',
+		'组合口径:资金平均分给每个币,各自跟随信号,中途不再平衡;买入持有对照组同样等分,从同一时刻开始。',
+	'record.rules.universe':
+		'币种怎么选的:2026-09-27 从币安成交额前 30 的 USDT 交易对里筛出,只用 2024–2025 年的数据,标准事先定好——两整年数据齐全、扣费后收益为正、最大回撤比买入持有浅、收益/最大回撤 ≥ 0.5。所以这里展示的 2026 年战绩对这次筛选来说是样本外的;但它仍是事后回溯重放,不是当时发出的信号,标记见下。',
 	'record.rules.fees':
 		'手续费:每次买入、卖出各扣 0.1%(币安现货吃单费率);持仓中的交易按最新 1 小时收盘价假设卖出,同样扣费。',
 	'record.honest.title': '老实说',

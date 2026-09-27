@@ -353,7 +353,7 @@ def write_kelly_status_json(target: Path) -> Path:
 # Helper: house strategy record (quant.strategy_record, migration 032)
 # --------------------------------------------------------------------------
 # The public track record of the house trend rule (趋势突破策略, Donchian 1h 168/72 on
-# BTC/ETH/SOL). quant.strategy_record is the single source of truth for its stats; this
+# sr.ASSETS). quant.strategy_record is the single source of truth for its stats; this
 # block only does the cross-asset roll-up every consumer does (equal-weight averages,
 # pooled win rate). Bar timestamps are Binance close times (hh:59:59.999) → shown as the
 # round hour they close at, UTC.

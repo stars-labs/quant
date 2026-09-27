@@ -94,18 +94,23 @@ Users follow **rule signals**, not our testnet fills. `quant.nautilus_trades` is
 is NOT a track record: node restarts re-open a position under the same `position_id` (TradeLedger now
 closes the stale row as `exit_reason='superseded'`, no price/PnL).
 - `signal_evaluator.py` `sweep_house` replays the house rule (Donchian 1h 168/72, same as
-  `nautilus_crypto/donchian.py`; BTC/ETH/SOL) on closed Binance 1h bars every sweep → `quant.strategy_signals`
+  `nautilus_crypto/donchian.py`; the 13 `sr.ASSETS`, screened out-of-sample by
+  `scripts/screen_universe.py` — see STRATEGY_LEADERBOARD.md) on closed Binance 1h bars every sweep → `quant.strategy_signals`
   (one row per trade, `live=false` = backfilled via `--backfill 2026-01-01`, never pushed) and
   `quant.strategy_assets` (last close + entry/exit trigger levels). Migration `032`.
 - Views `quant.strategy_trades` / `quant.strategy_record` (+ `api.*`, anon) are the ONLY place stats are
   computed (net of 0.1%/side fees, vs buy-and-hold). Telegram, the daily report and `/record` all read them.
 - `alert_dispatcher.py` pushes live entries/exits to topic `strategy_signals` + a Monday scorecard; exits
   and the scorecard go out as PNG share cards (`share_card.py`, Pillow + Noto Sans CJK via
-  `SHARE_CARD_FONT`/fc-match; text fallback). Topics: `strategy_signals`, `dca_boost`, `equity_trades`.
+  `SHARE_CARD_FONT`/fc-match; text fallback). Topics: `strategy_signals`, `dca_boost`, `daily_scan`, `equity_trades`.
   Web: `/record` (link previews carry the live numbers; share button).
 - Smart-DCA boost days: `sweep_dca` (evaluator) writes one `quant.dca_boost_days` row per FNG day using
   `dca_boost.py`, a mirror of `nautilus_crypto/accumulator.py`'s rule — change both together. The
   dispatcher pushes 定投加倍日 to `dca_boost` at most once per 7 days unless the multiple rises. Migration `034`.
+- Opportunity scan (机会雷达, migration `035`): `quant.opportunity_scan` (per house asset: distance to entry
+  trigger / exit line, drawdown from the 30-day high) + `quant.funding_rates` (hourly `sweep_funding`: top-30
+  USDT perps ∪ house assets, spot-listed only, 7-day actual funding annualised). Digest to `daily_scan` at
+  00:30 UTC; web `/scan`. Universe re-screen: `scripts/screen_universe.py` (select in-sample, show OOS).
 
 ## Health checks (operator alerts)
 `strategies/health_check.py` runs every 10 min in two roles that watch each other via

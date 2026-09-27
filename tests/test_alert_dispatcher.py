@@ -580,3 +580,74 @@ def test_fan_out_boost_marks_plain_days_without_sending():
     sent, updates = run_boost([boost_row("2026-09-27", units=1.0, fear_add=0.0)], None, [1],
                               NOW.replace(day=27))
     assert sent == [] and updates == [(False, date(2026, 9, 27))]
+
+
+# ---------- daily opportunity scan ----------
+
+def scan_row(asset, to_entry=None, to_exit=None, from_high=None, hi=100.0, lo=90.0):
+    return {"asset": asset, "to_entry": to_entry, "to_exit": to_exit, "from_high_30d": from_high,
+            "channel_high": hi, "channel_low": lo}
+
+
+SCAN = [scan_row("BTC", to_entry=0.021, hi=87395.67), scan_row("ETH", to_exit=-0.018, lo=2600.15),
+        scan_row("WLD", to_entry=0.2, from_high=-0.24), scan_row("SOL", to_exit=-0.08)]
+FUNDING = [{"asset": "ZEC", "ann_7d": 0.45}, {"asset": "BTC", "ann_7d": 0.06},
+           {"asset": "XYZ", "ann_7d": -0.22}]
+
+
+def test_daily_scan_lists_only_what_crossed_the_thresholds():
+    text = ad.format_daily_scan(SCAN, FUNDING, datetime(2026, 9, 27, 0, 30, tzinfo=UTC))
+    assert text.startswith("🔭 <b>今日机会雷达</b> · 9/27")
+    assert "• BTC 还差 +2.1%(触发价 $87,395.67)" in text and "WLD 还差" not in text
+    assert "• ETH 距离场线 -1.8%($2,600.15)" in text and "SOL 距离场线" not in text
+    assert "• WLD -24.0%" in text
+    assert "多头拥挤:ZEC +45.0%/年" in text and "BTC +6.0%/年" not in text
+    assert "空头拥挤:XYZ -22.0%/年" in text
+    assert "https://starslab.qzz.io/scan" in text and text.endswith("⚠️ 规则观察,不构成投资建议。")
+
+
+def test_daily_scan_empty_sections_say_so():
+    text = ad.format_daily_scan([scan_row("BTC", to_entry=0.5)], [], NOW)
+    assert text.count("• 暂无\n") == 3 and text.count("• 暂无极端费率") == 1
+
+
+def run_scan(state, now, chats=(1,), reachable=True):
+    sent = []
+
+    class Cur:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def execute(self, sql, params=None):
+            self.sql = sql
+
+        def fetchall(self):
+            return SCAN if "opportunity_scan" in self.sql else FUNDING
+
+    class Conn:
+        def cursor(self, cursor_factory=None):
+            return Cur()
+
+    with patched(ad, subscribers=lambda conn, topic: list(chats),
+                 send=lambda chat, text: sent.append(text) or reachable,
+                 log=lambda msg: None):
+        ad.fan_out_daily_scan(Conn(), state, now=now)
+    return sent
+
+
+def test_daily_scan_waits_for_0030_utc_then_sends_once_a_day():
+    state: dict = {}
+    assert run_scan(state, datetime(2026, 9, 27, 0, 29, tzinfo=UTC)) == []
+    assert len(run_scan(state, datetime(2026, 9, 27, 0, 31, tzinfo=UTC))) == 1
+    assert run_scan(state, datetime(2026, 9, 27, 9, 0, tzinfo=UTC)) == []
+    assert state == {"last_scan_day": "2026-09-27"}
+    assert len(run_scan(state, datetime(2026, 9, 28, 0, 30, tzinfo=UTC))) == 1
+
+
+def test_daily_scan_retries_when_nobody_reachable():
+    state: dict = {}
+    run_scan(state, datetime(2026, 9, 27, 1, 0, tzinfo=UTC), reachable=False)
+    assert state == {}

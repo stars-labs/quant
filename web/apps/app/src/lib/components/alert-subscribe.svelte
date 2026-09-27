@@ -23,8 +23,8 @@
 	const TOPICS: { id: TelegramTopic; zh: string; en: string }[] = [
 		{
 			id: 'strategy_signals',
-			zh: '策略买卖信号 — BTC/ETH/SOL 趋势突破买入与离场 + 每周战绩',
-			en: 'Strategy buy/sell signals — BTC/ETH/SOL trend breakouts and exits + weekly scorecard'
+			zh: '策略买卖信号 — BTC、ETH、SOL 等 13 个主流币的趋势突破买入与离场 + 每周战绩',
+			en: 'Strategy buy/sell signals — trend breakouts and exits on BTC, ETH, SOL and 10 more major coins + weekly scorecard'
 		},
 		{
 			id: 'dca_boost',

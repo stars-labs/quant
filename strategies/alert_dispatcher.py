@@ -6,13 +6,15 @@ Two jobs, one loop:
      This process is the ONLY getUpdates consumer for @freemanXbtc_bot (the other
      services send only) — do not add a second poller.
   2. FAN OUT: watch for new events and push them to subscribed chats:
-       'strategy_signals' — the house trend rule's buy/sell calls on BTC/ETH/SOL
+       'strategy_signals' — the house trend rule's buy/sell calls (sr.ASSETS)
                             (quant.strategy_signals, written by signal_evaluator.py)
                             + a Monday (UTC) scorecard from quant.strategy_record;
                             exits and the scorecard go out as share-card images
                             (share_card.py), falling back to text
        'dca_boost'        — smart-DCA "定投加倍日" from quant.dca_boost_days, at most once
                             per 7 days unless the multiple goes up
+       'daily_scan'       — the morning opportunity digest (00:30 UTC = 08:30 Beijing) from
+                            quant.opportunity_scan + quant.funding_rates
        'equity_trades'    — quant.nautilus_trades asset_class='equity' opens/closes
      plus per-user pushes (fires of the user's own signals, monthly DCA-plan reminder).
 
@@ -48,7 +50,7 @@ import psycopg2
 import psycopg2.extras
 import requests
 
-from strategy_record import STRATEGY
+from strategy_record import STRATEGY, assets_label, price_decimals
 
 TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 DSN = os.environ.get("TIMESCALE_URL", "")
@@ -60,6 +62,7 @@ RECORD_URL = f"{DASH}/record"
 TOPIC_ZH = {
     "strategy_signals": "策略买卖信号 + 每周战绩",
     "dca_boost": "定投加倍日提醒",
+    "daily_scan": "每日机会雷达",
     "equity_trades": "美股模拟盘交易",
 }
 
@@ -240,7 +243,7 @@ def _when(ts: datetime) -> str:
 
 
 def _money(x: float) -> str:
-    return f"${x:,.2f}"
+    return f"${x:,.{price_decimals(x)}f}"
 
 
 def _pct(x: float) -> str:
@@ -373,7 +376,7 @@ def format_weekly_scorecard(record: list[dict], recent: list[dict],
     start = f"{_utc(p['start_ts']):%Y-%m-%d}" if p["start_ts"] else "开始记录"
     lines.append(f"\n<b>{start} 至今</b>")
     if p["ret"] is not None:
-        assets = "/".join(r["asset"] for r in record)
+        assets = assets_label([r["asset"] for r in record])
         lines.append(f"$1,000 平均分给 {assets} 跟随全部信号 → "
                      f"${1000 * (1 + p['ret']):,.0f}({_pct(p['ret'])})")
         lines.append(f"同期买入持有 → ${1000 * (1 + p['hold_ret']):,.0f}({_pct(p['hold_ret'])})")
@@ -562,6 +565,74 @@ def fan_out_dca_boost(conn, now: datetime | None = None) -> None:
                         "WHERE day = %s", (due, row["day"]))
 
 
+# ---------- daily opportunity scan ----------
+
+SCAN_NEAR = 0.03         # within 3% of the entry trigger / exit line
+SCAN_DIP = -0.20         # 20%+ below the 30-day high
+SCAN_FUNDING_HOT = 0.20  # ≥ +20%/yr funding: crowded longs (carry candidates)
+SCAN_FUNDING_COLD = -0.10
+SCAN_AT_UTC = (0, 30)
+
+
+def format_daily_scan(scan: list[dict], funding: list[dict], now: datetime) -> str:
+    lines = [f"🔭 <b>今日机会雷达</b> · {now.month}/{now.day}"]
+
+    near_entry = sorted((r for r in scan if r["to_entry"] is not None and r["to_entry"] <= SCAN_NEAR),
+                        key=lambda r: r["to_entry"])
+    lines.append("\n<b>接近买入触发</b>(空仓中,1 小时收盘突破即买入)")
+    lines += [f"• {r['asset']} 还差 {_pct(r['to_entry'])}(触发价 {_money(r['channel_high'])})"
+              for r in near_entry] or ["• 暂无"]
+
+    near_exit = sorted((r for r in scan if r["to_exit"] is not None and r["to_exit"] >= -SCAN_NEAR),
+                       key=lambda r: -r["to_exit"])
+    lines.append("\n<b>接近离场线</b>(持仓中,1 小时收盘跌破即离场)")
+    lines += [f"• {r['asset']} 距离场线 {_pct(r['to_exit'])}({_money(r['channel_low'])})"
+              for r in near_exit] or ["• 暂无"]
+
+    dips = sorted((r for r in scan if r["from_high_30d"] is not None
+                   and r["from_high_30d"] <= SCAN_DIP), key=lambda r: r["from_high_30d"])
+    lines.append("\n<b>大跌区</b>(比 30 天高点低 20% 以上,只是观察,不等于买点)")
+    lines += [f"• {r['asset']} {_pct(r['from_high_30d'])}" for r in dips] or ["• 暂无"]
+
+    hot = [f for f in funding if f["ann_7d"] >= SCAN_FUNDING_HOT][:3]
+    cold = sorted((f for f in funding if f["ann_7d"] <= SCAN_FUNDING_COLD),
+                  key=lambda f: f["ann_7d"])[:3]
+    lines.append("\n<b>资金费率</b>(永续合约,近 7 天实际费率年化)")
+    if hot:
+        lines.append("多头拥挤:" + "、".join(f"{f['asset']} {_pct(f['ann_7d'])}/年" for f in hot))
+        lines.append("  现货买入 + 永续做空可以赚取这部分费率,但要扣手续费,费率随时可能反转。")
+    if cold:
+        lines.append("空头拥挤:" + "、".join(f"{f['asset']} {_pct(f['ann_7d'])}/年" for f in cold))
+    if not hot and not cold:
+        lines.append("• 暂无极端费率")
+
+    lines.append(f"\n👉 实时雷达:{DASH}/scan")
+    return "\n".join(lines) + "\n\n⚠️ 规则观察,不构成投资建议。"
+
+
+def fan_out_daily_scan(conn, state: dict, now: datetime | None = None) -> None:
+    """Once per UTC day, after SCAN_AT_UTC, to 'daily_scan' subscribers. The day stays open
+    (retried next tick) when the scan is empty or nobody could be reached."""
+    now = now or datetime.now(timezone.utc)
+    day = f"{now:%Y-%m-%d}"
+    if state.get("last_scan_day") == day or (now.hour, now.minute) < SCAN_AT_UTC:
+        return
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT * FROM quant.opportunity_scan ORDER BY asset")
+        scan = cur.fetchall()
+        cur.execute("SELECT asset, ann_7d FROM quant.funding_rates ORDER BY ann_7d DESC")
+        funding = cur.fetchall()
+    if not scan:
+        return
+    chats = subscribers(conn, "daily_scan")
+    delivered = broadcast(chats, format_daily_scan(scan, funding, now))
+    if chats and not delivered:
+        log(f"daily scan {day}: 0/{len(chats)} delivered, retrying next tick")
+        return
+    state["last_scan_day"] = day
+    log(f"daily scan {day} -> {delivered}/{len(chats)} subscriber(s)")
+
+
 def fan_out_equity(conn, state: dict) -> None:
     last = state.get("last_eq_synced")
     with conn.cursor() as cur:
@@ -709,6 +780,7 @@ def main() -> int:
                 for job, args in ((fan_out_strategy_signals, (conn,)),
                                   (fan_out_weekly_scorecard, (conn, state)),
                                   (fan_out_dca_boost, (conn,)),
+                                  (fan_out_daily_scan, (conn, state)),
                                   (fan_out_equity, (conn, state)),
                                   (fan_out_user_fires, (conn,)),
                                   (fan_out_plan_reminders, (conn, state))):
