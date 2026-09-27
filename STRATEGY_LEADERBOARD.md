@@ -441,3 +441,104 @@ unaffected — but the numbers above don't justify carrying that extra state and
 this only if a future re-screen (or a different fee/liquidity regime) changes the false-breakout
 picture; don't re-litigate with a finer grid on the same data — that's the overfitting trap this
 sweep was built to avoid (19 variants tried, reported above, not cherry-picked post hoc).
+
+## 2026-09-27 — position sizing on the house Donchian rule — VERDICT: don't adopt
+`scripts/research_vol_sizing.py`. Motivation: entries/exits don't have any robust edge left to
+find (see the two sections above) — does POSITION SIZING instead? The house rule runs 13 coins
+(`sr.ASSETS`) as an equal-weight portfolio, each coin its own sleeve at 1/13 capital, full sleeve
+per trade, never rebalanced. Entries/exits were never touched here — every variant below produces
+bit-identical trade dates/prices to the baseline; only how much capital sits behind each trade
+changes. Metrics are computed on ONE combined hourly portfolio equity curve (dollar-weighted sum
+of the 13 sleeves' mark-to-market paths — real diversification, not an average of per-coin
+drawdowns), net of 0.1%/side fees, **pre-registered in-sample 2022-01-01..2025-12-31**,
+**out-of-sample 2026-01-01..09-27**.
+
+Families (3 pre-chosen parameter values each): `invvol` (per-trade size = clip(target_vol /
+realized 30-day vol, 0, 1), target 30/50/80% annualized), `portvol` (portfolio-level daily vol
+targeting with a cash buffer at 0% yield, target 15/25/40% annualized), `riskparity` (static
+initial capital weights ∝ 1/vol_i from in-sample vol only, capped at 1.5/2.0/3.0× equal weight).
+9 variants + baseline = 10 in-sample runs.
+
+Pre-registered selection rule: compute in-sample portfolio Calmar (return/|maxDD|) and average
+capital deployed (time-weighted % of total capital actually in a position) for every variant.
+Discard any variant whose average capital deployed is < 50% of baseline's (rules out "de-risking"
+that's just sitting in cash). Among survivors, keep only variants with Calmar ≥ baseline's; pick
+the highest. If nothing survives both filters, the verdict is "don't adopt" regardless of 2026.
+
+### In-sample sweep (2022-01-01..2025-12-31, one combined portfolio curve per variant)
+| variant | total ret | CAGR | maxDD | Calmar | avg capital deployed | return/exposure |
+|---|---|---|---|---|---|---|
+| **baseline (equal-wt, full sleeve)** | **+229.8%** | 34.8% | −35.9% | **0.97** | 29.2% | 787.3% |
+| invvol_30pct | +110.7% | 20.5% | −12.1% | 1.69 | **12.1%** (fails 14.6% floor) | 916.4% |
+| **invvol_50pct** | +176.7% | 29.0% | −19.6% | **1.48** | 18.9% | 935.1% |
+| invvol_80pct | +229.9% | 34.8% | −29.4% | 1.18 | 25.4% | 906.0% |
+| portvol_15pct | +91.6% | 17.7% | −21.9% | 0.81 | 18.4% | 498.1% |
+| portvol_25pct | +143.4% | 24.9% | −25.6% | 0.97 | 24.0% | 598.4% |
+| portvol_40pct | +192.2% | 30.8% | −27.0% | 1.14 | 27.7% | 694.6% |
+| riskparity_cap1.5x | +197.8% | 31.4% | −33.5% | 0.94 | 30.3% | 652.1% |
+| riskparity_cap2.0x | +197.0% | 31.3% | −33.1% | 0.94 | 30.5% | 645.4% |
+| riskparity_cap3.0x | +197.0% | 31.3% | −33.1% | 0.94 | 30.5% | 645.4% |
+
+`invvol_30pct` has the single highest in-sample Calmar (1.69) but fails the capital-deployed floor
+(12.1% vs the 14.6% minimum) — exactly the "trivially de-risk by sitting in cash" failure mode the
+rule exists to catch. Among the variants that clear both bars, **`invvol_50pct`** has the highest
+Calmar (1.48 vs baseline 0.97) — pre-registered winner, hard-coded in `research_vol_sizing.py`
+before looking at any 2026 number.
+
+### Out-of-sample 2026-01-01..09-27 — invvol_50pct vs unfiltered baseline vs buy&hold
+| | total ret | CAGR | maxDD | Calmar | worst month | avg capital deployed | return/exposure |
+|---|---|---|---|---|---|---|---|
+| **baseline (equal-wt, full sleeve)** | **+48.0%** | 70.3% | −24.7% | **2.84** | −9.0% | 31.4% | 152.8% |
+| invvol_50pct | +31.3% | 44.7% | −16.9% | 2.64 | −5.4% | 22.4% | 139.7% |
+| buy&hold | +33.6% | 48.1% | −49.1% | 0.98 | −21.7% | — | — |
+
+Sizing does what it says on the tin — maxDD shrinks 24.7%→16.9%, worst month −9.0%→−5.4%, average
+capital deployed 31.4%→22.4% (a ~29% de-risking) — but return shrinks by almost exactly the same
+proportion (48.0%→31.3%, a ~35% cut), so **Calmar comes out slightly WORSE, not better** (2.84 →
+2.64). At matched exposure the baseline is also the more efficient of the two (152.8% vs 139.7%
+return per unit of average capital deployed). Per-coin trade dates/counts are identical between
+the two (verified programmatically) — `invvol_50pct` is mechanically just a partial de-lever, most
+trades sized in the 0.4–1.0 range because realized vol for this universe is very often above the
+50% annualized target, not a regime-adaptive reallocation. Both comfortably beat buy&hold's Calmar
+(0.98) — that's the universe screen's edge (see above), not this sizing method's.
+
+### Per-year breakdown (portfolio total return, flat-start each calendar year)
+| year | baseline | invvol_50pct | buy&hold |
+|---|---|---|---|
+| 2022 | −12.1% | −5.9% | −75.3% |
+| 2023 | +69.1% | +49.8% | +140.9% |
+| 2024 | +171.6% | +109.6% | +216.4% |
+| 2025 | +7.9% | +7.5% | +14.8% |
+| 2026 YTD | +48.0% | +31.3% | +33.6% |
+
+Sizing loses ground every single year except 2025 (roughly flat) — never once catches up to the
+baseline's return, consistent with a straightforward partial de-lever rather than a genuine
+risk/return improvement.
+
+### Aug-2026 rally check
+Entries/exits are bit-identical across every sizing variant by construction (sizing can only
+scale a trade's capital, never gate the signal) — confirmed programmatically: the two variants'
+per-coin trade lists have identical entry timestamps on all 13 coins. The August rally is captured
+by both; `invvol_50pct` just holds a smaller position through it (portfolio return over August
+2026: baseline +24.7%, invvol_50pct +19.9%).
+
+### VERDICT: don't adopt
+None of the 9 sizing variants delivers a real out-of-sample improvement. The pre-registered
+mechanical winner, `invvol_50pct`, passes the in-sample selection rule cleanly (Calmar 1.48 vs
+0.97, comfortably clear of the capital-deployed floor) but **out-of-sample its Calmar is lower
+than the unfiltered baseline's** (2.64 vs 2.84) — the in-sample edge doesn't survive. The
+mechanism is transparent: per-trade inverse-vol sizing mostly just scales exposure down uniformly
+(this universe's realized vol is usually above the target), and scaling a return stream down by a
+roughly constant factor leaves Calmar roughly unchanged or worse, not better — it isn't a
+risk/return trade that improves the ratio, it's leverage reduction wearing a sizing costume.
+Portfolio-level vol targeting (`portvol`) and static risk parity (`riskparity`) don't even clear
+the in-sample bar. **No change to `strategies/strategy_record.py` or the house rule's implicit
+full-sleeve sizing.** Had `invvol_50pct` been adopted, it would mean: `quant.strategy_signals` /
+`strategy_record` would need a new per-trade `size` column (fraction of sleeve, computed from a
+new trailing-30-day realized-vol series fetched per coin at signal time), the `net_ret` view math
+would need to become `1 + size * (net_ret_full_size)` instead of a flat full-sleeve compounding,
+and `/record`'s displayed return would need a "average capital deployed" caveat — none of that is
+justified by these numbers. Re-open only if the universe's realized vol regime changes materially
+(e.g. a sustained low-vol chop period where a target near the realized level would bind rarely);
+don't re-litigate with a finer target-vol grid on the same data (9 variants tried, reported above,
+not cherry-picked post hoc).
