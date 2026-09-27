@@ -332,3 +332,98 @@ correlated semis/QQQ over a single (largely bull) 3y window — paper-trade befo
 
 Runner-up: **1-DAY EMA 30/60** if a low-touch daily cadence is preferred (all 3 assets
 positive, avg Sharpe 2.98) — but only ~6 fills/asset makes it fragile.
+
+## 2026-09-27 — regime/range filter on the house Donchian rule — VERDICT: don't adopt
+`scripts/research_trend_filter.py`. Motivation: the live rule's win rate is ~38%, most losses are
+false breakouts in ranging markets. Tested 6 simple filter families (3 pre-chosen parameter values
+each, no fine grid search) **on top of** the existing entry (`close > max HIGH of prior 168 bars`);
+the exit (`close < min LOW of prior 72 bars`) was never touched. 18 variants + baseline = 19 runs,
+**pre-registered in-sample 2022-01-01..2025-12-31** (as much history as each coin has; SUI/PEPE/WLD
+start later), **out-of-sample 2026-01-01..09-27**, same 13 coins as `sr.ASSETS`, net of 0.1%/side fees.
+
+Families: `trend_self`/`trend_btc` (entry also needs close > SMA of last N days, N∈{100,150,200},
+self or BTC-as-macro-gate), `strength` (breakout must clear the channel by x∈{0.5%,1%,2%}),
+`atr_breakout` (clear it by k∈{0.25,0.5,1.0}×ATR14d), `cooldown` (no re-entry for C∈{24,72,168}h
+after a losing exit), `entry_lb` (widen the breakout lookback itself to L∈{216,264,336}h).
+
+### In-sample sweep (2022-01-01..2025-12-31, mean/median across coins with enough history)
+| variant | mean ret | median ret | win rate | mean maxDD | beats baseline | trades |
+|---|---|---|---|---|---|---|
+| **baseline (unfiltered)** | **+229.7%** | +155.6% | 37.5% | −45.4% | — | 854 |
+| trend_self_100d | +183.2% | +164.1% | 38.8% | −40.8% | 7/13 | 584 |
+| trend_self_150d | +151.1% | +100.4% | — | −43.6% | 4/13 | 553 |
+| trend_self_200d | +181.3% | +84.5% | — | −41.0% | 1/13 | 565 |
+| trend_btc_100d/150d/200d | +14–27% | — | 32–44% | −8 to −15% | ≤2/13 | 90–131 |
+| strength_0.5/1.0/2.0pct | +138–237% | — | 38–41% | −40 to −44% | ≤5/13 | 367–749 |
+| atr_k 0.25/0.5/1.0 | +181–231% | — | 37–39% | −42 to −45% | ≤6/13 | 558–801 |
+| cooldown_24h | +227.4% | +155.6% | 38% | −45.4% | 1/13 | 853 |
+| **cooldown_72h** | +221.6% | +149.4% | **37.76%** | −44.9% | **8/13** | 830 |
+| cooldown_168h | +220.0% | +161.9% | 37% | −43.9% | 6/13 | 782 |
+| entry_lb_216/264 | +163–175% | — | 37–38% | −40 to −45% | ≤6/13 | 661–754 |
+| entry_lb_336 | +191.3% | +117.4% | 38.9% | −40.6% | 7/13 | 552 |
+
+Pre-registered selection rule: keep only variants that (a) beat the unfiltered rule's per-coin
+return on ≥8/13 coins (majority, not just the aggregate) **and** (b) raise the mean win rate; among
+survivors pick the best return/|maxDD|. Only **`cooldown_72h`** clears both bars — and only just:
+win rate 37.76% vs baseline's 37.48% (+0.3pp), mean return −0.8pp vs baseline. The two variants with
+a materially bigger win-rate lift, `entry_lb_336` (38.9%) and `trend_self_100d` (38.8%), both land at
+7/13 coins beaten — one coin short of the majority bar. `trend_btc` (macro BTC-regime gate) cuts
+trade count by 85–90% and return by ~90%: far too restrictive to be useful.
+
+### Out-of-sample 2026-01-01..09-27 — cooldown_72h vs unfiltered vs buy&hold
+| asset | unfiltered | filtered | hold | unfilt maxDD | filt maxDD | unfilt N | filt N | unfilt win | filt win |
+|---|---|---|---|---|---|---|---|---|---|
+| BTC | +6.6% | +6.6% | −3.8% | −17.3% | −17.3% | 14 | 14 | 29% | 29% |
+| ETH | −6.6% | −6.6% | −9.5% | −24.0% | −24.0% | 14 | 14 | 50% | 50% |
+| SOL | +14.6% | +14.6% | −3.2% | −33.6% | −33.6% | 12 | 12 | 42% | 42% |
+| XRP | −0.9% | +3.4% | −17.6% | −19.2% | −15.7% | 13 | 12 | 31% | 33% |
+| DOGE | −23.6% | −32.6% | −18.3% | −42.3% | −49.1% | 15 | 15 | 27% | 20% |
+| ADA | +6.3% | +6.3% | −24.5% | −26.5% | −26.5% | 14 | 14 | 43% | 43% |
+| AVAX | −12.6% | −8.4% | −12.7% | −38.8% | −35.9% | 14 | 13 | 36% | 38% |
+| SUI | +36.3% | +36.3% | −16.7% | −30.5% | −30.5% | 14 | 14 | 36% | 36% |
+| NEAR | +115.6% | +115.6% | +233.5% | −36.0% | −36.0% | 16 | 16 | 56% | 56% |
+| UNI | +132.7% | +132.7% | +71.7% | −31.5% | −31.5% | 11 | 11 | 64% | 64% |
+| ZEC | +300.3% | +300.3% | +221.5% | −30.1% | −30.1% | 13 | 13 | 46% | 46% |
+| PEPE | +109.9% | +130.4% | +7.2% | −14.0% | −6.6% | 11 | 10 | 64% | 70% |
+| WLD | −56.1% | −59.1% | +9.0% | −62.6% | −63.1% | 18 | 17 | 33% | 29% |
+| **mean (13)** | **+47.9%** | **+49.2%** | +33.6% | −31.3% | −30.8% | 179 | 175 | 43% | 43% |
+
+Filter beats unfiltered on **3/13 coins** (XRP, AVAX, PEPE), ties on 8/13 (cooldown never triggered
+— no losing exit was followed by a fresh signal within 72h), and is **worse** on 2/13 (DOGE, WLD).
+Aggregate mean return is +1.3pp higher, entirely carried by PEPE (+130% vs +110%); win rate is
+identical (43%) to 1dp. Both beat buy&hold's mean (+33.6%, −59.4% maxDD) comfortably — that's the
+universe screen's edge, not this filter's. The two in-sample near-misses don't hold up out-of-sample
+either: `entry_lb_336` beats unfiltered on only 5/13 coins and drags mean return down to +35.0%;
+`trend_self_100d` beats on 8/13 but mean return is flat (+46.0% vs +47.9%) — a wash, not an edge.
+
+### Per-year breakdown (equal-weight mean return across qualifying coins, unfiltered vs cooldown_72h)
+| year | coins | unfiltered | cooldown_72h | buy&hold |
+|---|---|---|---|---|
+| 2022 | 10 | −15.8% | −16.6% | −72.9% |
+| 2023 | 12 | +70.7% | +75.9% | +153.3% |
+| 2024 | 13 | +171.5% | +158.1% | +216.4% |
+| 2025 | 13 | +7.9% | +5.5% | +14.8% |
+| 2026 YTD | 13 | +47.9% | +49.2% | +33.6% |
+
+No consistent direction: the filter helps in 2023 and 2026, hurts in 2022/2024/2025, always by a
+few points — noise, not signal.
+
+### Aug-2026 rally check
+All 13 coins under `cooldown_72h` still opened a fresh entry inside Aug 2026 (the rally the "wealth
+effect" product loop relies on is not filtered out) — expected, since a 72h post-loss cooldown is a
+narrow, temporary gate, not a regime block.
+
+### VERDICT: don't adopt
+None of the 18 simple variants clears a real robustness bar. The mechanical pre-registered winner,
+`cooldown_72h`, technically passes the selection rule in-sample but by a margin indistinguishable
+from noise (+0.3pp win rate, 8/13 — barely a majority), gives back return in-sample, ties or loses on
+10/13 coins out-of-sample, and flips sign across years with no discernible pattern. The two filters
+that target the stated failure mode most directly and show the biggest win-rate lift in-sample
+(`entry_lb_336`, `trend_self_100d`) miss the coin-majority bar and don't hold up out-of-sample either.
+**No change to `strategies/strategy_record.py`'s `step()`.** Had `cooldown_72h` been adopted despite
+the marginal case, it would mean: after a losing exit, `step()` withholds re-arming the entry check
+(the `close > max(HIGH of prior 168 bars)` test) for the next 72 hourly bars, win or lose thereafter
+unaffected — but the numbers above don't justify carrying that extra state and parameter. Re-open
+this only if a future re-screen (or a different fee/liquidity regime) changes the false-breakout
+picture; don't re-litigate with a finer grid on the same data — that's the overfitting trap this
+sweep was built to avoid (19 variants tried, reported above, not cherry-picked post hoc).
