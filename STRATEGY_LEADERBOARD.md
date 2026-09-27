@@ -215,6 +215,20 @@ funding mean-reverts within days and turnover (~50x/yr) eats it. Product consequ
 daily digest present funding as a crowding/sentiment gauge with these numbers, not as a carry call.
 Revisit if BTC/ETH trailing funding returns to 2024 levels (>15%/yr sustained).
 
+## 2026-09-27 — daily Donchian breakout on US equities + commodities — VERDICT: no trigger
+`scripts/screen_daily_breakout.py` (protocol fixed in its docstring before OOS). Long-only, next-day
+fill, 0.05%/side equities, 0.10%/side commodities; 15 Donchian N/M + 3 MA-filter variants; in-sample
+pick = best equal-weight Calmar; trigger bar = OOS net > 0, Calmar ≥ hold's, beats hold on ≥ half.
+
+| universe | IS pick | OOS 2024-01..2026-09 strategy | buy&hold | beat hold |
+|---|---|---|---|---|
+| 48 US equities (IS 2014–2023) | Donchian 100/50 | +106.6%, CAGR 30.4%, maxDD −25.8%, Calmar 1.18 | +261.1%, CAGR 60.1%, maxDD −36.3%, Calmar 1.65 | 10/46 |
+| 12 commodity futures (IS 2017–2023) | Donchian 252/10 | +0.9%, maxDD −15.2%, Calmar 0.02 | +51.8%, maxDD −29.3%, Calmar 0.56 | 0/12 |
+
+Fails both. /scan equity + commodity tabs therefore show observations only (52-week high distance,
+200-day MA, 1-month return, VIX, breadth), no trigger wording. Caveats: semis list chosen with 2026
+hindsight; Yahoo closes not dividend-adjusted; continuous futures not roll-adjusted.
+
 ## Crypto — accumulation (fear-driven DCA)
 | Variant | avg cost vs naive | ROI | notes |
 |---|---|---|---|

@@ -14,7 +14,9 @@ Two jobs, one loop:
        'dca_boost'        — smart-DCA "定投加倍日" from quant.dca_boost_days, at most once
                             per 7 days unless the multiple goes up
        'daily_scan'       — the morning opportunity digest (00:30 UTC = 08:30 Beijing) from
-                            quant.opportunity_scan + quant.funding_rates
+                            quant.opportunity_scan + quant.funding_rates (crypto) and
+                            quant.market_scan + the VIX in quant.market_stress (US equities,
+                            commodities — observations only, no trigger language)
        'equity_trades'    — quant.nautilus_trades asset_class='equity' opens/closes
      plus per-user pushes (fires of the user's own signals, monthly DCA-plan reminder).
 
@@ -50,6 +52,7 @@ import psycopg2
 import psycopg2.extras
 import requests
 
+import market_scan
 from strategy_record import STRATEGY, assets_label, price_decimals
 
 TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
@@ -574,7 +577,8 @@ SCAN_FUNDING_COLD = -0.10
 SCAN_AT_UTC = (0, 30)
 
 
-def format_daily_scan(scan: list[dict], funding: list[dict], now: datetime) -> str:
+def format_daily_scan(scan: list[dict], funding: list[dict], now: datetime,
+                      markets: list[dict] = (), vix: float | None = None) -> str:
     lines = [f"🔭 <b>今日机会雷达</b> · {now.month}/{now.day}"]
 
     near_entry = sorted((r for r in scan if r["to_entry"] is not None and r["to_entry"] <= SCAN_NEAR),
@@ -608,8 +612,45 @@ def format_daily_scan(scan: list[dict], funding: list[dict], now: datetime) -> s
     if not hot and not cold:
         lines.append("• 暂无极端费率")
 
+    lines += format_markets(markets, vix)
     lines.append(f"\n👉 实时雷达:{DASH}/scan")
     return "\n".join(lines) + "\n\n⚠️ 规则观察,不构成投资建议。"
+
+
+SCAN_LIST_MAX = 5
+
+
+def _names(rows: list[dict], show, limit: int = SCAN_LIST_MAX) -> str:
+    """'A、B、C' — or 'A、B、C 等 9 个' when the list is cut at `limit`."""
+    out = "、".join(show(r) for r in rows[:limit])
+    return out + (f" 等 {len(rows)} 个" if len(rows) > limit else "")
+
+
+def format_markets(markets: list[dict], vix: float | None) -> list[str]:
+    """US-equity and commodity sections of the digest (quant.market_scan). Pure observations:
+    in scripts/screen_daily_breakout.py the daily breakout rule picked in-sample lost to
+    buy-and-hold out of sample on these assets, so nothing here is phrased as a buy or sell
+    point."""
+    lines: list[str] = []
+    for cls, title in (("equity", "美股"), ("commodity", "大宗商品")):
+        rows = [r for r in markets if r["asset_class"] == cls]
+        if not rows:
+            continue
+        label = (lambda r: r["asset"]) if cls == "equity" else (lambda r: r["name_zh"] or r["asset"])
+        above, known = market_scan.breadth(rows)
+        head = f"站上 200 日均线 {above}/{known}"
+        if cls == "equity" and vix is not None:
+            head = f"VIX 恐慌指数 {vix:.1f} · " + head
+        lines.append(f"\n<b>{title}</b>(日线收盘,只是观察)")
+        lines.append(head)
+        near = sorted((r for r in rows if market_scan.is_near_high(r)), key=lambda r: -r["from_high_52w"])
+        lines.append("• 接近 52 周高点:" + (_names(near, label) or "暂无"))
+        deep = sorted((r for r in rows if market_scan.is_deep(r)), key=lambda r: r["from_high_52w"])
+        lines.append("• 比 52 周高点低 30% 以上:"
+                     + (_names(deep, lambda r: f"{label(r)} {_pct(r['from_high_52w'])}", 3) or "暂无"))
+    if lines:
+        lines.append("回测:日线突破规则 2024 年以来跑输长期持有,所以这里不给买卖点。")
+    return lines
 
 
 def fan_out_daily_scan(conn, state: dict, now: datetime | None = None) -> None:
@@ -624,10 +665,17 @@ def fan_out_daily_scan(conn, state: dict, now: datetime | None = None) -> None:
         scan = cur.fetchall()
         cur.execute("SELECT asset, ann_7d FROM quant.funding_rates ORDER BY ann_7d DESC")
         funding = cur.fetchall()
+        cur.execute("SELECT * FROM quant.market_scan ORDER BY asset_class, asset")
+        markets = cur.fetchall()
+        # Hourly stress-index row; a VIX older than a day is left out rather than shown stale.
+        cur.execute("SELECT (components->'vix'->>'raw')::float8 AS vix FROM quant.market_stress "
+                    "WHERE ts > now() - interval '1 day' ORDER BY ts DESC LIMIT 1")
+        vix_row = cur.fetchone()
     if not scan:
         return
     chats = subscribers(conn, "daily_scan")
-    delivered = broadcast(chats, format_daily_scan(scan, funding, now))
+    vix = vix_row["vix"] if vix_row else None
+    delivered = broadcast(chats, format_daily_scan(scan, funding, now, markets, vix))
     if chats and not delivered:
         log(f"daily scan {day}: 0/{len(chats)} delivered, retrying next tick")
         return

@@ -38,6 +38,11 @@ Funding (sweep_funding, hourly): Binance USDT-perp funding for the top-30 perps 
 the house assets → quant.funding_rates (7-day actual funding annualised), feeding the
 opportunity scan (quant.opportunity_scan, migration 035).
 
+Markets (sweep_markets, every 15 min, migration 036): US equities (market_scan.EQUITY_CORE ∪
+quant.semi_universe, Yahoo daily closes via findata.closes_yahoo — free, cached per UTC day)
+and the 12 commodities (closes already in quant.market_snapshots, no API call) → the
+52-week-high / 200-day-average observations in quant.market_scan (market_scan.py).
+
 Env: TIMESCALE_URL (sops). EVAL_INTERVAL seconds between sweeps (default 300).
 Run: .venv-bots/bin/python strategies/signal_evaluator.py [--once]
      .venv-bots/bin/python strategies/signal_evaluator.py --backfill 2026-01-01 [--dry-run]
@@ -60,6 +65,7 @@ import psycopg2.extras
 import requests
 
 import dca_boost
+import market_scan
 import strategy_record as sr
 
 DSN = os.environ.get("TIMESCALE_URL", "")
@@ -722,6 +728,83 @@ def sweep_funding(conn) -> int:
     return len(rows)
 
 
+# ---------- US equities + commodities (opportunity scan, migration 036) ----------
+
+MARKETS_EVERY = timedelta(minutes=15)
+
+
+def equity_scan_universe(semis: list[tuple[str, str]]) -> list[tuple[str, str, str | None, str]]:
+    """(symbol, group, zh, en): the fixed core first, then the /semis tickers not already in it
+    (their names are English company names — zh shows the ticker alone)."""
+    out = list(market_scan.EQUITY_CORE)
+    seen = {row[0] for row in out}
+    out += [(sym, "semis", None, name) for sym, name in sorted(semis) if sym not in seen]
+    return out
+
+
+def market_rows(conn) -> list[tuple]:
+    """Scan rows for every asset with a full 52-week lookback; unknown/short ones are skipped."""
+    import findata
+    rows = []
+    with conn.cursor() as cur:
+        cur.execute("SELECT asset, payload FROM quant.market_snapshots "
+                    "WHERE payload->>'kind' = 'commodity'")
+        snaps = cur.fetchall()
+        cur.execute("SELECT symbol, name FROM quant.semi_universe")
+        semis = cur.fetchall()
+    for asset, payload in snaps:
+        m = market_scan.metrics([(int(t), float(c)) for t, c in payload.get("closes") or []])
+        if m:
+            rows.append(("commodity", asset, market_scan.COMMODITY_GROUP.get(asset, "other"),
+                         payload.get("zh"), payload.get("en"), m))
+    for sym, grp, zh, en in equity_scan_universe(semis):
+        m = market_scan.metrics(findata.closes_yahoo(sym))
+        if m:
+            rows.append(("equity", sym, grp, zh, en, m))
+        else:
+            log(f"markets: {sym} has no full 52-week history — skipped")
+    return rows
+
+
+def sweep_markets(conn) -> int:
+    """Refresh quant.market_scan at most every MARKETS_EVERY; returns the rows written. The
+    daily closes themselves change once a day (both sources cache per UTC day), so frequent
+    runs cost DB reads only — they just make the 00:30 UTC digest see the newest bar."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT max(updated_at) > now() - %s FROM quant.market_scan", (MARKETS_EVERY,))
+        if cur.fetchone()[0]:
+            return 0
+    rows = market_rows(conn)
+    if not rows:
+        log("markets: no rows (feeds down?) — keeping the previous scan")
+        return 0
+    with conn:
+        with conn.cursor() as cur:
+            for cls in ("equity", "commodity"):
+                keep = [r[1] for r in rows if r[0] == cls]
+                if keep:  # a whole class missing = feed outage: keep its old rows
+                    cur.execute("DELETE FROM quant.market_scan WHERE asset_class = %s "
+                                "AND NOT (asset = ANY(%s))", (cls, keep))
+            for cls, asset, grp, zh, en, m in rows:
+                cur.execute(
+                    """INSERT INTO quant.market_scan
+                         (asset_class, asset, grp, name_zh, name_en, last_ts, last_close, high_52w,
+                          low_52w, from_high_52w, ma200, vs_ma200, ret_1m, updated_at)
+                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s, now())
+                       ON CONFLICT (asset_class, asset) DO UPDATE SET grp = EXCLUDED.grp,
+                         name_zh = EXCLUDED.name_zh, name_en = EXCLUDED.name_en,
+                         last_ts = EXCLUDED.last_ts, last_close = EXCLUDED.last_close,
+                         high_52w = EXCLUDED.high_52w, low_52w = EXCLUDED.low_52w,
+                         from_high_52w = EXCLUDED.from_high_52w, ma200 = EXCLUDED.ma200,
+                         vs_ma200 = EXCLUDED.vs_ma200, ret_1m = EXCLUDED.ret_1m,
+                         updated_at = now()""",
+                    (cls, asset, grp, zh, en, _ms_to_dt(m["last_ts"]), m["last_close"],
+                     m["high_52w"], m["low_52w"], m["from_high_52w"], m["ma200"], m["vs_ma200"],
+                     m["ret_1m"]))
+    log(f"markets: {len(rows)} rows refreshed")
+    return len(rows)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="User-signal + house-strategy evaluator.")
     ap.add_argument("--once", action="store_true", help="run a single sweep and exit")
@@ -765,6 +848,10 @@ def main() -> int:
                 sweep_funding(conn)
             except Exception as e:
                 log(f"funding sweep error (continuing): {e!r}")
+            try:
+                sweep_markets(conn)
+            except Exception as e:
+                log(f"markets sweep error (continuing): {e!r}")
             finally:
                 conn.close()
         if args.once:

@@ -177,6 +177,25 @@ export interface FundingRate {
 	updated_at: string;
 }
 
+// US equities + commodities radar (api.market_scan, migration 036): where the latest daily close
+// sits against its 52-week closing high and 200-day average. Fractions; observations only.
+export interface MarketScanRow {
+	asset_class: 'equity' | 'commodity';
+	asset: string;
+	grp: string;
+	name_zh: string | null;
+	name_en: string | null;
+	last_ts: string;
+	last_close: number;
+	high_52w: number;
+	low_52w: number;
+	from_high_52w: number;
+	ma200: number;
+	vs_ma200: number;
+	ret_1m: number;
+	updated_at: string;
+}
+
 // A backtest of a CURRENTLY-DEPLOYED Nautilus strategy (honest numbers, not freqtrade).
 export interface NautilusBacktest {
 	id: number;

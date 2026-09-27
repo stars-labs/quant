@@ -111,6 +111,10 @@ closes the stale row as `exit_reason='superseded'`, no price/PnL).
   trigger / exit line, drawdown from the 30-day high) + `quant.funding_rates` (hourly `sweep_funding`: top-30
   USDT perps ∪ house assets, spot-listed only, 7-day actual funding annualised). Digest to `daily_scan` at
   00:30 UTC; web `/scan`. Universe re-screen: `scripts/screen_universe.py` (select in-sample, show OOS).
+  US equities + commodities (migration `036`, `strategies/market_scan.py`, evaluator `sweep_markets` every 15
+  min: commodity closes from `market_snapshots`, 48 equities via cached Yahoo, VIX from `market_stress`) are
+  OBSERVATIONS only — the daily breakout backtest failed OOS (`scripts/screen_daily_breakout.py`), so never
+  add trigger wording there without a new passing backtest.
 
 ## Health checks (operator alerts)
 `strategies/health_check.py` runs every 10 min in two roles that watch each other via

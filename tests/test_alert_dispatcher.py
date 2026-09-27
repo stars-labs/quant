@@ -612,6 +612,43 @@ def test_daily_scan_empty_sections_say_so():
     assert text.count("• 暂无\n") == 3 and text.count("• 暂无极端费率") == 1
 
 
+def mkt(cls, asset, from_high, vs_ma=0.05, zh=None):
+    return {"asset_class": cls, "asset": asset, "name_zh": zh, "from_high_52w": from_high,
+            "vs_ma200": vs_ma}
+
+
+MARKETS = [mkt("equity", "AMD", 0.0), mkt("equity", "SPY", -0.008), mkt("equity", "NVDA", -0.045),
+           mkt("equity", "ORCL", -0.562, vs_ma=-0.3), mkt("equity", "GFS", -0.455, vs_ma=-0.1),
+           mkt("commodity", "GC", -0.01, zh="黄金"), mkt("commodity", "NG", -0.35, -0.2, zh="天然气"),
+           mkt("commodity", "ZW", -0.1, None, zh="小麦")]
+
+
+def test_daily_scan_adds_equity_and_commodity_observations():
+    text = ad.format_daily_scan(SCAN, FUNDING, NOW, MARKETS, 18.24)
+    eq = text[text.index("<b>美股</b>"):text.index("<b>大宗商品</b>")]
+    assert "VIX 恐慌指数 18.2 · 站上 200 日均线 3/5" in eq
+    assert "• 接近 52 周高点:AMD、SPY\n" in eq and "NVDA" not in eq      # -4.5% is not "near"
+    assert "• 比 52 周高点低 30% 以上:ORCL -56.2%、GFS -45.5%" in eq
+    cm = text[text.index("<b>大宗商品</b>"):]
+    assert "站上 200 日均线 1/2" in cm and "VIX" not in cm              # ZW has no average: not counted
+    assert "• 接近 52 周高点:黄金" in cm and "天然气 -35.0%" in cm
+    assert "跑输长期持有" in cm and "买入触发" not in text[text.index("<b>美股</b>"):]
+    assert text.index("<b>大宗商品</b>") < text.index("/scan") and len(text) < 4096
+
+
+def test_market_lists_are_cut_with_a_count():
+    many = [mkt("equity", f"T{i}", -0.4 - i / 100) for i in range(7)]
+    text = "\n".join(ad.format_markets(many, None))
+    assert "T0 -40.0%、T1 -41.0%" not in text                              # deepest first
+    assert "• 比 52 周高点低 30% 以上:T6 -46.0%、T5 -45.0%、T4 -44.0% 等 7 个" in text
+    assert "VIX" not in text and "站上 200 日均线 7/7" in text
+
+
+def test_no_market_rows_no_market_sections():
+    assert ad.format_markets([], 20.0) == []
+    assert "美股" not in ad.format_daily_scan(SCAN, FUNDING, NOW)
+
+
 def run_scan(state, now, chats=(1,), reachable=True):
     sent = []
 
@@ -626,7 +663,13 @@ def run_scan(state, now, chats=(1,), reachable=True):
             self.sql = sql
 
         def fetchall(self):
-            return SCAN if "opportunity_scan" in self.sql else FUNDING
+            if "opportunity_scan" in self.sql:
+                return SCAN
+            return MARKETS if "market_scan" in self.sql else FUNDING
+
+        def fetchone(self):
+            assert "market_stress" in self.sql
+            return {"vix": 18.24}
 
     class Conn:
         def cursor(self, cursor_factory=None):
@@ -642,7 +685,8 @@ def run_scan(state, now, chats=(1,), reachable=True):
 def test_daily_scan_waits_for_0030_utc_then_sends_once_a_day():
     state: dict = {}
     assert run_scan(state, datetime(2026, 9, 27, 0, 29, tzinfo=UTC)) == []
-    assert len(run_scan(state, datetime(2026, 9, 27, 0, 31, tzinfo=UTC))) == 1
+    sent = run_scan(state, datetime(2026, 9, 27, 0, 31, tzinfo=UTC))
+    assert len(sent) == 1 and "VIX 恐慌指数 18.2" in sent[0] and "黄金" in sent[0]
     assert run_scan(state, datetime(2026, 9, 27, 9, 0, tzinfo=UTC)) == []
     assert state == {"last_scan_day": "2026-09-27"}
     assert len(run_scan(state, datetime(2026, 9, 28, 0, 30, tzinfo=UTC))) == 1

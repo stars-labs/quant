@@ -56,6 +56,12 @@ SERVER_FRESHNESS = [
      "SELECT max(ts) FROM quant.market_snapshots", 120),
     ("fresh:funding_rates", "资金费率采集(quant-signal-evaluator)",
      "SELECT max(updated_at) FROM quant.funding_rates", 120),
+    ("fresh:market_scan", "美股/商品机会雷达(quant-signal-evaluator)",
+     "SELECT max(updated_at) FROM quant.market_scan", 60),
+    # The bars themselves: Friday's close must be replaced by Tuesday ~00:05 UTC (Wednesday
+    # after a Monday holiday) — older means the Yahoo feed is serving a stale cache.
+    ("fresh:market_scan_bars", "美股日线数据(Yahoo,quant-signal-evaluator)",
+     "SELECT max(last_ts) FROM quant.market_scan WHERE asset_class = 'equity'", 5 * 24 * 60),
     ("fresh:dca_boost_days", "定投加倍日计算(quant-signal-evaluator)",
      "SELECT max(computed_at) FROM quant.dca_boost_days", 26 * 60),
     ("fresh:account_snapshots", "IB 账户快照(游戏机 quant-account-snapshot)",

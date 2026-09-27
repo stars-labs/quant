@@ -24,6 +24,7 @@ import type {
 	StrategyRecord,
 	StrategyTrade,
 	OpportunityScan,
+	MarketScanRow,
 	FundingRate
 } from './types';
 import { getToken } from './auth';
@@ -126,6 +127,9 @@ export const vps = {
 		req<OpportunityScan[]>(CONFIG.API_BASE, '/opportunity_scan', { order: 'asset.asc' }, f),
 	fundingRates: (f: Fetch = fetch) =>
 		req<FundingRate[]>(CONFIG.API_BASE, '/funding_rates', { order: 'ann_7d.desc' }, f),
+	// US equities + commodities vs their 52-week closing high / 200-day average (migration 036).
+	marketScan: (f: Fetch = fetch) =>
+		req<MarketScanRow[]>(CONFIG.API_BASE, '/market_scan', { order: 'from_high_52w.desc' }, f),
 
 	publicEventTriggers: (f: Fetch = fetch, { limit = 500 }: { limit?: number } = {}) =>
 		req<EventDcaTrigger[]>(

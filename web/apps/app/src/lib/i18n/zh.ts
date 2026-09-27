@@ -548,8 +548,8 @@ export default {
 	// --- scan (机会雷达, /scan) ---
 	'scan.metaTitle': '机会雷达',
 	'scan.metaDesc':
-		'哪些主流币快触发趋势买入、哪些持仓接近离场线、哪些比 30 天高点跌了 20% 以上,以及永续合约资金费率最极端的币。每小时更新。规则观察,不构成投资建议。',
-	'scan.eyebrow': '规则观察 · 每小时更新',
+		'加密货币、美股和大宗商品的机会雷达:哪些币快触发趋势买入、哪些持仓接近离场线、资金费率哪边拥挤;美股和商品离 52 周高点多远、在不在 200 日均线之上,附 VIX。规则观察,不构成投资建议。',
+	'scan.eyebrow': '规则观察 · 加密每小时、美股和商品每日更新',
 	'scan.title': '机会雷达',
 	'scan.subtitle':
 		'用「策略战绩」里同一条趋势规则扫一遍全部 {n} 个币:谁离买入触发价只差一点,谁的持仓快碰到离场线,谁已经比 30 天高点跌了很多;再加上永续合约的资金费率,看看哪边的仓位最拥挤。',
@@ -613,10 +613,57 @@ export default {
 	'scan.risk.exchange': '资金放在交易所上,要承担交易所本身的风险(暂停提现、倒闭、被盗)。',
 	'scan.cta.title': '每天早上把雷达推给你',
 	'scan.cta.sub':
-		'绑定 Telegram 并勾选「每日机会雷达」:每天北京时间 8:30 推送接近触发、大跌区和资金费率极端的币。',
+		'绑定 Telegram 并勾选「每日机会雷达」:每天北京时间 8:30 推送接近触发、大跌区和资金费率极端的币,以及美股、大宗商品的高点与回撤观察。',
 	'scan.disclaimer': '规则观察,不构成投资建议。我们不代客理财,也不提供仓位建议。',
 	'scan.empty.title': '雷达正在准备中',
 	'scan.empty.body': '行情数据还没到,每小时收盘后会自动更新。',
 	'scan.error.title': '雷达暂时加载不出来',
-	'scan.error.body': '数据服务暂时无法访问,请稍后刷新页面。'
+	'scan.error.body': '数据服务暂时无法访问,请稍后刷新页面。',
+	'scan.lead':
+		'三类资产各一页:加密货币看趋势规则离买卖点还有多远和资金费率;美股和大宗商品看价格离 52 周高点多远、在不在 200 日均线之上。全部是规则观察,不是投资建议。',
+	'scan.tab.crypto': '加密货币',
+	'scan.tab.equity': '美股',
+	'scan.tab.commodity': '大宗商品',
+	'scan.mkt.equity.sub':
+		'标普 500、纳指 100、罗素 2000、半导体 ETF、8 家科技巨头和英伟达供应链个股,按收盘价离 52 周最高收盘价由近到远排列。',
+	'scan.mkt.commodity.sub':
+		'黄金、白银、原油、铜、天然气、农产品等 12 个期货连续合约,按收盘价离 52 周最高收盘价由近到远排列。',
+	'scan.mkt.asOf': '日线收盘截至 {d}(美国时间),每天美股收盘后更新。',
+	'scan.mkt.empty.title': '这一类还没有数据',
+	'scan.mkt.empty.body': '日线数据每天美股收盘后更新,请稍后再来。',
+	'scan.mkt.kpi.vix': 'VIX 恐慌指数',
+	'scan.mkt.kpi.vixSub': '20 以上偏紧张,30 以上恐慌',
+	'scan.mkt.kpi.nearHigh': '接近 52 周高点',
+	'scan.mkt.kpi.nearHighSub': '距 52 周最高收盘 {near} 以内',
+	'scan.mkt.kpi.deep': '深度回撤',
+	'scan.mkt.kpi.deepSub': '比 52 周最高收盘低 {deep} 以上',
+	'scan.mkt.kpi.aboveMa': '站上 200 日均线',
+	'scan.mkt.kpi.aboveMaSub': '收盘价高于过去 200 天均价',
+	'scan.mkt.table.title': '离 52 周高点多远',
+	'scan.mkt.table.sub':
+		'距 52 周最高收盘 {near} 以内的标为接近高点,低 {deep} 以上的标为深度回撤。「比 200 日线」一栏是收盘价高于(+)或低于(−)200 日均线多少。',
+	'scan.mkt.col.equity': '股票',
+	'scan.mkt.col.commodity': '品种',
+	'scan.mkt.col.high52w': '52 周高点',
+	'scan.mkt.col.fromHigh': '距高点',
+	'scan.mkt.col.vsMa': '比 200 日线',
+	'scan.mkt.col.ret1m': '近 1 月',
+	'scan.mkt.flag.near': '距高点 {near} 内',
+	'scan.mkt.flag.deep': '回撤 {deep}+',
+	'scan.mkt.grp.index': '指数 ETF',
+	'scan.mkt.grp.mega': '科技巨头',
+	'scan.mkt.grp.semis': '英伟达供应链',
+	'scan.mkt.grp.metals': '金属',
+	'scan.mkt.grp.energy': '能源',
+	'scan.mkt.grp.ags': '农产品',
+	'scan.mkt.grp.other': '其他',
+	'scan.mkt.unitNote':
+		'价格是期货连续合约报价,单位随品种不同(如谷物是美分/蒲式耳),只用来算距离和涨跌幅。',
+	'scan.mkt.why.title': '为什么这里没有买入触发价',
+	'scan.mkt.why.equity':
+		'我们把日线突破规则(收盘创 100 天新高买入、跌破 50 天低点卖出)在这些股票上回测:参数只用 2014–2023 年挑,再看 2024 年至今。扣手续费后规则赚了 +106.6%,回撤 −25.8%;一直拿着不动赚了 +261.1%,回撤 −36.3%。回撤是小了,但少赚的远比省下的多,46 只里只有 10 只按「收益/回撤」算赢过持有。所以这里只列观察,不给买卖点。',
+	'scan.mkt.why.commodity':
+		'我们把日线突破规则(收盘创 252 天新高买入、跌破 10 天低点卖出)在这 12 个品种上回测:参数只用 2017–2023 年挑,再看 2024 年至今。扣手续费后规则只赚了 +0.9%,一直拿着不动是 +51.8%,12 个品种没有一个跑赢持有。所以这里只列观察,不给买卖点。',
+	'scan.mkt.why.use':
+		'可以这样用:接近 52 周高点说明趋势强,但追高要想好退出;深度回撤只说明跌得多,不等于便宜,更不等于到了买点。'
 };

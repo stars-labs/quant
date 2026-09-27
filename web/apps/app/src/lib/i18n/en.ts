@@ -572,8 +572,8 @@ export default {
 	// --- scan (opportunity radar, /scan) ---
 	'scan.metaTitle': 'Opportunity radar',
 	'scan.metaDesc':
-		'Which major coins are close to a trend-rule buy, which holdings are near their exit line, which are 20%+ off their 30-day high, and where perp funding is most extreme. Updated hourly. Rule-based observations, not investment advice.',
-	'scan.eyebrow': 'Rule-based observations · updated hourly',
+		'Opportunity radar for crypto, US stocks and commodities: which coins are near a trend-rule buy or exit, where perp funding is crowded, and how far each stock and commodity is from its 52-week high and 200-day average, with the VIX. Rule-based observations, not investment advice.',
+	'scan.eyebrow': 'Rule-based observations · crypto hourly, stocks and commodities daily',
 	'scan.title': 'Opportunity radar',
 	'scan.subtitle':
 		'The same trend rule as the track record, run across all {n} coins: which are a small move away from their buy trigger, which holdings are close to their exit line, and which have fallen furthest from their 30-day high. Plus perpetual funding rates, to see which side is most crowded.',
@@ -640,11 +640,58 @@ export default {
 		'Funds on an exchange carry the exchange risk itself: withdrawal halts, insolvency or hacks.',
 	'scan.cta.title': 'Get the radar every morning',
 	'scan.cta.sub':
-		'Bind Telegram and tick "Daily opportunity radar": every day at 08:30 Beijing time you get the coins near a trigger, the deep dips and the extreme funding.',
+		'Bind Telegram and tick "Daily opportunity radar": every day at 08:30 Beijing time you get the coins near a trigger, the deep dips, the extreme funding and the stock and commodity highs and drawdowns.',
 	'scan.disclaimer':
 		'Rule-based observations, not investment advice. We do not manage money or give position sizing advice.',
 	'scan.empty.title': 'The radar is warming up',
 	'scan.empty.body': 'No price data yet; it updates after every hourly close.',
 	'scan.error.title': 'The radar could not load',
-	'scan.error.body': 'The data service is unreachable right now. Please refresh in a moment.'
+	'scan.error.body': 'The data service is unreachable right now. Please refresh in a moment.',
+	'scan.lead':
+		'One tab per asset class. Crypto: how far each coin is from its trend-rule buy or exit level, plus perp funding. US stocks and commodities: how far each price is from its 52-week high and whether it is above its 200-day average. Rule-based observations, not investment advice.',
+	'scan.tab.crypto': 'Crypto',
+	'scan.tab.equity': 'US stocks',
+	'scan.tab.commodity': 'Commodities',
+	'scan.mkt.equity.sub':
+		'The S&P 500, Nasdaq 100, Russell 2000 and semiconductor ETFs, 8 tech mega caps and the NVIDIA supply chain, closest to their 52-week closing high first.',
+	'scan.mkt.commodity.sub':
+		'Twelve continuous futures (gold, silver, crude, copper, natural gas, grains and more), closest to their 52-week closing high first.',
+	'scan.mkt.asOf': 'Daily closes as of {d} (US session); updated every day after the US close.',
+	'scan.mkt.empty.title': 'No data for this market yet',
+	'scan.mkt.empty.body': 'Daily closes update after every US close; please check back later.',
+	'scan.mkt.kpi.vix': 'VIX',
+	'scan.mkt.kpi.vixSub': 'Above 20 is tense, above 30 is fear',
+	'scan.mkt.kpi.nearHigh': 'Near the 52-week high',
+	'scan.mkt.kpi.nearHighSub': 'Within {near} of the 52-week closing high',
+	'scan.mkt.kpi.deep': 'Deep drawdown',
+	'scan.mkt.kpi.deepSub': '{deep} or more below the 52-week closing high',
+	'scan.mkt.kpi.aboveMa': 'Above the 200-day average',
+	'scan.mkt.kpi.aboveMaSub': 'Close above its 200-day average price',
+	'scan.mkt.table.title': 'Distance from the 52-week high',
+	'scan.mkt.table.sub':
+		'Within {near} of the 52-week closing high is flagged as near the high; {deep} or more below it as a deep drawdown. "vs 200-day" is how far the close is above (+) or below (−) its 200-day average.',
+	'scan.mkt.col.equity': 'Stock',
+	'scan.mkt.col.commodity': 'Commodity',
+	'scan.mkt.col.high52w': '52-week high',
+	'scan.mkt.col.fromHigh': 'From high',
+	'scan.mkt.col.vsMa': 'vs 200-day',
+	'scan.mkt.col.ret1m': '1 month',
+	'scan.mkt.flag.near': 'within {near}',
+	'scan.mkt.flag.deep': 'down {deep}+',
+	'scan.mkt.grp.index': 'Index ETF',
+	'scan.mkt.grp.mega': 'Mega cap',
+	'scan.mkt.grp.semis': 'NVIDIA supply chain',
+	'scan.mkt.grp.metals': 'Metals',
+	'scan.mkt.grp.energy': 'Energy',
+	'scan.mkt.grp.ags': 'Agriculture',
+	'scan.mkt.grp.other': 'Other',
+	'scan.mkt.unitNote':
+		'Prices are continuous-futures quotes in the unit of each contract (grains in US cents per bushel); they are only used for distances and changes.',
+	'scan.mkt.why.title': 'Why there is no buy trigger here',
+	'scan.mkt.why.equity':
+		'We backtested a daily breakout rule on these stocks (buy on a 100-day closing high, sell below the 50-day low), picking its settings on 2014–2023 only and then checking 2024 to now. Net of fees the rule made +106.6% with a −25.8% drawdown; simply holding made +261.1% with −36.3%. The drawdown was smaller, but it gave up far more return than it saved: only 10 of 46 stocks beat holding on return per unit of drawdown. So this tab shows observations, not buy or sell points.',
+	'scan.mkt.why.commodity':
+		'We backtested a daily breakout rule on these 12 futures (buy on a 252-day closing high, sell below the 10-day low), picking its settings on 2017–2023 only and then checking 2024 to now. Net of fees the rule made +0.9%; simply holding made +51.8%, and not one of the 12 beat holding. So this tab shows observations, not buy or sell points.',
+	'scan.mkt.why.use':
+		'How to read it: near the 52-week high means a strong trend, but plan your exit before chasing it; a deep drawdown only means it fell a lot, not that it is cheap, let alone a buy.'
 };
