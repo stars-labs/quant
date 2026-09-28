@@ -72,6 +72,7 @@ from nautilus_trader.model.identifiers import InstrumentId
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from honest_trend_equity import HonestTrendEquity, HonestTrendEquityConfig  # noqa: E402
+from ib_warmup import fetch_hourly, to_bars  # noqa: E402
 
 # Same universe as download_ib.py. IB_SIMPLIFIED symbology → "<SYMBOL>.<VENUE>".
 INSTRUMENTS = ["NVDA.NASDAQ", "AMD.NASDAQ", "QQQ.NASDAQ"]
@@ -168,6 +169,7 @@ def build_node() -> TradingNode:
     # Recommended live timeframe = 1-HOUR-LAST-EXTERNAL (EMA 50/100). IB_BAR overrides
     # (e.g. 1-DAY-LAST-EXTERNAL for a low-touch daily cadence).
     bar_spec = os.environ.get("IB_BAR", _DEFAULT_BAR)
+    strategies = []
     for iid in INSTRUMENTS:
         strategy = HonestTrendEquity(
             HonestTrendEquityConfig(
@@ -175,7 +177,7 @@ def build_node() -> TradingNode:
                 bar_type=BarType.from_str(f"{iid}-{bar_spec}"),
                 external_order_claims=[InstrumentId.from_str(iid)],
                 flatten_on_stop=False,
-                warmup_days=int(os.environ.get("EQ_WARMUP_DAYS", "60")),
+                log_bars=True,
                 ema_fast=int(os.environ.get("EQ_EMA_FAST", _DEFAULT_EMA_FAST)),
                 ema_slow=int(os.environ.get("EQ_EMA_SLOW", _DEFAULT_EMA_SLOW)),
                 adx_threshold=float(os.environ.get("EQ_ADX_THRESHOLD", "18.0")),
@@ -191,6 +193,17 @@ def build_node() -> TradingNode:
             )
         )
         node.trader.add_strategy(strategy)
+        strategies.append(strategy)
+
+    # Warm the indicators from IB history on a separate client id (the node's own id is used
+    # once it runs). Hourly RTH only — daily bars would need a different fetch.
+    warmup_days = int(os.environ.get("EQ_WARMUP_DAYS", "60"))
+    if warmup_days > 0 and bar_spec.startswith("1-HOUR"):
+        symbols = [iid.split(".")[0] for iid in INSTRUMENTS]
+        rows = fetch_hourly(host, port, int(os.environ.get("EQ_WARMUP_CLIENT_ID", "9")),
+                            symbols, warmup_days)
+        for strategy, sym in zip(strategies, symbols):
+            strategy.preload(to_bars(rows[sym], strategy.config.bar_type))
 
     return node
 

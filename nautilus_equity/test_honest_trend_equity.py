@@ -157,9 +157,7 @@ def test_stop_keeps_open_position_and_its_stop():
 def test_historical_bars_warm_indicators_without_trading():
     closes = _entry_then_crash_closes()[:60]
     engine, strat, bars = _engine_with(_bars_from_closes(closes), **_FAST_CFG)
-    strat.start()  # registers indicators (on_start); no data client → no warmup request
-    for bar in bars:
-        strat.handle_bar(bar, historical=True)
+    strat.preload(bars)  # the live warmup path (ib_warmup → preload): indicators only
     ready, entries = strat._ready(), strat.entries
     engine.dispose()
     assert ready and entries == 0, (ready, entries)

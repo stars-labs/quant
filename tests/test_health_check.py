@@ -118,3 +118,29 @@ def test_ib_probe_fails_when_refused():
     s.close()
     ok, _, detail = hc.probe_ib("127.0.0.1", port)["ib:api"]
     assert not ok and "ConnectionRefusedError" in detail
+
+
+# ---------- equity session (journal-based) ----------
+
+from datetime import datetime, timezone  # noqa: E402
+
+MON_RTH = datetime(2026, 9, 28, 17, 0, tzinfo=timezone.utc)   # 13:00 ET Monday
+SUN = datetime(2026, 9, 27, 17, 0, tzinfo=timezone.utc)
+
+
+def test_equity_session_fails_on_repeated_init_failures():
+    j = "\n".join(["... Paper trading disclaimer must first be accepted (code: 10141, req_id=-1)"] * 3)
+    assert not hc.equity_session(j, SUN)["ib:session"][0]
+
+
+def test_equity_session_fails_without_bars_in_rth():
+    assert not hc.equity_session("[INFO] X.TradingNode: RUNNING", MON_RTH)["ib:session"][0]
+
+
+def test_equity_session_ok_with_bars_in_rth():
+    j = "[INFO] HONEST-EQUITY-001.HonestTrendEquity: bar 181.20 ready=True fast=180.1"
+    assert hc.equity_session(j, MON_RTH)["ib:session"][0]
+
+
+def test_equity_session_ok_off_hours_without_bars():
+    assert hc.equity_session("[INFO] X.TradingNode: RUNNING", SUN)["ib:session"][0]

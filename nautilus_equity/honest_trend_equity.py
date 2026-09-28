@@ -26,7 +26,6 @@ actually required:
 from __future__ import annotations
 
 import sys
-from datetime import timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -96,10 +95,8 @@ class HonestTrendEquityConfig(StrategyConfig, frozen=True):
     # USD base account, so their behaviour is unchanged).
     quote_per_base_fx: float = 1.0
     # ---- Stage 5: restart-safe live ----
-    # Calendar days of history requested at start to warm the indicators (live only; 0 = off,
-    # all backtests). Without it EMA(slow) on 1h RTH bars needs ~14 trading days of unbroken
-    # uptime before the first possible signal, and the node restarts far more often.
-    warmup_days: int = 0
+    # Live only: log one line per bar so bar delivery is visible in the journal.
+    log_bars: bool = False
     # Backtests realise the open position at the end (their reports read final CASH), so they
     # keep flattening on stop. The live node sets False: a restart (watchdog, daily Gateway
     # restart, deploy) must keep the position and its exchange-side GTC stop, which the next
@@ -169,22 +166,23 @@ class HonestTrendEquity(Strategy):
         self.register_indicator_for_bars(self.config.bar_type, self.dm)
         self.subscribe_bars(self.config.bar_type)
         self._adopt_open_position()
-        if self.config.warmup_days > 0:
-            self.request_bars(
-                self.config.bar_type,
-                start=self.clock.utc_now() - timedelta(days=self.config.warmup_days),
-            )
+        warm = getattr(self, "_warm", None)
+        if warm:
+            self.log.info(f"warmup: {warm[0]} historical bar(s), ready={warm[1]}")
 
-    def on_historical_data(self, data):
-        # Warmup: the registered indicators (EMAs, DM) are already updated by the engine for
-        # historical bars; feed the derived ones the same way on_bar does. Never trade here.
-        bars = data if isinstance(data, (list, tuple)) else [data]
+    def preload(self, bars: list[Bar]) -> None:
+        """Warm the indicators from history before the node runs (live only; never trades).
+        Without it EMA(slow) on 1h RTH bars needs ~14 trading days of unbroken uptime, and the
+        node restarts far more often. The bars come from ib_warmup.fetch_hourly — NOT the
+        adapter's request_bars, which cancels the request on IB's 2188 warning (paper
+        accounts) and so returns nothing."""
         for bar in bars:
-            if not hasattr(bar, "volume"):
-                continue
+            self.fast.handle_bar(bar)
+            self.slow.handle_bar(bar)
+            self.dm.handle_bar(bar)
             self._update_derived(bar)
             self._remember_emas()
-        self.log.info(f"warmup: {len(bars)} historical bar(s), ready={self._ready()}")
+        self._warm = (len(bars), self._ready())
 
     def on_stop(self):
         if self.config.flatten_on_stop:
@@ -219,7 +217,7 @@ class HonestTrendEquity(Strategy):
             self._reset_position_state()
 
         ready = self._ready()
-        if self.config.warmup_days > 0:  # live: prove bar delivery in the journal
+        if self.config.log_bars:  # live: prove bar delivery in the journal
             self.log.info(f"bar {bar.close} ready={ready}"
                           + (f" fast={self.fast.value:.2f} slow={self.slow.value:.2f}"
                              f" adx={self.adx.value:.1f}" if ready else ""))

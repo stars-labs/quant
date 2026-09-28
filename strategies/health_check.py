@@ -32,6 +32,7 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import requests
 
@@ -249,6 +250,33 @@ def send(text: str) -> bool:
         return False
 
 
+# The handshake above still succeeds when the Gateway wants its paper disclaimer re-accepted
+# (IB 10141, 2026-09-27) or the node's socket is half-open with no bars — only the equity
+# node's own journal shows those.
+EQUITY_FAIL_MARKERS = ("Client failed to initialize", "code: 10141")
+
+
+def equity_session(journal: str, now: datetime) -> dict:
+    """Pure: judge the last ~2h of the quant-equity journal. Fails on repeated IB init
+    failures, and — during US regular hours on weekdays — when no live bar arrived for 2h
+    (the node logs one 'bar … ready=' line per bar)."""
+    lines = journal.splitlines()
+    fails = sum(any(m in ln for m in EQUITY_FAIL_MARKERS) for ln in lines[-400:])
+    if fails >= 3:
+        return {"ib:session": (False, "美股节点 IB 会话", f"最近连接失败 {fails} 次(Gateway 可能要重新登录)")}
+    et = now.astimezone(ZoneInfo("America/New_York"))
+    rth = et.weekday() < 5 and (11, 30) <= (et.hour, et.minute) <= (16, 0)  # ≥2h into the session
+    if rth and not any("] bar " in ln or ".HonestTrendEquity: bar " in ln for ln in lines):
+        return {"ib:session": (False, "美股节点 IB 会话", "交易时段内 2 小时没有收到 K 线")}
+    return {"ib:session": (True, "美股节点 IB 会话", "ok")}
+
+
+def probe_equity_session(now: datetime) -> dict:
+    r = subprocess.run(["journalctl", "--user", "-u", "quant-equity", "--since", "-2h",
+                        "--no-pager", "-o", "cat"], capture_output=True, text=True, timeout=60)
+    return equity_session(r.stdout, now)
+
+
 def collect(role: str, host: str, write: bool = True) -> dict:
     cfg = ROLES[role]
     now = datetime.now(timezone.utc)
@@ -260,6 +288,10 @@ def collect(role: str, host: str, write: bool = True) -> dict:
     if role == "desk":
         results.update(probe_ib(os.environ.get("IB_HOST", "172.22.240.97"),
                                 int(os.environ.get("IB_PORT", "4002"))))
+        try:
+            results.update(probe_equity_session(now))
+        except Exception as e:  # noqa: BLE001
+            results["ib:session"] = (False, "美股节点 IB 会话", f"读取日志失败:{type(e).__name__}")
     else:
         results.update(probe_urls())
     try:
