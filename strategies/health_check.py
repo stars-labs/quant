@@ -80,7 +80,8 @@ ROLES = {
         "failed_scope": [],        # a server: any failed system unit matters
         "required": ["postgresql.service", "nautilus-trend.service",
                      "nautilus-accumulator.service", "nautilus-signal.service",
-                     "quant-signal-evaluator.service", "quant-alert-dispatcher.service"],
+                     "quant-signal-evaluator.service", "quant-alert-dispatcher.service",
+                     "quant-executor.service"],
         "peer": ("desk", 120),     # game box may be off for a while — be lenient
     },
     "desk": {
