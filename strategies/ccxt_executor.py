@@ -174,7 +174,8 @@ class Ledger:
             cur.execute("""SELECT split_part(instrument, 'USDT', 1), open_date, open_rate, quantity,
                                   synced_at
                              FROM quant.nautilus_trades
-                            WHERE trader_id = %s AND close_date IS NULL""", (trader,))
+                            WHERE trader_id = %s AND environment = %s
+                              AND close_date IS NULL""", (trader, venue.mode))
             return {r[0]: (r[1], float(r[2]), float(r[3]), r[4]) for r in cur.fetchall()}
 
     def add(self, kind: str, venue: Venue, asset: str, fill: Fill, row: tuple | None) -> None:
@@ -194,8 +195,9 @@ class Ledger:
                 avg = (row[1] * row[2] + fill.price * fill.qty) / qty
                 cur.execute("""UPDATE quant.nautilus_trades SET open_rate = %s, quantity = %s,
                                       synced_at = now()
-                                WHERE trader_id = %s AND position_id = %s AND close_date IS NULL""",
-                            (avg, qty, trader, pid))
+                                WHERE trader_id = %s AND position_id = %s
+                                  AND environment = %s AND close_date IS NULL""",
+                            (avg, qty, trader, pid, venue.mode))
 
     def close(self, kind: str, venue: Venue, asset: str, row: tuple, fill: Fill, fee: float) -> None:
         trader, pid, _ = self.ids(kind, venue, asset)
@@ -204,8 +206,9 @@ class Ledger:
             cur.execute("""UPDATE quant.nautilus_trades
                               SET close_date = now(), close_rate = %s, realized_pnl = %s,
                                   profit_pct = %s, exit_reason = 'signal', synced_at = now()
-                            WHERE trader_id = %s AND position_id = %s AND close_date IS NULL""",
-                        (fill.price, pnl, ret, trader, pid))
+                            WHERE trader_id = %s AND position_id = %s
+                              AND environment = %s AND close_date IS NULL""",
+                        (fill.price, pnl, ret, trader, pid, venue.mode))
 
 
 # ---------------------------------------------------------------- strategies
@@ -247,6 +250,9 @@ def run_dca(conn, venue: Venue, ledger: Ledger, base_usdt: float) -> None:
     if not today:
         return
     day, units = today[0], float(today[1])
+    if day != datetime.now(timezone.utc).date():
+        log(f"{venue.label} DCA: rule date {day} is not today UTC — holding")
+        return
     row = ledger.open_rows("dca", venue).get(DCA_ASSET)
     if row is not None and row[3].astimezone(timezone.utc).date() >= day:
         return  # already bought for this FNG day

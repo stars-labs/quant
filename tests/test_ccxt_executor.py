@@ -123,3 +123,50 @@ def test_run_trend_buys_new_signals_and_sells_closed_ones(monkey=None):
         ce.sr.ASSETS, ce.open_signals = orig_assets, orig_sig
     assert [(k, a) for k, a, _ in ledger.adds] == [("trend", "BTC")]
     assert [(k, a, f.price) for k, a, f in ledger.closes] == [("trend", "ETH", 99.0)]
+
+
+class DcaConn:
+    def __init__(self, rule):
+        self.rule = rule
+
+    def cursor(self):
+        return self
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        pass
+
+    def execute(self, *args):
+        pass
+
+    def fetchone(self):
+        return self.rule
+
+
+def test_dca_requires_current_utc_rule():
+    from datetime import timedelta
+
+    today = datetime.now(timezone.utc).date()
+    for day in (today - timedelta(days=1), today + timedelta(days=1)):
+        ledger = FakeLedger({})
+        ce.run_dca(DcaConn((day, 2)), ce.Venue('gate', 'dry_run', FakeEx()), ledger, 100)
+        assert ledger.adds == []
+
+
+def test_dca_buys_current_rule_and_skips_same_day_repeat():
+    now = datetime.now(timezone.utc)
+    ledger = FakeLedger({})
+    venue = ce.Venue('gate', 'dry_run', FakeEx())
+    ce.run_dca(DcaConn((now.date(), 2)), venue, ledger, 100)
+    assert ledger.adds == [('dca', 'BTC', ce.Fill(1.98, 101.0))]
+    ledger.rows['BTC'] = (now, 101, 1.98, now)
+    ce.run_dca(DcaConn((now.date(), 2)), venue, ledger, 100)
+    assert len(ledger.adds) == 1
+
+
+def test_dca_missing_rule_holds():
+    ledger = FakeLedger({})
+    ce.run_dca(DcaConn(None), ce.Venue('gate', 'dry_run', FakeEx()), ledger, 100)
+    assert ledger.adds == []
