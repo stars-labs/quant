@@ -17,4 +17,15 @@ Acceptance:
 - Deployment copy matches the repository source (`cmp`).
 - `git diff --check`: passed.
 
-Limits: this change does not solve exchange-order reconciliation or partial-fill accounting. Deployment verification is pending. The existing production database collation warning was observed but not changed.
+Limits: this change does not solve exchange-order reconciliation or partial-fill accounting. Deployment completed and verified on oracle-arm-002. The existing production database collation warning was observed but not changed.
+
+
+## Deployment evidence (2026-10-04)
+
+- Quant implementation pushed as `5d29062`; NUR deployment source pushed as `ac03c38`; dotfiles NUR lock pushed as `77e4fbf5`.
+- Remote systemd-managed `nixos-rebuild switch --flake path:/var/tmp/quant-executor-isolation#oracle-arm-002 --impure` exited 0. Generation: `/nix/store/qlfm426cx2aq83r0q2h23qcl337rdf0c-nixos-system-oracle-arm-002-26.11.20261001.c59305b`.
+- Installed executor SHA-256 matches the tested source: `e43b1961e154a5eb778d97bf9695150e5945509daeac52963f6788cf4f491bb0`.
+- Executor is active, automatic restart count 0. Signal evaluator, dispatcher, all three Nautilus services and PostgREST are active; no failed system units.
+- After restart and subsequent polling, each venue retains four trend rows and one DCA row, all `dry_run`; quantities unchanged from pre-deployment snapshot; duplicate open positions: 0. No new buy/sell or error messages after initialization.
+- Rebuild log on arm-002: `/var/tmp/quant-executor-isolation.log`.
+- Other sessions' local changes were preserved; NUR and dotfiles pushes used isolated worktrees.
