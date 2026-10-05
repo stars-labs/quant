@@ -1,6 +1,6 @@
 # Self-hosted execution
 
-Status: self-hosted runner and display published; the existing personal HTX executor remains running pending migration.
+Status: completed and verified — public runner, owner-local HTX execution, private web/Telegram displays and hosted live retirement.
 
 The public service provides research signals and private account displays. Exchange
 credentials, funding confirmations, order submission and durable order recovery belong
@@ -111,8 +111,34 @@ Cutover preparation and verification:
   Authenticated BTC fee preflight returns effective 0.15% and basic 0.20%; original
   fill movements confirm actual 0.20% fees. No new orders were forced for testing.
 
-Still required: verify remote rebuild, apply migration046 and verify installed
-Telegram report rendering/delivery. Rebuild remains active under the original
-`starslab-owner-cutover.service` handle, compiling datadog-agent after the current
-flake dependency update. Do not mark the full change complete before those checks
-pass.
+Final deployment and boundary verification:
+
+- Remote rebuild completed successfully, generation
+  `/nix/store/rqhwg93qb3afvxkiarnk3jv8kfc8j0b8-nixos-system-oracle-arm-002-26.11.20261005.494ce7f`.
+  Installed executor, dispatcher and health module hashes match all five tested
+  source files. Hosted execution is active with `gate:dry_run,htx:dry_run`; both
+  executor and dispatcher processes have no HTX credential/live-control variables.
+  Legacy live execution modules are absent from the installed application.
+- Migration046 applied: original six orders and one funding row remain private
+  audit records; six derived public HTX live rows removed without fabricated sales.
+  The backend role cannot select/insert old orders or confirm old funding. Real
+  anonymous HTTP reads of the old public projection return an empty array.
+- The installed Telegram renderer reads actual uploaded funding, cash, positions
+  and reconciled fees. Dispatcher state menu version3 acknowledges a successful
+  private Telegram account-summary send. Six historical fill IDs are seeded;
+  subsequent reminders use reports and avoid replaying imported fills.
+- Current production HTTP isolation: owner sees one healthy live report, another
+  signed identity sees zero, anonymous requests return401. Temporary tokens were
+  removed after this read-only check. The retired credential endpoint remains404.
+- Final English login correction deployed as Worker
+  `fcb70d19-9201-42ad-8375-19bc5aa20f98`: account login keeps English through the
+  existing locale cookie and requests English from hosted Auth0. Browser checks
+  confirm private-account copy and the actual English Auth0 sign-in page. This
+  checks provider navigation, not an interactive OAuth credential exchange.
+  Login screenshots are private artifacts under `/tmp/starslab-runner-e2e/`.
+- Final web check: zero errors, 13 existing warnings; lint and formatting passed.
+  The public installer refuses upgrades while the live service is active; its
+  refusal leaves the owner runner PID and healthy state intact.
+
+All acceptance requirements above have evidence. Local live execution remains
+healthy with zero pending orders; the platform receives display-only reports.

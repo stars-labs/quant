@@ -8,6 +8,7 @@
 	const next = $derived($page.url.searchParams.get('next') ?? '/');
 	// Only trust same-origin relative paths; reject absolute URLs to avoid open redirects.
 	const safeNext = $derived(next.startsWith('/') && !next.startsWith('//') ? next : '/');
+	const execution = $derived(safeNext === '/execution');
 
 	function fmt(key: string, vars: Record<string, string>) {
 		let s = t(lang, key);
@@ -21,13 +22,24 @@
 <main class="mx-auto mt-20 max-w-sm px-5">
 	<h1 class="text-2xl font-semibold tracking-tight">{t(lang, 'login.title')}</h1>
 	<p class="mt-2 text-sm text-muted-foreground">
-		{en ? 'Sign in to view all strategy details.' : '登录后查看全部策略详情。'}
+		{execution
+			? 'Sign in to connect your local runner and view your private account reports.'
+			: en
+				? 'Sign in to view all strategy details.'
+				: '登录后查看全部策略详情。'}
 	</p>
 
 	{#if safeNext !== '/'}
 		<div class="mt-4 rounded-md border border-primary/50 bg-primary/5 p-3 text-xs">
-			<div class="font-medium text-foreground">{fmt('login.why', { path: safeNext })}</div>
-			<div class="mt-1 text-muted-foreground">{t(lang, 'login.publicHint')}</div>
+			{#if execution}
+				<div class="font-medium text-foreground">Your account reports are visible only to you.</div>
+				<div class="mt-1 text-muted-foreground">
+					Trading and exchange credentials stay on your machine.
+				</div>
+			{:else}
+				<div class="font-medium text-foreground">{fmt('login.why', { path: safeNext })}</div>
+				<div class="mt-1 text-muted-foreground">{t(lang, 'login.publicHint')}</div>
+			{/if}
 		</div>
 	{/if}
 
@@ -85,6 +97,10 @@
 	{/if}
 
 	<p class="mt-4 text-xs text-muted-foreground">
-		{en ? 'Most pages are browseable without login.' : '未登录也能浏览大多数内容。'}
+		{execution
+			? 'No exchange credentials are required here.'
+			: en
+				? 'Most pages are browseable without login.'
+				: '未登录也能浏览大多数内容。'}
 	</p>
 </main>
