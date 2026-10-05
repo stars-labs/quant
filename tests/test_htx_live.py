@@ -25,6 +25,15 @@ def test_authenticated_effective_fee_not_basic_rate():
     assert account_taker_fee(ex, 'BTC/USDT') == 0
 
 
+def test_match_fee_overrides_advertised_discount_for_net_holdings():
+    ex = SimpleNamespace(fetch_trading_fee=lambda symbol: {
+        'symbol': symbol, 'taker': .0015, 'info': {'takerFeeRate': '.002'}})
+    assert account_taker_fee(ex, 'BTC/USDT') == .0015
+    qty, cash = fill_deltas(order(), [trade(fee=.00002)])
+    assert math.isclose(qty,.01*(1-.002)) and cash == -600
+    assert not math.isclose(qty,.01*(1-.0015))
+
+
 def test_bad_account_fee_never_falls_back_to_default():
     for rate in [None, float('nan'), float('inf'), -.001, .0031]:
         ex = SimpleNamespace(fetch_trading_fee=lambda symbol: {'symbol': symbol, 'taker': rate})

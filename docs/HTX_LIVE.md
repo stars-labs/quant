@@ -15,6 +15,10 @@ reconciliation; HT/point deductions remain unsupported and pause even when CCXT
 only exposes the base/quote component. Do not enable these without journal support.
 Read-only verification on2026-10-05 returned0.15% effective maker/taker and0.20%
 basic rates for all13 house pairs; these values are observations, not fixed settings.
+All six initial actual fills charged0.20% in base currency and deducted no HT/points.
+The0.15% advertised discounted rate therefore must not be substituted for these
+actual match fees. We have not established why the discount did not apply and do
+not change deduction settings or buy fee tokens automatically.
 The endpoint reports applicable rates, not a VIP level; do not infer the user's tier.
 
 ## Funding a new month
