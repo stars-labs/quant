@@ -1,6 +1,6 @@
 # Self-hosted execution
 
-Status: runner and display delivery in progress; the existing personal HTX executor remains running pending migration.
+Status: self-hosted runner and display published; the existing personal HTX executor remains running pending migration.
 
 The public service provides research signals and private account displays. Exchange
 credentials, funding confirmations, order submission and durable order recovery belong
@@ -72,7 +72,10 @@ Verified implementation:
   the HTX allowlist and real HTX public prices load through the user-owned SSH
   tunnel. PySocks is now an explicit dependency.
 
-Still required: 0.1.1 transport-fix publication, and personal HTX migration with
-preserved accounting and Telegram display. The personal account's
+- Public transport-fix release `runner-v0.1.1` is published; its wheel returns HTTP
+  200 and both corresponding GitHub Actions runs passed.
+
+Still required: personal HTX migration with preserved accounting and Telegram
+display. The personal account's
 API IP restriction requires routing its HTTPS calls through its existing own server;
 exchange credentials must remain on the machine running the new executor.
