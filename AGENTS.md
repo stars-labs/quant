@@ -289,7 +289,7 @@ The crypto bots `quant-event-dca`/`quant-reactor`/`quant-dca` were **retired** (
 ## Guardrails (hard)
 
 - Binance and Gate stay **testnet/dry-run**; IB stays **paper**. `DCA_LIVE_ENABLED` empty/false.
-- User authorized HTX spot live on 2026-10-05, dedicated UID 597216794 / spot account 73961187:
+- User authorized HTX spot live on 2026-10-05 for the dedicated owner-configured account:
   monthly confirmed trend100 + BTC DCA100 USDT, trend net proceeds recyclable;20/entry.
   The local `runner/` SQLite journal commits intents before submitting; unknown
   orders pause and are never resubmitted. Funding requires a confirmed deposit via
