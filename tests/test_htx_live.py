@@ -5,7 +5,7 @@ import sys
 from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'strategies'))
-from htx_live import LiveHTX, check_balances, fill_deltas
+from htx_live import LiveHTX, account_taker_fee, check_balances, fill_deltas
 
 
 def order(side='buy', filled=0.01, cost=600, status='closed'):
@@ -15,6 +15,72 @@ def order(side='buy', filled=0.01, cost=600, status='closed'):
 
 def trade(amount=0.01, cost=600, currency='BTC', fee=0.00002):
     return dict(amount=amount, cost=cost, fee=dict(currency=currency, cost=fee))
+
+
+def test_authenticated_effective_fee_not_basic_rate():
+    ex = SimpleNamespace(fetch_trading_fee=lambda symbol: {
+        'symbol': symbol, 'taker': .0015, 'info': {'takerFeeRate': '.002'}})
+    assert account_taker_fee(ex, 'BTC/USDT') == .0015
+    ex.fetch_trading_fee = lambda symbol: {'symbol': symbol, 'taker': 0}
+    assert account_taker_fee(ex, 'BTC/USDT') == 0
+
+
+def test_bad_account_fee_never_falls_back_to_default():
+    for rate in [None, float('nan'), float('inf'), -.001, .0031]:
+        ex = SimpleNamespace(fetch_trading_fee=lambda symbol: {'symbol': symbol, 'taker': rate})
+        rejects(lambda: account_taker_fee(ex, 'BTC/USDT'), 'fee')
+    ex.fetch_trading_fee = lambda symbol: {'symbol': 'ETH/USDT', 'taker': .0015}
+    rejects(lambda: account_taker_fee(ex, 'BTC/USDT'), 'symbol mismatch')
+    ex.fetch_trading_fee = lambda symbol: {
+        'symbol': symbol, 'taker': .0015, 'info': {'takerFeeRate': '.004'}}
+    rejects(lambda: account_taker_fee(ex, 'BTC/USDT'), 'headroom')
+
+
+def test_fee_api_timeout_never_uses_a_cached_public_rate():
+    def timeout(symbol): raise TimeoutError()
+    try:
+        account_taker_fee(SimpleNamespace(fetch_trading_fee=timeout), 'BTC/USDT')
+    except TimeoutError:
+        return
+    raise AssertionError('Fee query failure must propagate')
+
+
+def test_unsettled_deduction_keeps_order_pending():
+    t = trade()
+    t['info'] = {'fee-deduct-state': 'ongoing', 'filled-points': '0'}
+    obj = live(matches=[t])
+    rejects(obj.reconcile, 'not final')
+    assert obj.store.pending() and not obj.store.finished
+
+
+def test_raw_third_currency_deduction_cannot_be_hidden_by_ccxt_fee():
+    t = trade()
+    t['info'] = {'fee-deduct-state': 'done', 'filled-points': '.001', 'fee-deduct-currency': 'ht'}
+    rejects(lambda: fill_deltas(order(), [t]), 'third-currency')
+    t['info']['filled-points'] = 'nan'
+    rejects(lambda: fill_deltas(order(), [t]), 'Invalid deducted fee')
+
+
+def test_sale_queries_effective_fee_before_reserving_order():
+    obj = live(side='sell')
+    obj.account_id = 'account7'
+    obj.balance = lambda: {'free': {'BTC': .01}}
+    obj.ex.market = lambda symbol: {'spot': True, 'limits': {'cost': {'min': 5}}}
+    obj.ex.amount_to_precision = lambda symbol, value: str(value)
+    obj.ex.fetch_ticker = lambda symbol: {'bid': 60000}
+    queries = []
+    def fail_fee(symbol):
+        queries.append(symbol)
+        raise TimeoutError()
+    obj.ex.fetch_trading_fee = fail_fee
+    obj.store.reserve = lambda *args: (_ for _ in ()).throw(AssertionError('No intent before fee'))
+    try:
+        obj.submit('trend', 'BTC', 'sell', 'exit:1', 'position1', .01)
+    except TimeoutError:
+        pass
+    else:
+        raise AssertionError('Missing fee must prevent sale')
+    assert queries==['BTC/USDT']
 
 
 def rejects(fn, text):
@@ -198,7 +264,7 @@ def test_submit_timeout_persists_intent_and_recovery_never_recreates():
     obj.balance = lambda: {'free': {'USDT': 200}}
     obj.ex.market = lambda symbol: {'spot': True, 'active': True,
                                    'limits': {'cost': {'min': 5}, 'amount': {'min': 0.00001}}}
-    obj.ex.fetch_trading_fee = lambda symbol: {'taker': 0.002}
+    obj.ex.fetch_trading_fee = lambda symbol: {'symbol': symbol, 'taker': 0.002}
     obj.ex.cost_to_precision = lambda symbol, value: str(value)
     obj.ex.amount_to_precision = lambda symbol, value: str(value)
     obj.ex.fetch_ticker = lambda symbol: {'ask': 60000}

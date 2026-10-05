@@ -4,6 +4,19 @@ Dedicated UID597216794 / spot73961187. User-authorized monthly contribution200 U
 
 Trend entries spend at most20 USDT including fee headroom; unused capital and net exit proceeds can be reused. The initial startup follows currently open house signals. DCA daily base is100 / days in the UTC month, multiplied by today's smart-DCA units and capped at the funded monthly100. No catch-up for previous days. Orders below venue minimum are skipped. Unspent prior-month DCA stays in cash and is not reassigned to trend.
 
+Before every actual buy or sell, authenticated CCXT fetch_trading_fee reads HTX
+GET /v2/reference/transact-fee-rate for that symbol, using actualTakerRate instead
+of a public/default VIP table. The queried effective rate is logged; missing,
+invalid or mismatched results prevent the order. Both the effective rate and basic
+takerFeeRate must fit the0.30% safety ceiling, covering discount exhaustion between
+query and fill. This ceiling is only cash headroom, never the fee charged in PnL.
+Actual finalized match fees drive net quantities/cash/PnL. Ongoing deduction pauses
+reconciliation; HT/point deductions remain unsupported and pause even when CCXT
+only exposes the base/quote component. Do not enable these without journal support.
+Read-only verification on2026-10-05 returned0.15% effective maker/taker and0.20%
+basic rates for all13 house pairs; these values are observations, not fixed settings.
+The endpoint reports applicable rates, not a VIP level; do not infer the user's tier.
+
 ## Funding a new month
 
 Deposit200 USDT into the dedicated spot account, then stop `quant-executor` and run the installed `htx_funding.py` on arm-002 with the executor environment (the script is next to `ccxt_executor.py` in the immutable app directory shown by `systemctl show quant-executor -p ExecStart --value`). The source copy is `scripts/htx_funding.py`. The script verifies account UID and additional free cash, records100/100 once for the current UTC month and never transfers funds or submits orders. Restart the service afterward. Calendar rollover does not invent a new deposit; trend existing capital may still recycle while DCA pauses until the new month is funded. Do not manually trade, withdraw or add assets to this account while the bot runs; journal/balance mismatch pauses trading.

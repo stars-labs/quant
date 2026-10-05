@@ -10,6 +10,22 @@ from datetime import datetime, timezone
 from htx_order_store import OrderStore
 
 
+def account_taker_fee(ex, symbol):
+    """Authenticated symbol-specific effective fee, never a public/default tier."""
+    result = ex.fetch_trading_fee(symbol)
+    if result.get('symbol') != symbol:
+        raise ValueError('Fee query symbol mismatch')
+    raw = result.get('info') or {}
+    try:
+        rate = float(result['taker'])
+        basic = float(raw.get('takerFeeRate', rate))
+    except (KeyError, TypeError, ValueError):
+        raise ValueError('Missing account taker fee') from None
+    if any(not math.isfinite(v) or v < 0 or v > 0.003 for v in (rate, basic)):
+        raise ValueError('Taker fee exceeds reserved headroom')
+    return rate
+
+
 def fill_deltas(order, trades):
     """Net asset and quote movement from exact match records, including fees."""
     amount = float(order.get('filled') or 0)
@@ -23,6 +39,16 @@ def fill_deltas(order, trades):
         raise ValueError('Incomplete order trade details')
     base_fee = quote_fee = cost = 0.0
     for t in trades:
+        raw = t.get('info') or {}
+        if raw.get('fee-deduct-state') == 'ongoing':
+            raise ValueError('Fee deduction is not final')
+        points = float(raw.get('filled-points') or 0)
+        if not math.isfinite(points) or points < 0:
+            raise ValueError('Invalid deducted fee')
+        if points and raw.get('fee-deduct-state') != 'done':
+            raise ValueError('Fee deduction is not final')
+        if points and str(raw.get('fee-deduct-currency') or '').upper() not in (base, quote):
+            raise ValueError('Unsupported third-currency fee')
         if not math.isfinite(float(t['amount'])) or float(t['amount']) <= 0 or not math.isfinite(float(t['cost'])) or float(t['cost']) <= 0:
             raise ValueError('Invalid trade amount or cost')
         cost += float(t['cost'])
@@ -116,10 +142,8 @@ class LiveHTX:
         minimum = float((market.get('limits',{}).get('cost') or {}).get('min') or 0)
         balance = self.balance()
         if side == 'buy':
-            fee = float(self.ex.fetch_trading_fee(symbol)['taker'])
-            if not math.isfinite(fee) or fee < 0 or fee > 0.003:
-                raise ValueError('Taker fee exceeds reserved headroom')
-            # Reserve quote fee headroom; actual fees are accounted from matches.
+            # Safety ceiling covers discount exhaustion/rate changes between query
+            # and fill. It is a budget reserve, never the charged fee in the ledger.
             cost = min(requested,float(balance['free'].get('USDT') or 0)) / 1.003
             requested = float(self.ex.cost_to_precision(symbol,cost))
             if requested < minimum or requested <= 0:
@@ -138,6 +162,8 @@ class LiveHTX:
             bid = float(self.ex.fetch_ticker(symbol)['bid'])
             if requested*bid < minimum:
                 return  # Preserve dust rather than falsely closing the holding.
+        fee = account_taker_fee(self.ex, symbol)
+        self.log(f'HTX/live {symbol} account taker fee={fee:.6%} (queried before {side})')
         cid = 'q' + uuid.uuid4().hex[:30]
         if not self.store.reserve(cid,kind,asset,side,action,position,requested):
             return
