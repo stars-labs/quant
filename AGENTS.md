@@ -78,12 +78,12 @@ for stage status and `STRATEGY_LEADERBOARD.md` for the strategy research log.
   `strategy_record.py` is the pure Donchian state machine behind the public track record (below).
 - `runner/` — independently installable user-owned HTX spot runner (`starslab-runner`).
   Credentials, execution and the SQLite journal live on the user's computer/server;
-  `/execution` displays private reports through an upload-only token (migrations 042–044).
+  `/execution` displays private reports through an upload-only token (migrations 042–046).
   Test: `python -m unittest discover -s runner/tests -v`; set `RUNNER_TEST_DSN` to an
   empty disposable `starslab_runner_test` PostgreSQL DB to include permission tests.
   Never introduce exchange credentials, hosted order endpoints or remote execution
-  controls into the display connection. The existing personal HTX service is pending
-  migration; keep it running until its ledger is imported and the replacement verified.
+  controls into the display connection. The personal HTX runner lives on the game box
+  as `starslab-runner.service`; never enable another executor for the same account.
 - `scripts/` — `sync_local_state_to_timescale.py` (wf → TimescaleDB), `testnet_usdt_recycler.py`,
   misc backtest/sync/report helpers.
   (`download_binance.py` lives in `nautilus_crypto/`, not here.)
@@ -223,26 +223,21 @@ new service/table to its lists when you add one. `--dry-run` prints results and 
   moved off the game box 2026-07-29; `findata.py` is vendored too (cache at
   `/var/lib/quant-collectors/findata-cache` via `FINDATA_CACHE_DIR`).
 - `trade_ledger.py` is also vendored into nur `modules/nautilus-{trend,accumulator,equity-trend}/`.
-- **Other exchanges (Gate, HTX, …) = `strategies/ccxt_executor.py`, NOT a Nautilus fork/adapter**
-  (Nautilus has no Gate/HTX adapter; the house strategies only need market buy/sell). nur
-  `quant-executor` service (arm-002) runs the trend signal follower + smart DCA per venue from
-  `services.quant-collectors.executorVenues` (`<ccxt id>:<dry_run|testnet|live>`, default
-  `gate:dry_run,htx:dry_run`). dry_run = simulated fills at the live top of book (HTX has no testnet);
-  testnet needs `<VENUE>_API_KEY/_SECRET` (Gate spot testnet); live is refused unless
-  `EXEC_ALLOW_LIVE=1` and uses the funded HTX journal (migration039). Ledger rows: `quant.nautilus_trades` with venue GATE/HTX, environment = mode,
-  trader_id `FOLLOW-<VENUE>` / `DCA-<VENUE>`. ccxt is packaged in nur `pkgs/ccxt` (not in nixpkgs).
-- HTX Telegram account/reminders use the existing single `quant-alert-dispatcher`:
-  `htx_account.py` handles owner-private `/live`, `/trades`, `/me` and bare `/start`;
-  both chat and sender must match `TELEGRAM_CHAT_ID`. Public users keep their follow record.
-  `htx_notifications.py` acknowledges real fills via migration040 `notified_at`.
-  Valuation uses cached hour-close prices; incomplete/stale prices suppress total PnL.
-  Never add a second Telegram poller or give the dispatcher HTX trading credentials.
-  Migration041 captures gross fills and pre-order fee quotes; `htx_fill_costs.py`
-  derives actual base/quote fees for private TG, without subtracting fees twice.
-  `scripts/htx_backfill_costs.py` verifies exchange matches before adding missing metadata;
-  it never changes net movements or submits orders. `scripts/analyze_trend_fees.py`
-  is read-only sensitivity of the13 equal-weight rule sleeves, calibrated against
-  strategy_record; it is not a simulation of the small funded HTX executor.
+- Hosted Gate/HTX execution uses `strategies/ccxt_executor.py` in simulation or sandbox
+  modes only (`gate:dry_run,htx:dry_run`). Live mode is rejected even if credentials
+  are present. User-funded HTX spot execution belongs to `runner/` on the owner's
+  machine; the platform holds no HTX keys or live execution process.
+- The existing single `quant-alert-dispatcher` reads owner-uploaded reports through
+  migration045's private `quant.operator_runner_reports` function. `htx_account.py`
+  handles operator-private `/live`, `/trades`, `/me` and bare `/start`; both chat and
+  sender must match `TELEGRAM_CHAT_ID`. Public users keep their follow record.
+  `htx_notifications.py` tracks acknowledged fill IDs in dispatcher state; initial
+  historical fills are seeded without duplicate alerts. A stale report does not
+  prove that local execution stopped. Never add a second Telegram poller or give
+  the dispatcher exchange trading credentials. Migration046 retires hosted HTX
+  execution and removes its derived public projection; original orders/funding
+  remain private audit records. `scripts/analyze_trend_fees.py` is read-only rule
+  sensitivity, not a simulation of the small funded account.
 - Module changes need: commit+push nur-packages (`git add` new files — flakes ignore untracked ones) → `nix flake update xiongchenyu6` in dotfiles →
   `NIXPKGS_ALLOW_INSECURE=1 nixos-rebuild switch --flake .#oracle-arm-002 --build-host root@oracle-arm-002 --target-host root@oracle-arm-002 --impure`.
 - The nur overlay is NOT global on hosts → reference packages as
@@ -296,10 +291,12 @@ The crypto bots `quant-event-dca`/`quant-reactor`/`quant-dca` were **retired** (
 - Binance and Gate stay **testnet/dry-run**; IB stays **paper**. `DCA_LIVE_ENABLED` empty/false.
 - User authorized HTX spot live on 2026-10-05, dedicated UID 597216794 / spot account 73961187:
   monthly confirmed trend100 + BTC DCA100 USDT, trend net proceeds recyclable;20/entry.
-  `htx_live.py` / `htx_order_store.py` journal intents before submitting; unknown orders pause,
-  never resubmit. `executor_funding` credits require confirmed deposit (`scripts/htx_funding.py`,
-  stop executor before running); no automatic calendar credits. Migration039. Temporary keys
-  are in arm-002 `/run/quant-htx-runtime.env`,0600; disappear on reboot until migrated to SOPS.
+  The local `runner/` SQLite journal commits intents before submitting; unknown
+  orders pause and are never resubmitted. Funding requires a confirmed deposit via
+  `starslab-runner fund` while the runner is stopped; no calendar credits. Private
+  credentials/configuration live in `~/.config/starslab-runner/` on the owner's
+  machine. The SSH egress service preserves the key's existing IP allowlist; the
+  display server receives no exchange credentials. See `docs/HTX_LIVE.md`.
 - Binance EXECUTION on Nautilus requires an **Ed25519** key (HMAC/RSA fail at session.logon).
 - Data-only mainnet nodes must pass **no** Binance key (a placeholder → -2008 → 0 instruments).
 - Never commit plaintext secrets, venvs, or generated data/catalogs/reports. Commit/push only when asked.

@@ -327,11 +327,11 @@ def poll_updates(conn, state: dict) -> None:
 
 def ensure_operator_menu(conn, state):
     operator = os.environ.get('TELEGRAM_CHAT_ID', '')
-    if operator.isdigit() and state.get('htx_menu_version') != 2:
+    if operator.isdigit() and state.get('htx_menu_version') != 3:
         tg('setMyCommands', commands=HTX_COMMANDS,
            scope={'type': 'chat', 'chat_id': int(operator)})
         if send(int(operator), account_text(conn), HTX_MENU):
-            state['htx_menu_version'] = 2
+            state['htx_menu_version'] = 3
 
 def subscribers(conn, topic: str) -> list[int]:
     with conn.cursor() as cur:

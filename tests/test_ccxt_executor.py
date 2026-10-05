@@ -43,14 +43,19 @@ class FakeEx:
 
 
 def test_parse_venues_defaults_and_guardrail():
-    assert ce.parse_venues("gate:testnet, HTX", False) == [("gate", "testnet"), ("htx", "dry_run")]
+    assert ce.parse_venues("gate:testnet, HTX") == [("gate", "testnet"), ("htx", "dry_run")]
     for bad in ("htx:live", "gate:paper"):
         try:
-            ce.parse_venues(bad, False)
+            ce.parse_venues(bad)
         except ValueError:
             continue
         raise AssertionError(bad)
-    assert ce.parse_venues("htx:live", True) == [("htx", "live")]
+    try:
+        ce.Venue("htx", "live", FakeEx())
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Hosted venue accepted live execution")
 
 
 def test_trend_actions_mirror_signals():

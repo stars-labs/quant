@@ -1,81 +1,77 @@
-"""Private HTX execution reminders delivered by the existing Telegram dispatcher."""
-
+"""Read-only notifications from owner-uploaded HTX runner reports."""
 from datetime import datetime, timedelta, timezone
 from html import escape
 
-from htx_order_store import OrderStore
-from htx_fill_costs import fee_details, quantity
+
+def runner_reports(conn, chat_id):
+    if not chat_id:
+        return []
+    with conn.cursor() as cur:
+        cur.execute('SELECT id,label,received_at,report FROM quant.operator_runner_reports(%s)',
+                    (int(chat_id),))
+        return cur.fetchall()
+
+
+def timestamp(value):
+    return datetime.fromisoformat(value.replace('Z', '+00:00'))
+
+
+def report_health(row, now):
+    received, report = row[2], row[3]
+    if not received or not report:
+        return 'missing'
+    observed = timestamp(report['observed_at'])
+    if min(received, observed) < now - timedelta(minutes=5):
+        return 'stale'
+    return report['status']
 
 
 def format_fills(rows, trend, dca):
-    lines = ['<b>HTX 实盘成交</b>（金额已计手续费）']
-    for cid, kind, asset, side, qty, cash, finished, amount, cost, taker, basic in rows:
-        label = '趋势' if kind == 'trend' else '定投'
-        action = '买入' if side == 'buy' else '卖出'
-        movement = '支出' if side == 'buy' else '净回款'
-        stamp = finished.astimezone(timezone.utc).strftime('%m-%d %H:%M UTC')
-        lines.append(f'{stamp} · {label} {action} {quantity(qty)} '
-                     f'{escape(asset)} · {movement} {abs(float(cash)):.4f} USDT')
-        if amount is None or cost is None:
-            lines.append('手续费明细待核对')
-            continue
-        base_fee,quote_fee,equivalent,rate = fee_details(side,qty,cash,amount,cost)
-        parts = ([f'{quantity(base_fee)} {escape(asset)}'] if base_fee else [])
-        if quote_fee:
-            parts.append(f'{quantity(quote_fee)} USDT')
-        lines.append('手续费：' + (' + '.join(parts) or '0') +
-                     f'（成交均价折算 {equivalent:.4f} USDT，实扣 {rate:.3%}）')
-        if taker is not None and basic is not None:
-            lines.append(f'下单查询：折后 {float(taker):.3%} / 基础 {float(basic):.3%}' +
-                         ('；实扣高于折后报价' if rate>float(taker)+1e-8 else ''))
-    lines.append(f'当前可用预算：趋势 {trend:.2f} USDT / 本月定投 {dca:.2f} USDT')
+    lines = ['<b>HTX live fills</b>']
+    for fill in rows:
+        stamp = timestamp(fill['finished_at']).strftime('%m-%d %H:%M UTC')
+        lines.append(f"{stamp} · {escape(fill['strategy'])} {escape(fill['side'])} "
+                     f"{float(fill['quantity']):.10g} {escape(fill['asset'])} · "
+                     f"gross {float(fill['quote_usdt']):.4f} USDT")
+        lines.append(f"Actual fee: {float(fill['fee_usdt']):.4f} USDT equivalent "
+                     f"({float(fill['fee_rate']):.3%})")
+    lines.append(f'Available: trend {trend:.2f} / monthly BTC DCA {dca:.2f} USDT')
     return '\n'.join(lines)
 
 
 def notify_htx(conn, state, send, chat_id, now=None):
-    """Acknowledge only successful sends; never acquire the executor's trading lock."""
+    """Seed historical fills once; advance durable delivery state only after success."""
     if not chat_id:
         return
     now = now or datetime.now(timezone.utc)
-    month = now.date().replace(day=1)
-    with conn.cursor() as cur:
-        cur.execute("SELECT checked_at,healthy,detail FROM quant.executor_status WHERE venue='HTX'")
-        status = cur.fetchone()
-    if not status:
-        return  # No configured live executor: no private account reminders.
-    checked, healthy, detail = status
-    healthy = healthy and now - checked <= timedelta(minutes=5)
-    previous = state.get('htx_healthy')
-    if previous != healthy:
-        if healthy and previous is None:
-            state['htx_healthy'] = True
-        else:
-            text = ('✅ HTX 实盘执行检查恢复正常。' if healthy else
-                    '⚠️ HTX 实盘执行异常，需检查；新订单可能暂停。\n原因：' +
-                    escape(detail if now - checked <= timedelta(minutes=5) else '执行器心跳超过 5 分钟'))
-            if send(int(chat_id), text):
-                state['htx_healthy'] = healthy
-    store = OrderStore.__new__(OrderStore)
-    store.conn = conn
-    with conn.cursor() as cur:
-        cur.execute("""SELECT client_id,kind,asset,side,asset_delta,cash_delta,finished_at,
-            filled_amount,filled_cost,quoted_taker_rate,quoted_basic_rate
-            FROM quant.executor_orders WHERE venue='HTX' AND environment='live'
-            AND status='done' AND notified_at IS NULL
-            ORDER BY finished_at,client_id LIMIT 20""")
-        rows = cur.fetchall()
-    fills = [r for r in rows if r[4] or r[5]]
-    if rows and (not fills or send(int(chat_id), format_fills(
-            fills, store.budget('trend', month), store.budget('dca', month)))):
-        with conn.cursor() as cur:
-            cur.execute('UPDATE quant.executor_orders SET notified_at=now() WHERE client_id=ANY(%s)',
-                        ([r[0] for r in rows],))
-    with conn.cursor() as cur:
-        cur.execute("SELECT 1 FROM quant.executor_funding WHERE venue='HTX' "
-                    "AND environment='live' AND month=%s", (month,))
-        funded = cur.fetchone() is not None
-    if not funded and state.get('htx_funding_reminder') != month.isoformat():
-        if send(int(chat_id), f'📅 HTX {month:%Y-%m} 月度入金提醒\n'
-                '本月 200 USDT 尚未确认（趋势 100 / BTC 定投 100）。'
-                '到账并登记预算后才能使用新资金；趋势卖出回款仍可复用。'):
-            state['htx_funding_reminder'] = month.isoformat()
+    connections = state.setdefault('runner_notifications', {})
+    for row in runner_reports(conn, chat_id):
+        identity, label, _, report = row
+        if not report:
+            continue
+        key = str(identity)
+        cursor = connections.get(key)
+        fills = sorted(report['fills'], key=lambda f: (f['finished_at'], f['client_id']))
+        health = report_health(row, now)
+        if cursor is None:
+            # Imported historical fills must not be announced as newly executed trades.
+            cursor = {'seen': [f['client_id'] for f in fills], 'health': 'healthy'}
+            connections[key] = cursor
+        if cursor['health'] != health:
+            if health == 'healthy':
+                text = '✅ HTX runner reporting recovered.'
+            elif health in ('stale', 'missing'):
+                text = ('⚠️ HTX runner reports are unavailable or over 5 minutes old. '
+                        'This does not establish whether local execution has stopped.')
+            else:
+                text = ('⚠️ HTX local runner reports status: ' + escape(health) +
+                        '. Check your local runner before taking action.')
+            if send(int(chat_id), text + '\n' + escape(label)):
+                cursor['health'] = health
+        unseen = [f for f in fills if f['client_id'] not in cursor['seen']]
+        if unseen and send(int(chat_id), escape(label) + '\n' + format_fills(
+                unseen, report['trend_available_usdt'], report['dca_available_usdt'])):
+            cursor['seen'].extend(f['client_id'] for f in unseen)
+        # Reports contain the most recent 50 fills. Keep retry IDs and this window only.
+        current = {f['client_id'] for f in fills}
+        cursor['seen'] = [cid for cid in cursor['seen'] if cid in current]

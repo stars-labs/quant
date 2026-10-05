@@ -144,19 +144,3 @@ def test_equity_session_ok_with_bars_in_rth():
 
 def test_equity_session_ok_off_hours_without_bars():
     assert hc.equity_session("[INFO] X.TradingNode: RUNNING", SUN)["ib:session"][0]
-
-
-def test_live_executor_health_detects_pause_and_stale_heartbeat():
-    from datetime import timedelta
-    class Conn:
-        def __init__(self,row): self.row=row
-        def cursor(self): return self
-        def __enter__(self): return self
-        def __exit__(self,*args): pass
-        def execute(self,*args): pass
-        def fetchone(self): return self.row
-    now=datetime.now(timezone.utc)
-    assert hc.probe_live_executor(Conn(None),now)=={}
-    assert hc.probe_live_executor(Conn((now,True,'ok')),now)['executor:htx'][0]
-    assert not hc.probe_live_executor(Conn((now,False,'ValueError')),now)['executor:htx'][0]
-    assert not hc.probe_live_executor(Conn((now-timedelta(minutes=6),True,'ok')),now)['executor:htx'][0]

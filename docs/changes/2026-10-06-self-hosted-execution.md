@@ -66,7 +66,12 @@ Verified implementation:
   This verifies JWT/PostgREST integration, not interactive Auth0 provider login.
 - Revoking that real connection stopped uploads while local simulation remained
   healthy. Test users, tokens and sessions were removed afterward.
-- No change to the existing personal HTX live executor in this delivery phase.
+- Personal HTX cutover: imported all six original client/exchange IDs, gross/net
+  fill movements and confirmed 200 USDT into the local SQLite journal. Read-only
+  HTX verification matches cash and each asset balance; no pending orders.
+  Local live service starts healthy, reports through the production connection
+  and survives a restart without additional fills. Server runtime HTX keys are
+  removed; only the owner-local service can use them.
 
 - SOCKS transport works from a freshly installed 0.1.1 wheel: the egress IP matches
   the HTX allowlist and real HTX public prices load through the user-owned SSH
@@ -75,15 +80,23 @@ Verified implementation:
 - Public transport-fix release `runner-v0.1.1` is published; its wheel returns HTTP
   200 and both corresponding GitHub Actions runs passed.
 
-Still required: personal HTX migration with preserved accounting and Telegram
-display. The personal account's
-API IP restriction requires routing its HTTPS calls through its existing own server;
-exchange credentials must remain on the machine running the new executor.
+Cutover preparation and verification:
 
-Cutover preparation: `scripts/import_htx_journal.py` imports an offline snapshot
-atomically into an empty local journal, preserves order/action/exchange identities,
-converts position names and retains the original reservation fee ceiling. It does
-not connect to HTX or submit orders. Three focused tests verify accounting,
-pending-order preservation, duplicate-import refusal and full rollback on invalid
-input. Local unittest discovery ran 55 tests: 44 passed, 11 database tests skipped
-without a disposable DSN. Production cutover has not yet been performed.
+- The offline importer refuses nonempty destinations, atomically rolls back invalid
+  snapshots and preserves pending identities. Historical orders without fee quotes
+  retain null quotes; actual fees are derived from their reconciled movements.
+- All 59 runner tests passed against disposable PostgreSQL, including operator
+  report projection, chat ownership, token isolation and retirement of hosted access.
+- Local source units `systemd/starslab-runner*.service` match installed user units.
+  The SSH tunnel is independently supervised; exchange HTTPS remains end-to-end.
+- Migration045 is applied. Production privilege checks return false for anonymous
+  and authenticated callers and true for the private dispatcher role. The personal
+  connection receives healthy live reports with six original fills.
+- NUR source commit `34f9cff` removes hosted live execution and legacy helpers;
+  dotfiles `5a46fe24` selects Gate/HTX simulation only and removes all HTX key/UID
+  environment configuration. Remote rebuilding runs under systemd with logs at
+  `/var/tmp/starslab-owner-cutover.log`.
+
+Still required: verify remote rebuild, apply migration046, verify installed
+Telegram report rendering/delivery and deployed UI labels. Do not mark the full
+change complete before those checks pass.

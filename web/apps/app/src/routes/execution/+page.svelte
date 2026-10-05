@@ -245,7 +245,7 @@
 						Starslab.
 					</p>
 					<div class="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-						{#each [['Account value', connection.report.equity_usdt], ['Cash', connection.report.cash_usdt], ['Confirmed funding', connection.report.funded_usdt], ['Actual fees', connection.report.fees_usdt]] as metric (metric[0])}
+						{#each [['Tracked equity', connection.report.equity_usdt], ['Tracked cash', connection.report.cash_usdt], ['Confirmed funding', connection.report.funded_usdt], [connection.environment === 'live' ? 'Actual fees' : 'Simulated fees', connection.report.fees_usdt]] as metric (metric[0])}
 							<div>
 								<p class="text-xs text-muted-foreground">{metric[0]}</p>
 								<p class="mt-1 text-xl font-semibold">{money(Number(metric[1]))}</p>

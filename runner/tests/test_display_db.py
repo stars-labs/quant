@@ -24,18 +24,22 @@ class DisplayDatabaseTest(unittest.TestCase):
                 DO $$ BEGIN
                     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon; END IF;
                     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN CREATE ROLE authenticated; END IF;
+                    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='quant') THEN CREATE ROLE quant; END IF;
                 END $$;
                 GRANT USAGE ON SCHEMA api,quant,auth TO anon,authenticated;
+                GRANT USAGE ON SCHEMA quant TO quant;
                 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$
                     SELECT nullif(current_setting('request.test_uid',true),'')::uuid
                 $$;
                 CREATE TABLE quant.users(id uuid PRIMARY KEY);
+                CREATE TABLE quant.telegram_links(user_id uuid REFERENCES quant.users(id),chat_id bigint);
                 INSERT INTO quant.users VALUES
                     ('00000000-0000-0000-0000-000000000001'),
                     ('00000000-0000-0000-0000-000000000002');
             """)
             migration = Path(__file__).resolve().parents[2] / 'migrations/043_runner_display_connections.sql'
             cur.execute(migration.read_text())
+            cur.execute((migration.parent / '045_runner_telegram_reports.sql').read_text())
 
     @classmethod
     def tearDownClass(cls):
@@ -59,7 +63,7 @@ class DisplayDatabaseTest(unittest.TestCase):
         self.sql('SET ROLE anon')
 
     def setUp(self):
-        self.sql('RESET ROLE; TRUNCATE quant.runner_connections')
+        self.sql('RESET ROLE; TRUNCATE quant.runner_connections,quant.telegram_links')
         self.owner(1)
         self.first = self.sql("SELECT api.create_runner_connection('My HTX','htx','live')")[0][0]
         self.report = {'version': 1, 'sequence': 1, 'observed_at': datetime.now(timezone.utc).isoformat(),
@@ -168,3 +172,40 @@ class DisplayDatabaseTest(unittest.TestCase):
         self.anonymous()
         with self.assertRaises(psycopg2.errors.InsufficientPrivilege):
             self.upload(token='0'*64)
+
+    def test_operator_projection_is_bound_owner_only_and_contains_no_token(self):
+        self.upload()
+        self.sql('RESET ROLE')
+        self.sql("INSERT INTO quant.telegram_links VALUES ('00000000-0000-0000-0000-000000000001',123)")
+        self.owner(2)
+        self.sql("SELECT api.create_runner_connection('Other owner','htx','live')")
+        self.owner(1)
+        self.sql("SELECT api.create_runner_connection('Simulation','htx','dry_run')")
+        self.sql("SELECT api.create_runner_connection('Gate','gate','live')")
+        revoked = self.sql("SELECT api.create_runner_connection('Revoked','htx','live')")[0][0]
+        self.sql('SELECT api.revoke_runner_connection(%s)', (revoked['id'],))
+        self.sql('RESET ROLE; SET ROLE quant')
+        with self.conn.cursor() as cur:
+            cur.execute('SELECT * FROM quant.operator_runner_reports(%s)', (123,))
+            self.assertEqual([column.name for column in cur.description],
+                             ['id', 'label', 'received_at', 'report'])
+            rows = cur.fetchall()
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0][0], self.first['id'])
+        self.assertEqual(rows[0][1], 'My HTX')
+        self.assertEqual(rows[0][3], self.report)
+        self.assertNotIn(self.first['upload_token'], str(rows))
+        self.assertEqual(self.sql('SELECT * FROM quant.operator_runner_reports(%s)', (456,)), [])
+
+    def test_operator_projection_permissions_deny_public_and_direct_private_table(self):
+        import psycopg2
+        for role in ('anon', 'authenticated'):
+            self.sql('RESET ROLE')
+            self.sql('SET ROLE ' + role)
+            with self.assertRaises(psycopg2.errors.InsufficientPrivilege):
+                self.sql('SELECT * FROM quant.operator_runner_reports(%s)', (123,))
+        self.sql('RESET ROLE; SET ROLE quant')
+        for statement in ('SELECT * FROM quant.runner_connections',
+                          'SELECT token_hash FROM quant.runner_connections'):
+            with self.assertRaises(psycopg2.errors.InsufficientPrivilege):
+                self.sql(statement)

@@ -1,78 +1,51 @@
-# HTX live spot operation
+# Owner-operated HTX spot execution
 
-Dedicated UID597216794 / spot73961187. User-authorized monthly contribution200 USDT: trend100, BTC DCA100. Gate and Binance stay dry-run/testnet.
+The platform publishes research signals and displays private account reports.
+The independently installed `starslab-runner` trades on the account owner's
+computer or server. Exchange credentials and the durable SQLite journal stay
+there. A display connection cannot enable trading, change budgets or submit orders.
 
-Trend entries spend at most20 USDT including fee headroom; unused capital and net exit proceeds can be reused. The initial startup follows currently open house signals. DCA daily base is100 / days in the UTC month, multiplied by today's smart-DCA units and capped at the funded monthly100. No catch-up for previous days. Orders below venue minimum are skipped. Unspent prior-month DCA stays in cash and is not reassigned to trend.
+See [the runner guide](../runner/README.md) for installation, explicit live setup,
+confirmed monthly funding, service operation and pending-order recovery.
 
-Before every actual buy or sell, authenticated CCXT fetch_trading_fee reads HTX
-GET /v2/reference/transact-fee-rate for that symbol, using actualTakerRate instead
-of a public/default VIP table. The queried effective rate is logged; missing,
-invalid or mismatched results prevent the order. Both the effective rate and basic
-takerFeeRate must fit the0.30% safety ceiling, covering discount exhaustion between
-query and fill. This ceiling is only cash headroom, never the fee charged in PnL.
-Actual finalized match fees drive net quantities/cash/PnL. Ongoing deduction pauses
-reconciliation; HT/point deductions remain unsupported and pause even when CCXT
-only exposes the base/quote component. Do not enable these without journal support.
-Read-only verification on2026-10-05 returned0.15% effective maker/taker and0.20%
-basic rates for all13 house pairs; these values are observations, not fixed settings.
-All six initial actual fills charged0.20% in base currency and deducted no HT/points.
-The0.15% advertised discounted rate therefore must not be substituted for these
-actual match fees. We have not established why the discount did not apply and do
-not change deduction settings or buy fee tokens automatically.
-The endpoint reports applicable rates, not a VIP level; do not infer the user's tier.
+## Personal deployment
 
-Migration041 records gross filled quantity/cost and pre-order effective/basic fee quotes.
-Private /trades and fill reminders show actual base/quote fees and the rate charged;
-/live shows accumulated fees valued at each fill's average price, without deducting
-them again from equity. Missing historical details are reported as unknown, not zero.
-htx_backfill_costs.py verifies historical matches against existing net movements before
-writing only missing gross metadata; it never submits orders or changes positions,
-budgets or notification acknowledgements. Historical fee quotes remain unknown.
-The overview also lists current signal targets without a matching live trend position.
+The authorized account uses monthly confirmed funding of 200 USDT: trend 100,
+BTC DCA 100, with trend sale proceeds reusable. Its runner is a game-box user
+service, `starslab-runner.service`; `starslab-runner-egress.service` carries HTTPS
+through the owner's allowlisted server. No exchange keys reside on the display
+server. Source units live in `systemd/`, installed copies in the user's systemd
+directory. Keep both copies in sync.
 
-Read-only sensitivity analysis:
-`TIMESCALE_URL=... .venv-bots/bin/python scripts/analyze_trend_fees.py --slippage-bps 0 5 10`
-(use SOPS/env injection, never put credentials in command history). Add --json for
-structured output. The tool uses a consistent read-only database snapshot and checks
-the published0.1% record before reporting fee/slippage scenarios. Results are the
-13 independent equal-weight rule sleeves at Binance signal prices, with open positions
-valued as if liquidated. They are not the100 USDT budget/20 USDT-cap HTX executor,
-cash-flow returns or realized live results, and do not include a drawdown estimate.
+Private configuration, credentials, SQLite accounting and upload-only display
+configuration live in `~/.config/starslab-runner/`. Temporary local credential
+storage remains until the owner completes their SOPS update. Do not put credentials
+in chat, git or a display report.
 
-## Funding a new month
+Check the local service with `systemctl --user status starslab-runner` and the
+runner with `starslab-runner status`. Stop the runner before confirming a new
+month's funding with `starslab-runner fund --trend 100 --dca 100`; a calendar
+change alone does not confirm a deposit. Restart it afterward. The funding command
+checks available cash and does not transfer money or submit an order.
 
-Deposit200 USDT into the dedicated spot account, then stop `quant-executor` and run the installed `htx_funding.py` on arm-002 with the executor environment (the script is next to `ccxt_executor.py` in the immutable app directory shown by `systemctl show quant-executor -p ExecStart --value`). The source copy is `scripts/htx_funding.py`. The script verifies account UID and additional free cash, records100/100 once for the current UTC month and never transfers funds or submits orders. Restart the service afterward. Calendar rollover does not invent a new deposit; trend existing capital may still recycle while DCA pauses until the new month is funded. Do not manually trade, withdraw or add assets to this account while the bot runs; journal/balance mismatch pauses trading.
+## Private displays and Telegram
 
-## Runtime secrets (temporary)
+[Your accounts](https://starslab.qzz.io/execution) shows the authenticated owner's
+allowlisted local reports. The existing Telegram bot reads those same reports for
+`/live`, `/trades` and the operator's `/me`. It never connects to HTX. A missing or
+stale report does not establish whether local execution has stopped. Disconnecting
+reporting does not stop trading: stop the local runner to stop execution.
 
-`/run/quant-htx-runtime.env` is0600, owned by nautilus, consumed only by quant-executor. It contains HTX_API_KEY and HTX_API_SECRET and disappears after reboot. Missing file prevents service startup. User requested this temporary mode before configuring SOPS.
+Fees shown are actual reconciled fill fees, including base-asset deductions converted
+at the fill price. Equity uses hourly research closes, excludes unconfirmed deposits
+and excludes future sale fees. It is an estimate, not an independently verified
+exchange statement.
 
-To replace it: add encrypted `oracle-arm-002/htx-api-key` and `oracle-arm-002/htx-api-secret` entries in dotfiles secrets/common.yaml; declare corresponding sops.secrets and an executor-only sops template exporting HTX_API_KEY/_SECRET; replace the runtime EnvironmentFile/ConditionPathExists with the SOPS template. Keep the collectors' existing DB environment file. Rebuild and verify UID/holdings after rotating the key. Never put keys in Nix source, shell history, logs or git.
+## Cutover accounting
 
-## Order recovery
-
-Every real order is preceded by a committed quant.executor_orders intent and unique client ID. Unknown HTTP results stay pending. A restart queries the existing order; it never resubmits a pending intent. Terminal actual matches, base/quote fees and ledger projection commit together. Missing details, third-currency fees, stale house bars or mismatched balances pause HTX. Partial sells preserve remaining holdings; unsellable dust remains recorded. Quant health checks monitor executor_status.
-
-Inspect `journalctl -u quant-executor`, executor_status and pending executor_orders. Never delete an unknown intent to force a retry. HTX client-ID queries have a time window: investigate against the exchange's order history before making any correction. To stop trading: `systemctl stop quant-executor` (does not sell holdings).
-
-## Verification
-
-The existing single alert dispatcher has an owner-scoped command menu. In the owner's private chat, /start
-(without a binding token), /me and /live show actual holdings, confirmed journal cash,
-budgets and PnL; /trades shows the latest10 actual fills. Queries require both the
-private chat ID and sender ID to match TELEGRAM_CHAT_ID. Other users keep their follow
-record and cannot query this account. No trading or transfer commands are exposed.
-Valuation uses cached hour-close house prices, explicitly dated; missing, future or
-older-than3h prices suppress total equity/PnL. Net fees are included in cost and cash,
-but future liquidation fees are not. Extra deposits require funding confirmation.
-
-Private Telegram reminders use the existing single alert dispatcher and TELEGRAM_CHAT_ID;
-personal HTX trades are never broadcast to signal subscribers. Confirmed fills include net
-quantity, fee-inclusive cash movements and current trend/monthly-DCA budgets. Successful
-delivery is acknowledged in executor_orders.notified_at; failed sends retry. An ambiguous
-Telegram network timeout can duplicate a reminder, but cannot submit a trade. Paused/stale
-execution and recovery are notified on transitions; missing monthly funding is reminded
-once per UTC month. The dispatcher state file retains transition/reminder acknowledgements.
-The first deployment also reports previously completed, unnotified fills as a single batch.
-
-Offline tests: tests/test_htx_live.py; PostgreSQL integration: tests/test_htx_orders_db.py with CCXT_TEST_DSN targeting an EMPTY disposable DB. Read-only credential test: scripts/htx_preflight.py. Rebuild and first-fill evidence lives in docs/changes/2026-10-05-htx-live.md.
+The offline one-time `scripts/import_htx_journal.py` utility imports the stopped
+hosted journal into an empty local journal. Original order IDs, action IDs,
+exchange IDs, net movements and funding are retained; position names are mapped
+to the local runner's names. Absent historical fee quotes stay absent. Actual fill
+fees are retained. The original hosted orders/funding are private read-only audit
+records; their public execution projection is removed without inventing a sale.

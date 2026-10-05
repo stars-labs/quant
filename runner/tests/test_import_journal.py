@@ -65,3 +65,14 @@ class ImportTests(unittest.TestCase):
                 self.assertEqual(store.pending()[0]['exchange_id'], '456')
             finally:
                 store.close()
+
+    def test_absent_historical_quote_is_preserved_without_invention(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = Journal(Path(directory) / 'journal.sqlite')
+            try:
+                snapshot = self.snapshot()
+                snapshot['orders'][0].update(quoted_taker_rate=None, quoted_basic_rate=None)
+                cutover.import_snapshot(store, snapshot, '1', '2')
+                self.assertEqual(tuple(store.db.execute('SELECT quoted_taker_rate,quoted_basic_rate FROM orders').fetchone()), (None, None))
+            finally:
+                store.close()

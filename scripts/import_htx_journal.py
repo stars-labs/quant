@@ -76,13 +76,14 @@ def import_snapshot(store, snapshot, uid, spot_id):
             else:
                 values = [None] * 4
             rates = [row.get(k) for k in ('quoted_taker_rate', 'quoted_basic_rate')]
-            if any(v is None for v in rates) or any(not 0 <= finite(v) <= .003 for v in rates):
-                raise ValueError('Missing or unsafe quoted fee')
+            if (rates[0] is None) != (rates[1] is None) or any(
+                    not 0 <= finite(v) <= .003 for v in rates if v is not None):
+                raise ValueError('Incomplete or unsafe quoted fee')
             store.db.execute('''INSERT INTO orders VALUES
                 (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
                 (row['client_id'], row['action_key'], position, row['kind'], row['asset'],
                  row['side'], requested, row['status'], row.get('exchange_id'),
-                 *map(finite, rates), *values, timestamp(row['created_at']),
+                 *(finite(v) if v is not None else None for v in rates), *values, timestamp(row['created_at']),
                  timestamp(row['finished_at']) if row['finished_at'] else None))
         if store.cash() < -1e-8 or any(h['quantity'] < -1e-12 for h in store.holdings()):
             raise ValueError('Snapshot has negative cash or holdings')
