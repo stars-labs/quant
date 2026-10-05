@@ -57,6 +57,7 @@ import psycopg2
 import psycopg2.errors
 import psycopg2.extras
 import requests
+from htx_notifications import notify_htx
 
 import market_scan
 from strategy_record import STRATEGY, assets_label, price_decimals
@@ -1011,6 +1012,7 @@ def main() -> int:
                                   (fan_out_dca_boost, (conn,)),
                                   (fan_out_daily_scan, (conn, state)),
                                   (fan_out_equity, (conn, state)),
+                                  (notify_htx, (conn, state, send, os.environ.get('TELEGRAM_CHAT_ID'))),
                                   (fan_out_user_fires, (conn,)),
                                   (fan_out_plan_reminders, (conn, state))):
                     try:

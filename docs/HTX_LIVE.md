@@ -22,4 +22,13 @@ Inspect `journalctl -u quant-executor`, executor_status and pending executor_ord
 
 ## Verification
 
+Private Telegram reminders use the existing single alert dispatcher and TELEGRAM_CHAT_ID;
+personal HTX trades are never broadcast to signal subscribers. Confirmed fills include net
+quantity, fee-inclusive cash movements and current trend/monthly-DCA budgets. Successful
+delivery is acknowledged in executor_orders.notified_at; failed sends retry. An ambiguous
+Telegram network timeout can duplicate a reminder, but cannot submit a trade. Paused/stale
+execution and recovery are notified on transitions; missing monthly funding is reminded
+once per UTC month. The dispatcher state file retains transition/reminder acknowledgements.
+The first deployment also reports previously completed, unnotified fills as a single batch.
+
 Offline tests: tests/test_htx_live.py; PostgreSQL integration: tests/test_htx_orders_db.py with CCXT_TEST_DSN targeting an EMPTY disposable DB. Read-only credential test: scripts/htx_preflight.py. Rebuild and first-fill evidence lives in docs/changes/2026-10-05-htx-live.md.

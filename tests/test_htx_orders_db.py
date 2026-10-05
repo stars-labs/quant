@@ -89,6 +89,23 @@ def check_orders(conn):
     assert store.budget('dca',next_month)==0  # No imaginary deposit at rollover.
     assert abs(store.budget('trend',next_month)-103.97)<1e-8  # Reusable capital only.
     assert abs(store.expected_cash()-183.95)<1e-8
+    from htx_notifications import notify_htx
+    with conn.cursor() as cur:
+        cur.execute((root/'migrations/040_executor_notifications.sql').read_text())
+        cur.execute("INSERT INTO quant.executor_status VALUES ('HTX',now(),true,'ok')")
+    state, messages = {}, []
+    notify_htx(conn,state,lambda *args: False,123)
+    with conn.cursor() as cur:
+        cur.execute("SELECT count(*) FROM quant.executor_orders WHERE notified_at IS NOT NULL")
+        assert cur.fetchone()[0] == 0
+    def deliver(chat,text):
+        messages.append(text)
+        return True
+    notify_htx(conn,state,deliver,123)
+    assert len(messages)==1 and 'HTX 实盘成交' in messages[0]
+    notify_htx(conn,{},deliver,123)
+    assert len(messages)==1  # Database acknowledgement survives dispatcher restart.
+    print('Notification PostgreSQL checks passed: migration, failed delivery retry, restart deduplication')
     print('Live journal PostgreSQL checks passed: budgets, fees, partial exit, replay, rollback, lock, month rollover')
 
 
