@@ -12,15 +12,17 @@ So execution is just "market buy / market sell on venue X" — ccxt's unified AP
 
 Venues: EXEC_VENUES="gate:dry_run,htx:dry_run" — mode per venue:
   dry_run  public data only: fills are simulated at the live top of book with the venue's taker
-           fee. Default, and the only option for HTX (no testnet).
+           fee. Default on every venue (HTX has no testnet).
   testnet  ccxt sandbox (Gate has a spot testnet); needs <VENUE>_API_KEY / <VENUE>_API_SECRET.
-  live     real money. Refused unless EXEC_ALLOW_LIVE=1 (guardrail: crypto stays testnet).
+  live     HTX funded spot only; requires EXEC_ALLOW_LIVE=1, an explicit funded month,
+           HTX_SUBACCOUNT_UID / HTX_SPOT_ACCOUNT_ID and the durable order journal.
 Ledger: quant.nautilus_trades rows (venue = GATE/HTX, environment = mode), trader_id
 FOLLOW-<VENUE> (trend) / DCA-<VENUE> (dca) — /nautilus shows them; restarts resume from the
-open rows, so a restart never sells or re-buys.
+open rows. HTX live orders use executor_orders for restart-safe reconciliation.
 
 Env: TIMESCALE_URL, EXEC_VENUES, TREND_NOTIONAL_USDT (500), DCA_BASE_USDT (100),
-     EXEC_POLL_SECS (60), EXEC_ALLOW_LIVE.
+     EXEC_POLL_SECS (60), EXEC_ALLOW_LIVE, HTX_SUBACCOUNT_UID, HTX_SPOT_ACCOUNT_ID.
+HTX live: per-entry20 USDT; funded monthly trend100 + DCA100, net trend proceeds recyclable.
 Run: python strategies/ccxt_executor.py [--once]
 """
 
@@ -121,6 +123,8 @@ class Venue:
         return float((lim.get("cost") or {}).get("min") or 0.0)
 
     def buy(self, asset: str, notional: float) -> Fill | None:
+        if self.mode == 'live':
+            raise RuntimeError('Live orders require the funded HTX journal')
         sym = self.symbol(asset)
         if notional < self._min_cost(asset):
             log(f"{self.label} {asset}: {notional:.2f} USDT is below the minimum order")
@@ -138,6 +142,8 @@ class Venue:
         return self._filled(order)
 
     def sell(self, asset: str, qty: float) -> Fill | None:
+        if self.mode == 'live':
+            raise RuntimeError('Live orders require the funded HTX journal')
         sym = self.symbol(asset)
         if self.mode == "dry_run":
             bid = float(self.ex.fetch_ticker(sym)["bid"])
@@ -273,6 +279,8 @@ def main() -> int:
     venues = [Venue(n, m) for n, m in parse_venues(
         os.environ.get("EXEC_VENUES", "gate:dry_run,htx:dry_run"),
         os.environ.get("EXEC_ALLOW_LIVE") == "1")]
+    if any(v.mode=='live' and v.name!='htx' for v in venues):
+        raise ValueError('Live execution supports funded HTX spot only')
     notional = float(os.environ.get("TREND_NOTIONAL_USDT", "500"))
     dca_base = float(os.environ.get("DCA_BASE_USDT", "100"))
     poll = int(os.environ.get("EXEC_POLL_SECS", "60"))
@@ -280,20 +288,43 @@ def main() -> int:
 
     import psycopg2
     conn = None
+    live_runners = {}
     while True:
         try:
             if conn is None or conn.closed:
                 conn = psycopg2.connect(dsn)
                 conn.autocommit = True
+                live_runners = {}
             ledger = Ledger(conn)
             for v in venues:
+                if v.mode == 'live':
+                    healthy, detail = False, 'initializing'
+                    try:
+                        if v.name not in live_runners:
+                            from htx_live import LiveHTX
+                            live_runners[v.name] = LiveHTX(v,conn,log)
+                        live_runners[v.name].tick()
+                        healthy = not live_runners[v.name].store.pending()
+                        detail = 'ok' if healthy else 'unfinished order'
+                    except Exception as e:
+                        # Signed exchange URLs may contain credentials; log types only.
+                        log(f'{v.label}/live paused: {type(e).__name__}')
+                        detail = type(e).__name__
+                    with conn.cursor() as cur:
+                        cur.execute("INSERT INTO quant.executor_status (venue,healthy,detail) "
+                                    "VALUES (%s,%s,%s) ON CONFLICT (venue) DO UPDATE SET "
+                                    "checked_at=now(),healthy=EXCLUDED.healthy,detail=EXCLUDED.detail",
+                                    (v.label,healthy,detail))
+                    continue
                 for job, arg in ((run_trend, notional), (run_dca, dca_base)):
                     try:
                         job(conn, v, ledger, arg)
                     except Exception as e:  # noqa: BLE001
                         log(f"{v.label} {job.__name__} failed: {e!r}")
         except Exception as e:  # noqa: BLE001
-            log(f"loop error: {e!r}")
+            log(f"loop error: {type(e).__name__}")
+            if conn is not None:
+                conn.close()
             conn = None
         if args.once:
             return 0
@@ -301,4 +332,9 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except Exception as exc:
+        # Startup errors from signed exchange requests must not expose credentials.
+        print(f'Executor startup failed ({type(exc).__name__})',file=sys.stderr)
+        sys.exit(1)

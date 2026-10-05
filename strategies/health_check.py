@@ -134,6 +134,17 @@ def probe_freshness(conn, now: datetime) -> dict:
     return out
 
 
+def probe_live_executor(conn, now: datetime) -> dict:
+    with conn.cursor() as cur:
+        cur.execute("SELECT checked_at,healthy,detail FROM quant.executor_status WHERE venue='HTX'")
+        row = cur.fetchone()
+    if row is None:
+        return {}  # Live not activated yet.
+    age = (now-row[0]).total_seconds()/60
+    return {'executor:htx': (row[1] and age<=5, 'HTX live executor',
+                             row[2] if age<=5 else f'No check for {age:.0f} minutes')}
+
+
 def probe_urls() -> dict:
     out = {}
     for cid, label, url in SERVER_URLS:
@@ -302,6 +313,7 @@ def collect(role: str, host: str, write: bool = True) -> dict:
         try:
             if role == "server":
                 results.update(probe_freshness(conn, now))
+                results.update(probe_live_executor(conn, now))
             failing = sorted(k for k, v in results.items() if not v[0])
             results.update(heartbeat(conn, role, host, failing, cfg["peer"], now, write))
         finally:

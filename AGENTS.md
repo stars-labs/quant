@@ -221,7 +221,7 @@ new service/table to its lists when you add one. `--dry-run` prints results and 
   `services.quant-collectors.executorVenues` (`<ccxt id>:<dry_run|testnet|live>`, default
   `gate:dry_run,htx:dry_run`). dry_run = simulated fills at the live top of book (HTX has no testnet);
   testnet needs `<VENUE>_API_KEY/_SECRET` (Gate spot testnet); live is refused unless
-  `EXEC_ALLOW_LIVE=1`. Ledger rows: `quant.nautilus_trades` with venue GATE/HTX, environment = mode,
+  `EXEC_ALLOW_LIVE=1` and uses the funded HTX journal (migration039). Ledger rows: `quant.nautilus_trades` with venue GATE/HTX, environment = mode,
   trader_id `FOLLOW-<VENUE>` / `DCA-<VENUE>`. ccxt is packaged in nur `pkgs/ccxt` (not in nixpkgs).
 - Module changes need: commit+push nur-packages (`git add` new files — flakes ignore untracked ones) → `nix flake update xiongchenyu6` in dotfiles →
   `NIXPKGS_ALLOW_INSECURE=1 nixos-rebuild switch --flake .#oracle-arm-002 --build-host root@oracle-arm-002 --target-host root@oracle-arm-002 --impure`.
@@ -273,7 +273,13 @@ The crypto bots `quant-event-dca`/`quant-reactor`/`quant-dca` were **retired** (
 
 ## Guardrails (hard)
 
-- All crypto stays **testnet/dry-run**; IB stays **paper**. `DCA_LIVE_ENABLED` empty/false.
+- Binance and Gate stay **testnet/dry-run**; IB stays **paper**. `DCA_LIVE_ENABLED` empty/false.
+- User authorized HTX spot live on 2026-10-05, dedicated UID 597216794 / spot account 73961187:
+  monthly confirmed trend100 + BTC DCA100 USDT, trend net proceeds recyclable;20/entry.
+  `htx_live.py` / `htx_order_store.py` journal intents before submitting; unknown orders pause,
+  never resubmit. `executor_funding` credits require confirmed deposit (`scripts/htx_funding.py`,
+  stop executor before running); no automatic calendar credits. Migration039. Temporary keys
+  are in arm-002 `/run/quant-htx-runtime.env`,0600; disappear on reboot until migrated to SOPS.
 - Binance EXECUTION on Nautilus requires an **Ed25519** key (HMAC/RSA fail at session.logon).
 - Data-only mainnet nodes must pass **no** Binance key (a placeholder → -2008 → 0 instruments).
 - Never commit plaintext secrets, venvs, or generated data/catalogs/reports. Commit/push only when asked.
