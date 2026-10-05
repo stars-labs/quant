@@ -6,7 +6,7 @@ Trend entries spend at most20 USDT including fee headroom; unused capital and ne
 
 ## Funding a new month
 
-Deposit200 USDT into the dedicated spot account, then stop `quant-executor` and run `scripts/htx_funding.py` on arm-002 with its environment. The script verifies account UID and additional free cash, records100/100 once for the current UTC month and never transfers funds or submits orders. Restart the service afterward. Calendar rollover does not invent a new deposit; trend existing capital may still recycle while DCA pauses until the new month is funded. Do not manually trade, withdraw or add assets to this account while the bot runs; journal/balance mismatch pauses trading.
+Deposit200 USDT into the dedicated spot account, then stop `quant-executor` and run the installed `htx_funding.py` on arm-002 with the executor environment (the script is next to `ccxt_executor.py` in the immutable app directory shown by `systemctl show quant-executor -p ExecStart --value`). The source copy is `scripts/htx_funding.py`. The script verifies account UID and additional free cash, records100/100 once for the current UTC month and never transfers funds or submits orders. Restart the service afterward. Calendar rollover does not invent a new deposit; trend existing capital may still recycle while DCA pauses until the new month is funded. Do not manually trade, withdraw or add assets to this account while the bot runs; journal/balance mismatch pauses trading.
 
 ## Runtime secrets (temporary)
 
