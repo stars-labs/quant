@@ -16,7 +16,7 @@ OWNER = {'chat': {'id': 123, 'type': 'private'}, 'from': {'id': 123}}
 class DB:
     def __init__(self):
         self.price = ('BTC', 110, NOW, NOW)
-        self.rows = [('one', 'trend', 'BTC', 'buy', .2, -20, NOW)]
+        self.rows = [('one', 'trend', 'BTC', 'buy', .2, -20, NOW, .2004, 20, .0015, .002)]
         self.status = (NOW, True, 'ok')
     def cursor(self): return self
     def __enter__(self): return self
@@ -24,6 +24,8 @@ class DB:
     def execute(self, sql, params=None):
         if 'executor_status' in sql: self.result = [self.status] if self.status else []
         elif 'strategy_assets' in sql: self.result = [self.price] if self.price else []
+        elif 'strategy_signals' in sql: self.result = [(1,'BTC'), (2,'SOL')]
+        elif 'SELECT side,asset_delta' in sql: self.result = [('buy',.2,-20,.2004,20)]
         elif 'executor_funding' in sql: self.result = [(200,)]
         elif 'count(*)' in sql: self.result = [(0,)]
         elif 'executor_orders' in sql: self.result = self.rows
@@ -34,7 +36,7 @@ class DB:
 
 def text(db):
     # Trend bought .4BTC for40, sold half for22 -> +2 realized; DCA owns .1 for10.
-    holdings = [Holding('trend', 'trend', 'BTC', .2, .4, 40, 22, NOW),
+    holdings = [Holding('HTX-signal-1', 'trend', 'BTC', .2, .4, 40, 22, NOW),
                 Holding('dca', 'dca', 'BTC', .1, .1, 10, 0, NOW)]
     with patch.object(ha.OrderStore, 'holdings', return_value=holdings), \
          patch.object(ha.OrderStore, 'expected_cash', return_value=172), \
@@ -48,6 +50,8 @@ def test_actual_net_account_and_shared_btc():
     assert '已实现盈亏（含手续费）：+2.00' in result
     assert '估算总资产：205.00' in result and '累计总盈亏：+5.00' in result
     assert '账本现金：172.00' in result and '小时收盘价' in result
+    assert '累计实扣手续费' in result and '当前有信号、尚未建仓：SOL' in result
+    assert '尚未建仓：BTC' not in result
 
 
 def test_stale_missing_nan_future_marks_hide_total():

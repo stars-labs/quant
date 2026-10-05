@@ -11,7 +11,7 @@ NOW = datetime(2026, 10, 5, 12, tzinfo=timezone.utc)
 class DB:
     def __init__(self):
         self.status = (NOW, True, 'ok')
-        self.rows = [('one', 'trend', 'BTC', 'buy', .001, -20, NOW)]
+        self.rows = [('one', 'trend', 'BTC', 'buy', .001, -20, NOW, .001002, 20, .0015, .002)]
         self.funded = True
         self.marked = []
     def cursor(self): return self
@@ -81,8 +81,8 @@ def test_no_live_or_operator_no_send():
 
 def test_sale_and_zero_fill():
     db = DB()
-    db.rows = [('sale', 'trend', 'ETH', 'sell', -.1, 25.5, NOW),
-               ('zero', 'dca', 'BTC', 'buy', 0, 0, NOW)]
+    db.rows = [('sale', 'trend', 'ETH', 'sell', -.1, 25.5, NOW, .1, 25.5, .0015, .002),
+               ('zero', 'dca', 'BTC', 'buy', 0, 0, NOW, 0, 0, .0015, .002)]
     text = run(db, {})[0]
     assert '卖出' in text and '净回款 25.5000' in text and '定投' not in text.split('当前')[0]
     assert db.marked == ['sale', 'zero']

@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 import math
+from htx_fill_costs import fee_details
 
 
 @dataclass
@@ -37,13 +38,14 @@ class OrderStore:
                         "AND environment='live' AND action_key=%s", (key,))
             return cur.fetchone() is not None
 
-    def reserve(self, cid, kind, asset, side, action, position, requested):
+    def reserve(self, cid, kind, asset, side, action, position, requested, taker, basic):
         with self.conn.cursor() as cur:
             cur.execute("""INSERT INTO quant.executor_orders
-                (client_id,venue,environment,kind,asset,side,action_key,position_key,requested)
-                VALUES (%s,'HTX','live',%s,%s,%s,%s,%s,%s)
+                (client_id,venue,environment,kind,asset,side,action_key,position_key,requested,
+                 quoted_taker_rate,quoted_basic_rate)
+                VALUES (%s,'HTX','live',%s,%s,%s,%s,%s,%s,%s,%s)
                 ON CONFLICT (venue,environment,action_key) DO NOTHING RETURNING client_id""",
-                (cid, kind, asset, side, action, position, requested))
+                (cid, kind, asset, side, action, position, requested, taker, basic))
             return cur.fetchone() is not None
 
     def set_exchange_id(self, cid, oid):
@@ -91,7 +93,7 @@ class OrderStore:
                         "WHERE venue='HTX' AND environment='live' AND status='done'")
             return credit + float(cur.fetchone()[0])
 
-    def finish(self, cid, asset_delta, cash_delta):
+    def finish(self, cid, asset_delta, cash_delta, amount, cost):
         # Mark application and update the public execution ledger in ONE transaction.
         # A crash before commit leaves a pending intent to re-query, not a new order.
         with self.conn:
@@ -101,6 +103,7 @@ class OrderStore:
                 status, key, side, requested = cur.fetchone()
                 if status == 'done':
                     return
+                fee_details(side,asset_delta,cash_delta,amount,cost)
                 if not math.isfinite(asset_delta) or not math.isfinite(cash_delta):
                     raise ValueError('Non-finite order movements')
                 if side=='buy' and (asset_delta<0 or cash_delta>0 or -cash_delta>float(requested)*1.003+1e-8):
@@ -108,8 +111,8 @@ class OrderStore:
                 if side=='sell' and (asset_delta>0 or cash_delta<0 or -asset_delta>float(requested)*1.003+1e-12):
                     raise ValueError('Fill exceeds reserved sale quantity')
                 cur.execute("UPDATE quant.executor_orders SET status='done',asset_delta=%s, "
-                            "cash_delta=%s,finished_at=now() WHERE client_id=%s",
-                            (asset_delta,cash_delta,cid))
+                            "cash_delta=%s,filled_amount=%s,filled_cost=%s,finished_at=now() "
+                            "WHERE client_id=%s", (asset_delta,cash_delta,amount,cost,cid))
                 if asset_delta == 0 and cash_delta == 0:
                     return
                 h = next(h for h in self.holdings() if h.key == key)

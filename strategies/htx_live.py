@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from htx_order_store import OrderStore
 
 
-def account_taker_fee(ex, symbol):
+def account_fee_rates(ex, symbol):
     """Authenticated symbol-specific effective fee, never a public/default tier."""
     result = ex.fetch_trading_fee(symbol)
     if result.get('symbol') != symbol:
@@ -23,7 +23,7 @@ def account_taker_fee(ex, symbol):
         raise ValueError('Missing account taker fee') from None
     if any(not math.isfinite(v) or v < 0 or v > 0.003 for v in (rate, basic)):
         raise ValueError('Taker fee exceeds reserved headroom')
-    return rate
+    return rate,basic
 
 
 def fill_deltas(order, trades):
@@ -127,7 +127,9 @@ class LiveHTX:
                 continue
             trades = self.ex.fetch_order_trades(order['id'],symbol) if order.get('filled') else []
             asset_delta, cash_delta = fill_deltas(order,trades)
-            self.store.finish(cid,asset_delta,cash_delta)
+            self.store.finish(cid,asset_delta,cash_delta,
+                              float(order.get('filled') or 0),
+                              float(order.get('cost') or 0) if order.get('filled') else 0)
             self.log(f'HTX/live {side} {asset} reconciled: asset={asset_delta:g} cash={cash_delta:.8f} id={order["id"]}')
         return not self.store.pending()
 
@@ -162,10 +164,10 @@ class LiveHTX:
             bid = float(self.ex.fetch_ticker(symbol)['bid'])
             if requested*bid < minimum:
                 return  # Preserve dust rather than falsely closing the holding.
-        fee = account_taker_fee(self.ex, symbol)
+        fee,basic = account_fee_rates(self.ex, symbol)
         self.log(f'HTX/live {symbol} account taker fee={fee:.6%} (queried before {side})')
         cid = 'q' + uuid.uuid4().hex[:30]
-        if not self.store.reserve(cid,kind,asset,side,action,position,requested):
+        if not self.store.reserve(cid,kind,asset,side,action,position,requested,fee,basic):
             return
         params = {'clientOrderId':cid,'account-id':self.account_id}
         # Any exception remains journaled as pending. Never auto-resubmit.

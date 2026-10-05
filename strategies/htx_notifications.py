@@ -4,17 +4,30 @@ from datetime import datetime, timedelta, timezone
 from html import escape
 
 from htx_order_store import OrderStore
+from htx_fill_costs import fee_details, quantity
 
 
 def format_fills(rows, trend, dca):
     lines = ['<b>HTX 实盘成交</b>（金额已计手续费）']
-    for cid, kind, asset, side, qty, cash, finished in rows:
+    for cid, kind, asset, side, qty, cash, finished, amount, cost, taker, basic in rows:
         label = '趋势' if kind == 'trend' else '定投'
         action = '买入' if side == 'buy' else '卖出'
         movement = '支出' if side == 'buy' else '净回款'
         stamp = finished.astimezone(timezone.utc).strftime('%m-%d %H:%M UTC')
-        lines.append(f'{stamp} · {label} {action} {abs(float(qty)):.10g} '
+        lines.append(f'{stamp} · {label} {action} {quantity(qty)} '
                      f'{escape(asset)} · {movement} {abs(float(cash)):.4f} USDT')
+        if amount is None or cost is None:
+            lines.append('手续费明细待核对')
+            continue
+        base_fee,quote_fee,equivalent,rate = fee_details(side,qty,cash,amount,cost)
+        parts = ([f'{quantity(base_fee)} {escape(asset)}'] if base_fee else [])
+        if quote_fee:
+            parts.append(f'{quantity(quote_fee)} USDT')
+        lines.append('手续费：' + (' + '.join(parts) or '0') +
+                     f'（成交均价折算 {equivalent:.4f} USDT，实扣 {rate:.3%}）')
+        if taker is not None and basic is not None:
+            lines.append(f'下单查询：折后 {float(taker):.3%} / 基础 {float(basic):.3%}' +
+                         ('；实扣高于折后报价' if rate>float(taker)+1e-8 else ''))
     lines.append(f'当前可用预算：趋势 {trend:.2f} USDT / 本月定投 {dca:.2f} USDT')
     return '\n'.join(lines)
 
@@ -45,7 +58,8 @@ def notify_htx(conn, state, send, chat_id, now=None):
     store = OrderStore.__new__(OrderStore)
     store.conn = conn
     with conn.cursor() as cur:
-        cur.execute("""SELECT client_id,kind,asset,side,asset_delta,cash_delta,finished_at
+        cur.execute("""SELECT client_id,kind,asset,side,asset_delta,cash_delta,finished_at,
+            filled_amount,filled_cost,quoted_taker_rate,quoted_basic_rate
             FROM quant.executor_orders WHERE venue='HTX' AND environment='live'
             AND status='done' AND notified_at IS NULL
             ORDER BY finished_at,client_id LIMIT 20""")

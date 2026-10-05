@@ -21,6 +21,24 @@ actual match fees. We have not established why the discount did not apply and do
 not change deduction settings or buy fee tokens automatically.
 The endpoint reports applicable rates, not a VIP level; do not infer the user's tier.
 
+Migration041 records gross filled quantity/cost and pre-order effective/basic fee quotes.
+Private /trades and fill reminders show actual base/quote fees and the rate charged;
+/live shows accumulated fees valued at each fill's average price, without deducting
+them again from equity. Missing historical details are reported as unknown, not zero.
+htx_backfill_costs.py verifies historical matches against existing net movements before
+writing only missing gross metadata; it never submits orders or changes positions,
+budgets or notification acknowledgements. Historical fee quotes remain unknown.
+The overview also lists current signal targets without a matching live trend position.
+
+Read-only sensitivity analysis:
+`TIMESCALE_URL=... .venv-bots/bin/python scripts/analyze_trend_fees.py --slippage-bps 0 5 10`
+(use SOPS/env injection, never put credentials in command history). Add --json for
+structured output. The tool uses a consistent read-only database snapshot and checks
+the published0.1% record before reporting fee/slippage scenarios. Results are the
+13 independent equal-weight rule sleeves at Binance signal prices, with open positions
+valued as if liquidated. They are not the100 USDT budget/20 USDT-cap HTX executor,
+cash-flow returns or realized live results, and do not include a drawdown estimate.
+
 ## Funding a new month
 
 Deposit200 USDT into the dedicated spot account, then stop `quant-executor` and run the installed `htx_funding.py` on arm-002 with the executor environment (the script is next to `ccxt_executor.py` in the immutable app directory shown by `systemctl show quant-executor -p ExecStart --value`). The source copy is `scripts/htx_funding.py`. The script verifies account UID and additional free cash, records100/100 once for the current UTC month and never transfers funds or submits orders. Restart the service afterward. Calendar rollover does not invent a new deposit; trend existing capital may still recycle while DCA pauses until the new month is funded. Do not manually trade, withdraw or add assets to this account while the bot runs; journal/balance mismatch pauses trading.

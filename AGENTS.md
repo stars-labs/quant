@@ -229,6 +229,12 @@ new service/table to its lists when you add one. `--dry-run` prints results and 
   `htx_notifications.py` acknowledges real fills via migration040 `notified_at`.
   Valuation uses cached hour-close prices; incomplete/stale prices suppress total PnL.
   Never add a second Telegram poller or give the dispatcher HTX trading credentials.
+  Migration041 captures gross fills and pre-order fee quotes; `htx_fill_costs.py`
+  derives actual base/quote fees for private TG, without subtracting fees twice.
+  `scripts/htx_backfill_costs.py` verifies exchange matches before adding missing metadata;
+  it never changes net movements or submits orders. `scripts/analyze_trend_fees.py`
+  is read-only sensitivity of the13 equal-weight rule sleeves, calibrated against
+  strategy_record; it is not a simulation of the small funded HTX executor.
 - Module changes need: commit+push nur-packages (`git add` new files — flakes ignore untracked ones) → `nix flake update xiongchenyu6` in dotfiles →
   `NIXPKGS_ALLOW_INSECURE=1 nixos-rebuild switch --flake .#oracle-arm-002 --build-host root@oracle-arm-002 --target-host root@oracle-arm-002 --impure`.
 - The nur overlay is NOT global on hosts → reference packages as

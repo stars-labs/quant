@@ -5,7 +5,7 @@ import sys
 from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'strategies'))
-from htx_live import LiveHTX, account_taker_fee, check_balances, fill_deltas
+from htx_live import LiveHTX, account_fee_rates, check_balances, fill_deltas
 
 
 def order(side='buy', filled=0.01, cost=600, status='closed'):
@@ -20,15 +20,15 @@ def trade(amount=0.01, cost=600, currency='BTC', fee=0.00002):
 def test_authenticated_effective_fee_not_basic_rate():
     ex = SimpleNamespace(fetch_trading_fee=lambda symbol: {
         'symbol': symbol, 'taker': .0015, 'info': {'takerFeeRate': '.002'}})
-    assert account_taker_fee(ex, 'BTC/USDT') == .0015
+    assert account_fee_rates(ex, 'BTC/USDT') == (.0015,.002)
     ex.fetch_trading_fee = lambda symbol: {'symbol': symbol, 'taker': 0}
-    assert account_taker_fee(ex, 'BTC/USDT') == 0
+    assert account_fee_rates(ex, 'BTC/USDT') == (0,0)
 
 
 def test_match_fee_overrides_advertised_discount_for_net_holdings():
     ex = SimpleNamespace(fetch_trading_fee=lambda symbol: {
         'symbol': symbol, 'taker': .0015, 'info': {'takerFeeRate': '.002'}})
-    assert account_taker_fee(ex, 'BTC/USDT') == .0015
+    assert account_fee_rates(ex, 'BTC/USDT') == (.0015,.002)
     qty, cash = fill_deltas(order(), [trade(fee=.00002)])
     assert math.isclose(qty,.01*(1-.002)) and cash == -600
     assert not math.isclose(qty,.01*(1-.0015))
@@ -37,18 +37,18 @@ def test_match_fee_overrides_advertised_discount_for_net_holdings():
 def test_bad_account_fee_never_falls_back_to_default():
     for rate in [None, float('nan'), float('inf'), -.001, .0031]:
         ex = SimpleNamespace(fetch_trading_fee=lambda symbol: {'symbol': symbol, 'taker': rate})
-        rejects(lambda: account_taker_fee(ex, 'BTC/USDT'), 'fee')
+        rejects(lambda: account_fee_rates(ex, 'BTC/USDT'), 'fee')
     ex.fetch_trading_fee = lambda symbol: {'symbol': 'ETH/USDT', 'taker': .0015}
-    rejects(lambda: account_taker_fee(ex, 'BTC/USDT'), 'symbol mismatch')
+    rejects(lambda: account_fee_rates(ex, 'BTC/USDT'), 'symbol mismatch')
     ex.fetch_trading_fee = lambda symbol: {
         'symbol': symbol, 'taker': .0015, 'info': {'takerFeeRate': '.004'}}
-    rejects(lambda: account_taker_fee(ex, 'BTC/USDT'), 'headroom')
+    rejects(lambda: account_fee_rates(ex, 'BTC/USDT'), 'headroom')
 
 
 def test_fee_api_timeout_never_uses_a_cached_public_rate():
     def timeout(symbol): raise TimeoutError()
     try:
-        account_taker_fee(SimpleNamespace(fetch_trading_fee=timeout), 'BTC/USDT')
+        account_fee_rates(SimpleNamespace(fetch_trading_fee=timeout), 'BTC/USDT')
     except TimeoutError:
         return
     raise AssertionError('Fee query failure must propagate')
@@ -176,7 +176,7 @@ class FakeStore:
     def set_exchange_id(self, cid, oid):
         self.rows = [(c, a, s, oid if c == cid else o) for c, a, s, o in self.rows]
 
-    def finish(self, cid, qty, cash):
+    def finish(self, cid, qty, cash, amount, cost):
         self.finished.append((cid, qty, cash))
         self.rows = [r for r in self.rows if r[0] != cid]
 
@@ -266,7 +266,7 @@ def test_submit_timeout_persists_intent_and_recovery_never_recreates():
     obj.store.rows = []
     obj.account_id = 'account7'
     calls = []
-    def reserve(cid, kind, asset, side, action, position, requested):
+    def reserve(cid, kind, asset, side, action, position, requested, taker, basic):
         obj.store.rows.append((cid, asset, side, None))
         return True
     obj.store.reserve = reserve
