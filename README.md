@@ -2,7 +2,7 @@
 
 **English** · [中文](README.zh-CN.md)
 
-> Crypto + US-equity quant trading & research on **[NautilusTrader](https://nautilustrader.io)**, with a live public dashboard.
+> Open-source quant research, a private account dashboard, and **user-hosted HTX spot execution**. NautilusTrader powers the Binance research and IB paper engines.
 > Built for research and learning — **not** a "get rich" button. All trading runs on **testnet / paper** by default.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -10,7 +10,7 @@
 [![NautilusTrader 1.227](https://img.shields.io/badge/NautilusTrader-1.227-green.svg)](https://nautilustrader.io)
 [![Dashboard](https://img.shields.io/badge/live-starslab.qzz.io-8a5cf6.svg)](https://starslab.qzz.io)
 
-> **History:** this repo began as a freqtrade strategy collection; it migrated fully to a single NautilusTrader stack in 2026 (freqtrade removed). Some legacy directories remain for historical data/reports.
+> **History:** this repo began as a freqtrade strategy collection. Freqtrade is removed; NautilusTrader powers Binance and IB, and the standalone ccxt runner handles user-hosted HTX execution.
 
 ---
 
@@ -18,13 +18,14 @@
 
 - **For education and research only.** Trading carries high risk; you can lose your entire capital.
 - All strategy parameters, backtests, and architecture reflect the author's personal risk appetite — not advice, and not necessarily suitable for you.
-- **Do not run live without understanding the code.** Crypto stays on **testnet/dry-run** and IB stays on a **paper** account throughout this repo.
+- **Do not run live without understanding the code.** The user-hosted HTX runner defaults to simulation and requires explicit local authorization for live spot orders. Binance research nodes stay on testnet and IB stays on paper.
 - This is a tools / signals / dashboard project — never managed money or pooled funds.
 
 ---
 
 ## ✨ What's inside
 
+- **User-hosted HTX execution** (`runner/`) — local exchange keys, SQLite recovery journal, confirmed monthly funding and actual fill fees. [Install and operate your runner](runner/README.md); [connect a private display](https://starslab.qzz.io/execution).
 - **Crypto engine** (`nautilus_crypto/`, Binance testnet) — a smart-DCA **accumulator** (Fear & Greed–scaled buys), a **Donchian** trend follower, and a **signal layer** that pushes spike/dip Telegram alerts off mainnet public data.
 - **US-equity engine** (`nautilus_equity/`, Interactive Brokers paper) — the **HonestTrend** EMA/ADX strategy live on an IB paper account (delayed market data), walk-forward validated.
 - **Options research** (`nautilus_options/`) — Deribit cash-secured-put backtests (researched, not deployed).
@@ -41,18 +42,20 @@ External market APIs are **never called from the browser/Cloudflare** (Binance b
 ```
 collectors (Python)            TimescaleDB @ oracle-arm-002          web (Cloudflare Workers)
 strategies/*_collector.py  ──▶  quant.*  ──(PostgREST api.* views)──▶  SvelteKit reads api.panda.qzz.io
-nautilus live nodes            (+ Supabase: auth + realtime)          starslab.qzz.io
+testnet research nodes        (+ Auth0 identity)                     starslab.qzz.io
+user-owned HTX runner  ──upload-only display reports────────────────▶ private account displays
 ```
 
 - **Live trading nodes** run as system services on **oracle-arm-002** (crypto: accumulator / trend / signal, all testnet) and on a local box (the US-equity IB-paper node + monitoring timers).
-- **Data layer**: TimescaleDB (schema `quant`) exposed read-only via **PostgREST** `api.*` views; **Supabase** provides auth (GoTrue) + Realtime.
-- **Secrets**: [sops](https://github.com/getsops/sops) + GPG — encrypted API keys committed to the repo, decrypted at runtime.
+- **Data layer**: TimescaleDB (schema `quant`) exposed through **PostgREST** `api.*` views and bounded RPCs; **Auth0** provides identity. Private account reports use owner RLS and a separate upload-only token.
+- **User exchange credentials** remain on the user's computer or server. The website has no exchange-key form or trading controls. Platform collector/database credentials use SOPS and are separate from the user-hosted runner.
 
 ---
 
 ## 📁 Project structure
 
 ```
+runner/            User-hosted HTX runner, installer, local journal, tests and reporting
 nautilus_crypto/    Crypto engine (Nautilus): accumulator.py, donchian.py, signal_*.py, live_*/run_* nodes
 nautilus_equity/    US-equity engine via Interactive Brokers (own .venv with nautilus_trader[ib])
 nautilus_options/   Deribit CSP backtests
@@ -110,7 +113,7 @@ sops exec-env secrets.env '<your command>'       # load into a command's env
 
 ## 🔐 Guardrails
 
-- All crypto stays **testnet / dry-run**; Interactive Brokers stays **paper**.
+- The user-hosted HTX runner defaults to **dry-run**; live orders require explicit local authorization and confirmed funding. Binance stays **testnet**; Interactive Brokers stays **paper**.
 - Binance execution on Nautilus requires an **Ed25519** key; data-only mainnet nodes pass **no** key.
 - Never commit plaintext secrets, virtualenvs, or generated data/catalogs/reports.
 

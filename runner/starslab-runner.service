@@ -1,0 +1,18 @@
+[Unit]
+Description=Account-owner Starslab spot runner
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/starslab-runner run
+Restart=on-failure
+RestartSec=15
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=%h/.config/starslab-runner
+
+[Install]
+WantedBy=default.target

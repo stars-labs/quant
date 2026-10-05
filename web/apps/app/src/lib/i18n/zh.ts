@@ -29,6 +29,7 @@ export default {
 	'nav.more': '更多',
 	'nav.docs': '文档',
 	'nav.record': '策略战绩',
+	'nav.execution': 'Your accounts',
 	'nav.scan': '机会雷达',
 	'nav.method': '方法论',
 	'topbar.login': '登录',
@@ -208,28 +209,6 @@ export default {
 	'plan.mixError': '分配总和必须为 100%（当前 {total}%）',
 	'plan.normalize': '归一化',
 	'plan.result.coins': '当前持仓',
-
-	// --- Binance portfolio sync ---
-	'binance.title': '🏦 Binance 实盘对接（只读）',
-	'binance.subtitle':
-		'连 Binance 的只读 API key，把你真实持仓叠加到这里。我只 HMAC 签名读 balance + 行情，没有交易/提现权限。',
-	'binance.howto':
-		'在 Binance → API 管理里创建 API key，只勾选 "Enable Reading"，加 IP 白名单，粘贴到下面。Secret 存在我们的 DB 里（RLS 保护只有你自己能读）。',
-	'binance.apiKey': 'API Key',
-	'binance.apiSecret': 'API Secret',
-	'binance.connect': '连接',
-	'binance.disconnect': '断开',
-	'binance.refresh': '刷新',
-	'binance.connected': '已连接',
-	'binance.connectedAt': '连接于 {time}',
-	'binance.totalUsd': '总估值',
-	'binance.loading': '查询 Binance 中…',
-	'binance.error': '出错：{msg}',
-	'binance.empty': '账户内暂无持仓。',
-	'binance.table.asset': '资产',
-	'binance.table.amount': '数量',
-	'binance.table.price': '价格',
-	'binance.table.value': '价值',
 
 	// --- trust + affiliate ---
 	'trust.heading': '为什么做这个',

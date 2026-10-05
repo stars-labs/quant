@@ -3,7 +3,7 @@ import { normalizeLang } from '$lib/i18n';
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const cookie = event.cookies.get('lang');
-	event.locals.lang = normalizeLang(cookie);
+	event.locals.lang = event.url.pathname === '/execution' ? 'en' : normalizeLang(cookie);
 	const htmlLang = event.locals.lang === 'en' ? 'en' : 'zh-CN';
 	return resolve(event, {
 		transformPageChunk: ({ html }) => html.replace('%lang%', htmlLang)

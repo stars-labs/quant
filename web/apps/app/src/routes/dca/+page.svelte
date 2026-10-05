@@ -3,7 +3,6 @@
 	import Kpi from '$lib/components/kpi.svelte';
 	import PersonalPlan from '$lib/components/personal-plan.svelte';
 	import DcaLedger from '$lib/components/dca-ledger.svelte';
-	import BinanceConnect from '$lib/components/binance-connect.svelte';
 	import { fmtTime, fmtUSD } from '$lib/utils';
 	import { t, type Lang } from '$lib/i18n';
 	import { onMount } from 'svelte';
@@ -134,7 +133,11 @@
 
 	<PersonalPlan ohlcByCoin={data.ohlcByCoin} />
 	<DcaLedger />
-	<BinanceConnect />
+	<p class="mb-8 text-sm text-muted-foreground">
+		<a href="/execution" class="underline underline-offset-4">
+			{lang === 'en' ? 'Connect your own trading runner →' : '接入你自己运行的交易执行器 →'}
+		</a>
+	</p>
 
 	<section class="mb-8 grid gap-3 sm:grid-cols-2">
 		<Kpi

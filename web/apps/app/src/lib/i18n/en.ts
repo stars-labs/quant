@@ -29,6 +29,7 @@ export default {
 	'nav.more': 'More',
 	'nav.docs': 'Docs',
 	'nav.record': 'Track record',
+	'nav.execution': 'Your accounts',
 	'nav.scan': 'Opportunity radar',
 	'nav.method': 'Methodology',
 	'topbar.login': 'Log in',
@@ -210,28 +211,6 @@ export default {
 	'plan.mixError': 'Allocation must sum to 100% (currently {total}%)',
 	'plan.normalize': 'Normalize',
 	'plan.result.coins': 'Holdings',
-
-	// --- Binance portfolio sync ---
-	'binance.title': '🏦 Binance portfolio (read-only)',
-	'binance.subtitle':
-		'Paste a read-only Binance API key to overlay your real holdings. We only HMAC-sign requests to read balances + ticker prices — no trade or withdraw permission.',
-	'binance.howto':
-		'In Binance → API Management, create a key with ONLY "Enable Reading" checked, add an IP allow-list, and paste it below. Your secret is stored RLS-scoped to your account (only you can read it).',
-	'binance.apiKey': 'API key',
-	'binance.apiSecret': 'API secret',
-	'binance.connect': 'Connect',
-	'binance.disconnect': 'Disconnect',
-	'binance.refresh': 'Refresh',
-	'binance.connected': 'Connected',
-	'binance.connectedAt': 'connected at {time}',
-	'binance.totalUsd': 'Total value',
-	'binance.loading': 'Querying Binance…',
-	'binance.error': 'Error: {msg}',
-	'binance.empty': 'No holdings in account.',
-	'binance.table.asset': 'Asset',
-	'binance.table.amount': 'Amount',
-	'binance.table.price': 'Price',
-	'binance.table.value': 'Value',
 
 	// --- trust + affiliate ---
 	'trust.heading': 'Why I built this',

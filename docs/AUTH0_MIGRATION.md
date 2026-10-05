@@ -18,7 +18,7 @@
 
 - Auth0 API 用 **HS256** 签名，signing secret 写入 sops `oracle-arm-002/jwt-secret`（方向：Auth0 生成 → 抄进 sops；不可反向自定义）。
 - 用户身份 = **namespaced custom claims**（post-login Action 注入）：
-  - `https://panda.qzz.io/uid` — 稳定 UUID（老用户 = 原 GoTrue `auth.users.id`；新用户首登生成）。DB 的 `auth.uid()`、前端 `session.user.sub`、`/api/portfolio` 都读它。
+  - `https://panda.qzz.io/uid` — 稳定 UUID（老用户 = 原 GoTrue `auth.users.id`；新用户首登生成）。DB 的 `auth.uid()`、前端 `session.user.sub`都读它。
   - `https://panda.qzz.io/role` — 恒为 `authenticated`（PostgREST 的 role-claim）。
   - `https://panda.qzz.io/email`。
 - `auth.uid()` 等函数已是双读版（namespaced 优先，回退旧 `sub`），业务表 FK 已指向 `quant.users` 影子表。
@@ -161,7 +161,7 @@ JOIN auth.identities i ON i.user_id = u.id AND i.provider = 'google';
 - Realtime：/live 页 WS 订阅有推送（anon token + 登录态各验一次）。
 - Telegram 绑定读写、回测提交（backtest_jobs INSERT）。
 - 11 个 SSR 页（/live /wf /nautilus …）经 `qt_jwt` cookie 出用户数据。
-- `/api/portfolio` GET 正常。
+- `/execution` 的连接列表只展示当前用户的数据；网页不接收交易所密钥。
 - 负面：旧 GoTrue token 打 PostgREST 401；`auth.panda.qzz.io` 不可达。
 
 ### 回滚（窗口内）

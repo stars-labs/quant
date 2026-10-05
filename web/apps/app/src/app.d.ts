@@ -12,12 +12,6 @@ declare global {
 			lang: Lang;
 		}
 		// interface PageState {}
-		interface Platform {
-			env: {
-				/** AES-GCM KEK for Binance credential encryption. 32-byte base64. */
-				BINANCE_KEK?: string;
-			};
-		}
 	}
 }
 

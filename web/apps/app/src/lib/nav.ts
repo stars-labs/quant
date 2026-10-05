@@ -37,6 +37,7 @@ export const PRIMARY_NAV: NavItem[] = [
 	{ href: '/', labelKey: 'nav.home', icon: Home },
 	{ href: '/start', labelKey: 'nav.start', icon: Compass },
 	{ href: '/record', labelKey: 'nav.record', icon: Trophy },
+	{ href: '/execution', labelKey: 'nav.execution', icon: Wallet },
 	{ href: '/scan', labelKey: 'nav.scan', icon: Radar },
 	{ href: '/method', labelKey: 'nav.method', icon: BookOpen },
 	{ href: '/nautilus', labelKey: 'nav.nautilus', icon: Cpu },

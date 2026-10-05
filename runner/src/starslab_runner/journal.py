@@ -41,9 +41,11 @@ class Journal:
                 position TEXT NOT NULL, kind TEXT NOT NULL,
                 asset TEXT NOT NULL, side TEXT NOT NULL, requested REAL NOT NULL,
                 status TEXT NOT NULL DEFAULT 'pending', exchange_id TEXT,
+                quoted_taker_rate REAL, quoted_basic_rate REAL,
                 asset_delta REAL, cash_delta REAL, amount REAL, cost REAL,
                 created_at TEXT NOT NULL, finished_at TEXT
             );
+            CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
         """)
 
     @contextmanager
@@ -60,6 +62,23 @@ class Journal:
         self.db.close()
         self.lock.close()
 
+    def bind(self, identity):
+        with self.transaction():
+            prior = self.db.execute("SELECT value FROM metadata WHERE key='account'").fetchone()
+            if prior and prior[0] != identity:
+                raise ValueError('This journal belongs to a different account or mode')
+            self.db.execute("INSERT OR IGNORE INTO metadata VALUES ('account',?)", (identity,))
+
+    def next_sequence(self):
+        with self.transaction():
+            row = self.db.execute("SELECT value FROM metadata WHERE key='sequence'").fetchone()
+            value = int(row[0]) + 1 if row else 1
+            self.db.execute("INSERT INTO metadata VALUES ('sequence',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (str(value),))
+            return value
+
+    def exists(self, action):
+        return self.db.execute('SELECT 1 FROM orders WHERE action=?', (action,)).fetchone() is not None
+
     def fund(self, month, trend, dca):
         parsed = date.fromisoformat(month)
         if parsed.day != 1 or parsed.isoformat() != month:
@@ -75,7 +94,8 @@ class Journal:
                 return
             self.db.execute("INSERT INTO funding VALUES (?,?,?)", (month, trend, dca))
 
-    def reserve(self, client_id, action, position, kind, asset, side, requested):
+    def reserve(self, client_id, action, position, kind, asset, side, requested,
+                quoted_taker_rate=None, quoted_basic_rate=None):
         requested = finite(requested)
         if kind not in ("trend", "dca") or side not in ("buy", "sell") or requested <= 0:
             raise ValueError("Invalid order intent")
@@ -86,6 +106,9 @@ class Journal:
         if not all(isinstance(v, str) and v and len(v) <= 128
                    for v in (client_id, action, position, asset)):
             raise ValueError("Invalid order identity")
+        if (quoted_taker_rate is None) != (quoted_basic_rate is None) or any(
+            not 0<=finite(v)<=.003 for v in (quoted_taker_rate,quoted_basic_rate) if v is not None):
+            raise ValueError('Invalid quoted account fee')
         with self.transaction():
             if self.db.execute("SELECT 1 FROM orders WHERE action=?", (action,)).fetchone():
                 return False
@@ -103,9 +126,9 @@ class Journal:
                 if requested > held + 1e-12:
                     raise ValueError("Sale exceeds owned position")
             self.db.execute("""INSERT INTO orders
-                (client_id,action,position,kind,asset,side,requested,created_at)
-                VALUES (?,?,?,?,?,?,?,?)""", (client_id, action, position, kind,
-                asset, side, requested, datetime.now(timezone.utc).isoformat()))
+                (client_id,action,position,kind,asset,side,requested,created_at,quoted_taker_rate,quoted_basic_rate)
+                VALUES (?,?,?,?,?,?,?,?,?,?)""", (client_id, action, position, kind,
+                asset, side, requested, datetime.now(timezone.utc).isoformat(),quoted_taker_rate,quoted_basic_rate))
             return True
 
     def pending(self):
@@ -163,6 +186,7 @@ class Journal:
     def holdings(self):
         return [dict(r) for r in self.db.execute("""SELECT position,kind,asset,
             sum(asset_delta) AS quantity,
+            sum(CASE WHEN side='buy' THEN asset_delta ELSE 0 END) AS bought,
             -sum(CASE WHEN side='buy' THEN cash_delta ELSE 0 END) AS cost,
             sum(CASE WHEN side='sell' THEN cash_delta ELSE 0 END) AS proceeds
             FROM orders WHERE status='done' GROUP BY position,kind,asset""")]

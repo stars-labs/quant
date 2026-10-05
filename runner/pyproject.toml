@@ -8,7 +8,11 @@ version = "0.1.0"
 description = "User-owned spot execution and local accounting for Starslab signals"
 requires-python = ">=3.11"
 license = "MIT"
-dependencies = []
+license-files = ["LICENSE"]
+dependencies = ["ccxt==4.5.82", "certifi>=2025.1.31"]
+
+[project.scripts]
+starslab-runner = "starslab_runner.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/starslab_runner"]

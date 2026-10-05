@@ -76,6 +76,14 @@ for stage status and `STRATEGY_LEADERBOARD.md` for the strategy research log.
   plus the collectors/evaluators the services run (`news_collector.py`, `stress_index.py`,
   `market_collector.py`, `alert_dispatcher.py`, `signal_evaluator.py`, `quant_lab.py`, …).
   `strategy_record.py` is the pure Donchian state machine behind the public track record (below).
+- `runner/` — independently installable user-owned HTX spot runner (`starslab-runner`).
+  Credentials, execution and the SQLite journal live on the user's computer/server;
+  `/execution` displays private reports through an upload-only token (migrations 042–044).
+  Test: `python -m unittest discover -s runner/tests -v`; set `RUNNER_TEST_DSN` to an
+  empty disposable `starslab_runner_test` PostgreSQL DB to include permission tests.
+  Never introduce exchange credentials, hosted order endpoints or remote execution
+  controls into the display connection. The existing personal HTX service is pending
+  migration; keep it running until its ledger is imported and the replacement verified.
 - `scripts/` — `sync_local_state_to_timescale.py` (wf → TimescaleDB), `testnet_usdt_recycler.py`,
   misc backtest/sync/report helpers.
   (`download_binance.py` lives in `nautilus_crypto/`, not here.)

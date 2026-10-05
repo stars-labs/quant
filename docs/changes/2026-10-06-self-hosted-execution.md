@@ -1,6 +1,6 @@
 # Self-hosted execution
 
-Status: implementation in progress; the existing personal HTX executor remains running.
+Status: runner and display delivery in progress; the existing personal HTX executor remains running pending migration.
 
 The public service provides research signals and private account displays. Exchange
 credentials, funding confirmations, order submission and durable order recovery belong
@@ -33,14 +33,29 @@ Acceptance requirements:
 
 Do not mark this change complete until all requirements above have evidence.
 
-Verified foundation:
+Verified implementation:
 
 - `runner/src/starslab_runner/journal.py`: local SQLite intent and funding journal.
 - `runner/src/starslab_runner/signals.py`: bounded, fresh research snapshot parsing.
 - Migration 042: read-only public signal snapshot in one SQL statement.
-- 24 tests passed, including two tests against a disposable PostgreSQL database.
-  The anonymous role can retrieve the snapshot but cannot read or change source tables.
-- No production migration or live executor change has been made in this phase.
+- Migration 043: owner RLS, hashed upload-only tokens, revocation, bounded allowlisted
+  reports, connection identity and monotonic sequence enforcement.
+- 52 tests passed, including real PostgreSQL ownership, upload permission and hosted
+  credential-retirement tests. Timeout recovery does not resubmit accepted orders.
+- Migrations 042 and 043 applied to production. An independent local simulation
+  fetched all 13 house assets and uploaded six simulated fills through the real HTTP
+  endpoint. Anonymous account-list access returned HTTP 401.
+- The wheel installs into an isolated uv tool environment, runs simulation successfully,
+  contains the MIT notice and contains no credentials or account state.
+- Desktop (1440px) and mobile (390px) browser fixtures show holdings, fees and stale
+  reports. A 390px page has no document overflow. Configuration download contains
+  only an endpoint and upload token; the create request contains only label, venue
+  and report environment. Browser fixtures do not prove an actual Auth0 login.
+- Web typecheck has zero errors (13 existing warnings); lint passes.
+- Source removes the hosted exchange-key endpoint, component and Worker key type.
+  Migration 044 is applied after the new web deployment. There are zero stored
+  credential rows in production at the retirement preflight.
+- No change to the existing personal HTX live executor in this delivery phase.
 
-Still required: exchange adapters and runner CLI, private display report connections,
-web onboarding, hosted key removal, installer/release, and personal HTX migration.
+Still required: web and tagged-release publication, production credential retirement,
+and personal HTX migration with preserved accounting and Telegram display.

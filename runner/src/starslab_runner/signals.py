@@ -74,7 +74,7 @@ def validate_snapshot(snapshot, assets, now=None):
     if dca is not None:
         fields(dca, ('day', 'units', 'computed_at'))
         units = positive(dca['units'])
-        if not 1 <= units <= 4:
+        if not 1 <= units <= 8:
             raise ValueError('DCA multiple exceeds local safety limit')
         recent(dca['computed_at'], now, 86400)
         if dca['day'] != now.date().isoformat():

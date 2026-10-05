@@ -24,6 +24,10 @@ class SignalsTest(unittest.TestCase):
     def test_valid_snapshot(self):
         self.assertEqual(self.check()['targets'], {'BTC': 42})
 
+    def test_deep_fear_and_dip_allow_eight_unit_rule(self):
+        self.data['dca']['units'] = 8
+        self.assertEqual(self.check()['dca']['units'], 8)
+
     def test_missing_markets_cannot_be_interpreted_as_exit(self):
         self.data['assets'] = []
         self.data['targets'] = []
