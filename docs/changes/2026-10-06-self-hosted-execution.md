@@ -97,6 +97,22 @@ Cutover preparation and verification:
   environment configuration. Remote rebuilding runs under systemd with logs at
   `/var/tmp/starslab-owner-cutover.log`.
 
-Still required: verify remote rebuild, apply migration046, verify installed
-Telegram report rendering/delivery and deployed UI labels. Do not mark the full
-change complete before those checks pass.
+- Web UI labels deployed as Worker `c8b3cb26-d823-42cf-8e89-cb414aeb881c`:
+  tracked equity/cash and simulation-versus-actual fees are distinguished. A
+  read-only signed owner browser session displayed the real six fills and live
+  report on production. Mobile (390px) has no document overflow; screenshots are
+  private artifacts under `/tmp/starslab-runner-e2e/personal-live-*.png`.
+  The temporary JWT and browser session were removed after verification.
+- Source regression harness: 126 tests passed across simulated execution,
+  Telegram reports, health checks, dispatcher and fee sensitivity. Web check has
+  zero errors (13 existing warnings); lint passed. GitHub Actions run
+  `37358810019` passed for source commit `fca15d8`.
+- Local user lingering is enabled; both owner services are enabled and healthy.
+  Authenticated BTC fee preflight returns effective 0.15% and basic 0.20%; original
+  fill movements confirm actual 0.20% fees. No new orders were forced for testing.
+
+Still required: verify remote rebuild, apply migration046 and verify installed
+Telegram report rendering/delivery. Rebuild remains active under the original
+`starslab-owner-cutover.service` handle, compiling datadog-agent after the current
+flake dependency update. Do not mark the full change complete before those checks
+pass.
