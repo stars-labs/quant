@@ -14,7 +14,7 @@ Linux and macOS are supported; Windows users can use WSL2. Install the tagged
 release with one command:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/stars-labs/quant/runner-v0.1.0/runner/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/stars-labs/quant/runner-v0.1.1/runner/install.sh | sh
 ```
 
 The installer uses [uv](https://docs.astral.sh/uv/guides/tools/) and Python 3.13 in
@@ -102,6 +102,12 @@ not exchange keys. Default trend orders are capped at 20 USDT. Modify allocation
 asset selection, new trend entries or DCA while the runner is stopped; changes
 take effect on restart. Existing trend positions still receive exits when new
 trend entries are disabled. DCA BTC is never sold by the trend rule.
+
+If your key is restricted to an egress IP on another server you own, set the local
+`proxy_url` to your own HTTP CONNECT or SOCKS proxy (for example
+`socks5h://127.0.0.1:11080`). Exchange HTTPS remains encrypted through that tunnel;
+the runner retains the keys locally. Never route a trading key through an untrusted
+proxy. PySocks is bundled for SOCKS transport.
 
 Run in a terminal with `starslab-runner run`, or install the supplied systemd user
 unit with the correct executable and home paths for your machine. Enable user

@@ -53,9 +53,26 @@ Verified implementation:
   and report environment. Browser fixtures do not prove an actual Auth0 login.
 - Web typecheck has zero errors (13 existing warnings); lint passes.
 - Source removes the hosted exchange-key endpoint, component and Worker key type.
-  Migration 044 is applied after the new web deployment. There are zero stored
-  credential rows in production at the retirement preflight.
+  Migration 044 is applied in production; the endpoint returns 404 and zero
+  Binance credential columns remain. The Worker has no BINANCE_KEK binding.
+- Public release `runner-v0.1.0` is published with wheel and source artifacts;
+  both GitHub Actions runs passed. The public curl installer installed a fresh
+  tool and repaired a deleted executable while preserving local configuration.
+- The production website is deployed (Worker version
+  `01f5123f-dcb0-4979-94de-bbb24241aff8`). A signed temporary test identity created
+  a connection in the actual web UI, downloaded its token file, attached it to
+  the local simulation and displayed six fills. Production desktop/mobile
+  screenshots are saved under `/tmp/starslab-runner-e2e/production-*.png`.
+  This verifies JWT/PostgREST integration, not interactive Auth0 provider login.
+- Revoking that real connection stopped uploads while local simulation remained
+  healthy. Test users, tokens and sessions were removed afterward.
 - No change to the existing personal HTX live executor in this delivery phase.
 
-Still required: web and tagged-release publication, production credential retirement,
-and personal HTX migration with preserved accounting and Telegram display.
+- SOCKS transport works from a freshly installed 0.1.1 wheel: the egress IP matches
+  the HTX allowlist and real HTX public prices load through the user-owned SSH
+  tunnel. PySocks is now an explicit dependency.
+
+Still required: 0.1.1 transport-fix publication, and personal HTX migration with
+preserved accounting and Telegram display. The personal account's
+API IP restriction requires routing its HTTPS calls through its existing own server;
+exchange credentials must remain on the machine running the new executor.
