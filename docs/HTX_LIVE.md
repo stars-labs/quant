@@ -22,6 +22,15 @@ Inspect `journalctl -u quant-executor`, executor_status and pending executor_ord
 
 ## Verification
 
+The existing single alert dispatcher has an owner-scoped command menu. In the owner's private chat, /start
+(without a binding token), /me and /live show actual holdings, confirmed journal cash,
+budgets and PnL; /trades shows the latest10 actual fills. Queries require both the
+private chat ID and sender ID to match TELEGRAM_CHAT_ID. Other users keep their follow
+record and cannot query this account. No trading or transfer commands are exposed.
+Valuation uses cached hour-close house prices, explicitly dated; missing, future or
+older-than3h prices suppress total equity/PnL. Net fees are included in cost and cash,
+but future liquidation fees are not. Extra deposits require funding confirmation.
+
 Private Telegram reminders use the existing single alert dispatcher and TELEGRAM_CHAT_ID;
 personal HTX trades are never broadcast to signal subscribers. Confirmed fills include net
 quantity, fee-inclusive cash movements and current trend/monthly-DCA budgets. Successful

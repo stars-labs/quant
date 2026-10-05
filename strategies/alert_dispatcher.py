@@ -6,6 +6,8 @@ Two jobs, one loop:
      do not add a second poller.
        "/start <token>"  bind the chat to quant.telegram_links.link_token (web UI: 已绑定)
        "/me"             the user's own follow record (quant.follow_record) as a share card
+                         (operator private chat: HTX live account)
+       "/live", "/trades" owner-private HTX account and confirmed actual fills
        follow:<trade_id> the entry card's 「我跟了这笔」 button → quant.user_follows
                          (migration 037; chat → user via telegram_links)
   2. FAN OUT: watch for new events and push them to subscribed chats:
@@ -24,7 +26,7 @@ Two jobs, one loop:
        'equity_trades'    — quant.nautilus_trades asset_class='equity' opens/closes
      plus per-user pushes (fires of the user's own signals, monthly DCA-plan reminder).
 
-Messages are plain-Chinese (glossary tone from /start), always carry a
+Public strategy messages are plain-Chinese (glossary tone from /start), carry a
 "不构成投资建议" line, and link back to the dashboard with ?ref=<channel> (link(); the web
 records it in quant.web_events.campaign for the daily report). Tool, not advice. House
 strategy messages are "规则模拟信号": returns are net of 0.1% fee per side, the stats
@@ -58,6 +60,8 @@ import psycopg2.errors
 import psycopg2.extras
 import requests
 from htx_notifications import notify_htx
+from htx_account import COMMANDS as HTX_COMMANDS, handle_account
+from htx_account import MENU as HTX_MENU, account_text
 
 import market_scan
 from strategy_record import STRATEGY, assets_label, price_decimals
@@ -308,6 +312,9 @@ def poll_updates(conn, state: dict) -> None:
                 continue
             cmd, _, arg = text.partition(" ")
             cmd = cmd.split("@", 1)[0]  # "/me@freemanXbtc_bot" in groups
+            if not (cmd == '/start' and arg.strip()) and handle_account(
+                    conn, msg, cmd, send, os.environ.get('TELEGRAM_CHAT_ID')):
+                continue
             if cmd == "/start":
                 handle_start(conn, chat_id, arg.strip())
             elif cmd == "/me":
@@ -317,6 +324,14 @@ def poll_updates(conn, state: dict) -> None:
 
 
 # ---------- job 2: fan out new events ----------
+
+def ensure_operator_menu(conn, state):
+    operator = os.environ.get('TELEGRAM_CHAT_ID', '')
+    if operator.isdigit() and state.get('htx_menu_version') != 1:
+        tg('setMyCommands', commands=HTX_COMMANDS,
+           scope={'type': 'chat', 'chat_id': int(operator)})
+        if send(int(operator), account_text(conn), HTX_MENU):
+            state['htx_menu_version'] = 1
 
 def subscribers(conn, topic: str) -> list[int]:
     with conn.cursor() as cur:
@@ -1008,6 +1023,7 @@ def main() -> int:
             if time.time() - last_fan >= INTERVAL:
                 # One failing stream (e.g. a missing grant) must not starve the others.
                 for job, args in ((fan_out_strategy_signals, (conn,)),
+                                  (ensure_operator_menu, (conn, state)),
                                   (fan_out_weekly_scorecard, (conn, state)),
                                   (fan_out_dca_boost, (conn,)),
                                   (fan_out_daily_scan, (conn, state)),
