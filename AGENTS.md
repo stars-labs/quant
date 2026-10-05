@@ -223,6 +223,12 @@ new service/table to its lists when you add one. `--dry-run` prints results and 
   testnet needs `<VENUE>_API_KEY/_SECRET` (Gate spot testnet); live is refused unless
   `EXEC_ALLOW_LIVE=1` and uses the funded HTX journal (migration039). Ledger rows: `quant.nautilus_trades` with venue GATE/HTX, environment = mode,
   trader_id `FOLLOW-<VENUE>` / `DCA-<VENUE>`. ccxt is packaged in nur `pkgs/ccxt` (not in nixpkgs).
+- HTX Telegram account/reminders use the existing single `quant-alert-dispatcher`:
+  `htx_account.py` handles owner-private `/live`, `/trades`, `/me` and bare `/start`;
+  both chat and sender must match `TELEGRAM_CHAT_ID`. Public users keep their follow record.
+  `htx_notifications.py` acknowledges real fills via migration040 `notified_at`.
+  Valuation uses cached hour-close prices; incomplete/stale prices suppress total PnL.
+  Never add a second Telegram poller or give the dispatcher HTX trading credentials.
 - Module changes need: commit+push nur-packages (`git add` new files — flakes ignore untracked ones) → `nix flake update xiongchenyu6` in dotfiles →
   `NIXPKGS_ALLOW_INSECURE=1 nixos-rebuild switch --flake .#oracle-arm-002 --build-host root@oracle-arm-002 --target-host root@oracle-arm-002 --impure`.
 - The nur overlay is NOT global on hosts → reference packages as
