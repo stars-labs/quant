@@ -79,3 +79,11 @@ Still required: personal HTX migration with preserved accounting and Telegram
 display. The personal account's
 API IP restriction requires routing its HTTPS calls through its existing own server;
 exchange credentials must remain on the machine running the new executor.
+
+Cutover preparation: `scripts/import_htx_journal.py` imports an offline snapshot
+atomically into an empty local journal, preserves order/action/exchange identities,
+converts position names and retains the original reservation fee ceiling. It does
+not connect to HTX or submit orders. Three focused tests verify accounting,
+pending-order preservation, duplicate-import refusal and full rollback on invalid
+input. Local unittest discovery ran 55 tests: 44 passed, 11 database tests skipped
+without a disposable DSN. Production cutover has not yet been performed.

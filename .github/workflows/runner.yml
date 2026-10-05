@@ -1,9 +1,9 @@
 name: Self-hosted runner
 on:
   push:
-    paths: ['runner/**', 'migrations/04*.sql', '.github/workflows/runner.yml']
+    paths: ['runner/**', 'scripts/import_htx_journal.py', 'migrations/04*.sql', '.github/workflows/runner.yml']
   pull_request:
-    paths: ['runner/**', 'migrations/04*.sql', '.github/workflows/runner.yml']
+    paths: ['runner/**', 'scripts/import_htx_journal.py', 'migrations/04*.sql', '.github/workflows/runner.yml']
 permissions:
   contents: read
 jobs:
