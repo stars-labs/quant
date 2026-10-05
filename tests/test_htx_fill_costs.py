@@ -41,6 +41,8 @@ def test_display_explicit_actual_fee_and_discount_discrepancy():
     assert '折后 0.150% / 基础 0.200%' in text and '实扣高于折后报价' in text
     assert quantity(.000000463383966989)=='0.000000463384'
     assert 'e-' not in quantity(.000037294924933748)
+    assert quantity(4407427.200926307589)=='4407427.20093'
+    assert quantity(1000000000000)=='1000000000000'
 
 
 def test_unknown_gross_fee_not_reported_as_zero():

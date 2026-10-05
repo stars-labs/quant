@@ -33,7 +33,7 @@ def account_text(conn, now=None):
     now = now or datetime.now(timezone.utc)
     month = now.date().replace(day=1)
     store = readonly_store(conn)
-    holdings = store.holdings()
+    holdings = sorted(store.holdings(),key=lambda h:(h.kind!='trend',h.asset))
     cash = store.expected_cash()
     with conn.cursor() as cur:
         cur.execute("SELECT checked_at,healthy,detail FROM quant.executor_status WHERE venue='HTX'")

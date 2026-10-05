@@ -25,4 +25,11 @@ def fee_details(side, asset_delta, cash_delta, amount, cost):
 
 
 def quantity(value):
-    return f'{abs(float(value)):.12f}'.rstrip('0').rstrip('.') or '0'
+    value=abs(float(value))
+    if not math.isfinite(value):
+        raise ValueError('Invalid displayed quantity')
+    if not value:
+        return '0'
+    digits=max(0,min(12,11-math.floor(math.log10(value))))
+    text=f'{value:.{digits}f}'
+    return text.rstrip('0').rstrip('.') if digits else text
