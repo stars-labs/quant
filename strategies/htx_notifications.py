@@ -7,7 +7,7 @@ def runner_reports(conn, chat_id):
     if not chat_id:
         return []
     with conn.cursor() as cur:
-        cur.execute('SELECT id,label,received_at,report FROM quant.operator_runner_reports(%s)',
+        cur.execute('SELECT id,label,received_at,report FROM quant.private_runner_reports(%s)',
                     (int(chat_id),))
         return cur.fetchall()
 
@@ -75,3 +75,34 @@ def notify_htx(conn, state, send, chat_id, now=None):
         # Reports contain the most recent 50 fills. Keep retry IDs and this window only.
         current = {f['client_id'] for f in fills}
         cursor['seen'] = [cid for cid in cursor['seen'] if cid in current]
+
+
+def notify_bound_users(conn, state, send, operator=None, now=None):
+    """Explicitly opted-in private chats only; isolate delivery cursors per recipient."""
+    with conn.cursor() as cur:
+        cur.execute('SELECT * FROM quant.runner_alert_chats()')
+        chats = [row[0] for row in cur.fetchall()]
+    users = state.setdefault('user_runner_notifications',{})
+    for chat in chats:
+        if str(chat)==str(operator):
+            continue  # Operator delivery remains in its existing notification loop.
+        try:
+            notify_htx(conn,users.setdefault(str(chat),{}),send,chat,now)
+        except Exception:
+            # Restore DB usability before continuing to another recipient.
+            conn.rollback()
+            continue
+    active = {str(chat) for chat in chats}
+    for key in list(users):
+        if key not in active:
+            del users[key]
+
+
+def notify_operator(conn, state, send, chat_id, now=None):
+    if not chat_id:
+        return
+    with conn.cursor() as cur:
+        cur.execute('SELECT quant.runner_alert_setting(%s)',(int(chat_id),))
+        preference = cur.fetchone()[0]
+    if preference is not False:
+        notify_htx(conn,state,send,chat_id,now)

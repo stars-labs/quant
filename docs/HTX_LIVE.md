@@ -48,7 +48,10 @@ journal remains a private inactive archive.
 
 [Your accounts](https://starslab.qzz.io/execution) shows the authenticated owner's
 allowlisted local reports. The existing Telegram bot reads those same reports for
-`/live`, `/trades` and the operator's `/me`. It never connects to HTX. A missing or
+`/live`, `/trades` and the operator's `/me`. Bound users can query only their own
+reports in a private chat. `/livealerts on` opts into fill and report-health
+notifications; `/livealerts off` disables them. Other users receive no private
+alerts by default. The existing single dispatcher never connects to HTX. A missing or
 stale report does not establish whether local execution has stopped. Disconnecting
 reporting does not stop trading: stop the local runner to stop execution.
 

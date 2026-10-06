@@ -42,6 +42,7 @@ class DisplayDatabaseTest(unittest.TestCase):
             cur.execute((migration.parent / '045_runner_telegram_reports.sql').read_text())
             cur.execute((migration.parent / '047_runner_decisions.sql').read_text())
             cur.execute((migration.parent / '048_runner_history.sql').read_text())
+            cur.execute((migration.parent / '049_runner_telegram_subscriptions.sql').read_text())
 
     @classmethod
     def tearDownClass(cls):
@@ -65,7 +66,7 @@ class DisplayDatabaseTest(unittest.TestCase):
         self.sql('SET ROLE anon')
 
     def setUp(self):
-        self.sql('RESET ROLE; TRUNCATE quant.runner_connections,quant.telegram_links')
+        self.sql('RESET ROLE; TRUNCATE quant.runner_alert_subscriptions,quant.runner_connections,quant.telegram_links')
         self.owner(1)
         self.first = self.sql("SELECT api.create_runner_connection('My HTX','htx','live')")[0][0]
         self.report = {'version': 1, 'sequence': 1, 'observed_at': datetime.now(timezone.utc).isoformat(),
@@ -85,6 +86,22 @@ class DisplayDatabaseTest(unittest.TestCase):
         from psycopg2.extras import Json
         return self.sql('SELECT api.upload_runner_report(%s,%s)',
             (token or self.first['upload_token'], Json(self.report if report is None else report)))[0][0]
+
+    def test_private_runner_alerts_require_binding_and_live_connection(self):
+        import psycopg2
+        self.sql('RESET ROLE')
+        self.sql("INSERT INTO quant.telegram_links VALUES ('00000000-0000-0000-0000-000000000001',123)")
+        self.sql('SET ROLE quant')
+        self.assertEqual(self.sql('SELECT quant.set_runner_alerts(456,true)'),[(False,)])
+        self.assertEqual(self.sql('SELECT quant.set_runner_alerts(123,true)'),[(True,)])
+        self.assertEqual(self.sql('SELECT * FROM quant.runner_alert_chats()'),[(123,)])
+        self.assertEqual(self.sql('SELECT quant.set_runner_alerts(123,false)'),[(True,)])
+        self.assertEqual(self.sql('SELECT * FROM quant.runner_alert_chats()'),[])
+        self.anonymous()
+        with self.assertRaises(psycopg2.errors.InsufficientPrivilege):
+            self.sql('SELECT quant.set_runner_alerts(123,true)')
+        with self.assertRaises(psycopg2.errors.InsufficientPrivilege):
+            self.sql('SELECT * FROM quant.runner_alert_subscriptions')
 
     def test_history_rejects_secrets_and_inconsistent_pnl(self):
         import psycopg2
@@ -216,7 +233,7 @@ class DisplayDatabaseTest(unittest.TestCase):
         self.sql('SELECT api.revoke_runner_connection(%s)', (revoked['id'],))
         self.sql('RESET ROLE; SET ROLE quant')
         with self.conn.cursor() as cur:
-            cur.execute('SELECT * FROM quant.operator_runner_reports(%s)', (123,))
+            cur.execute('SELECT * FROM quant.private_runner_reports(%s)', (123,))
             self.assertEqual([column.name for column in cur.description],
                              ['id', 'label', 'received_at', 'report'])
             rows = cur.fetchall()
@@ -225,7 +242,7 @@ class DisplayDatabaseTest(unittest.TestCase):
         self.assertEqual(rows[0][1], 'My HTX')
         self.assertEqual(rows[0][3], self.report)
         self.assertNotIn(self.first['upload_token'], str(rows))
-        self.assertEqual(self.sql('SELECT * FROM quant.operator_runner_reports(%s)', (456,)), [])
+        self.assertEqual(self.sql('SELECT * FROM quant.private_runner_reports(%s)', (456,)), [])
 
     def test_operator_projection_permissions_deny_public_and_direct_private_table(self):
         import psycopg2
@@ -233,7 +250,7 @@ class DisplayDatabaseTest(unittest.TestCase):
             self.sql('RESET ROLE')
             self.sql('SET ROLE ' + role)
             with self.assertRaises(psycopg2.errors.InsufficientPrivilege):
-                self.sql('SELECT * FROM quant.operator_runner_reports(%s)', (123,))
+                self.sql('SELECT * FROM quant.private_runner_reports(%s)', (123,))
         self.sql('RESET ROLE; SET ROLE quant')
         for statement in ('SELECT * FROM quant.runner_connections',
                           'SELECT token_hash FROM quant.runner_connections'):

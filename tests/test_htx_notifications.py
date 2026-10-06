@@ -68,3 +68,36 @@ def test_sale_gross_and_fee_not_subtracted_twice():
     text = run(db, state)[0]
     assert 'sell' in text and 'gross 25.5000 USDT' in text and '0.0510' in text
     assert '&lt;private&gt;' in text
+
+
+def test_opted_in_users_have_isolated_cursors_and_operator_is_not_duplicated():
+    from unittest.mock import patch
+    class Chats:
+        def cursor(self): return self
+        def __enter__(self): return self
+        def __exit__(self,*args): pass
+        def execute(self,sql): assert sql=='SELECT * FROM quant.runner_alert_chats()'
+        def fetchall(self): return [(123,),(456,),(789,)]
+    state, calls = {}, []
+    def notify(conn,cursor,send,chat,now):
+        cursor['marker']=chat
+        calls.append((chat,cursor))
+    with patch.object(hn,'notify_htx',side_effect=notify):
+        hn.notify_bound_users(Chats(),state,lambda *args:True,'123',NOW)
+    assert [chat for chat,_ in calls]==[456,789]
+    assert calls[0][1] is not calls[1][1]
+    assert state['user_runner_notifications']['456']['marker']==456
+    assert state['user_runner_notifications']['789']['marker']==789
+
+
+def test_operator_explicit_opt_out_is_honored():
+    from unittest.mock import patch
+    class Preference:
+        def cursor(self): return self
+        def __enter__(self): return self
+        def __exit__(self,*args): pass
+        def execute(self,sql,args): assert args==(123,)
+        def fetchone(self): return (False,)
+    with patch.object(hn,'notify_htx') as notify:
+        hn.notify_operator(Preference(),{},lambda *args:True,'123',NOW)
+        notify.assert_not_called()

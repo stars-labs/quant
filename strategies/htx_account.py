@@ -5,9 +5,11 @@ from html import escape
 
 from htx_notifications import format_fills, report_health, runner_reports, timestamp
 
-MENU = {'keyboard': [[{'text': '/live'}, {'text': '/trades'}]], 'resize_keyboard': True}
+MENU = {'keyboard': [[{'text': '/live'}, {'text': '/trades'}],
+    [{'text':'/livealerts on'},{'text':'/livealerts off'}]], 'resize_keyboard': True}
 COMMANDS = [{'command': 'live', 'description': 'HTX live account report'},
             {'command': 'trades', 'description': 'Recent HTX live fills'},
+            {'command': 'livealerts', 'description': 'Private runner alerts on/off'},
             {'command': 'me', 'description': 'My HTX live account'}]
 
 
@@ -76,14 +78,26 @@ def trades_text(conn, now=None, operator=None):
     return text
 
 
-def handle_account(conn, msg, command, send, operator):
+def handle_account(conn, msg, command, send, operator, argument=""):
     owner = is_owner(msg, operator)
-    if command not in ('/live', '/trades') and not (owner and command in ('/me', '/start')):
+    if command not in ('/live', '/trades','/livealerts') and not (owner and command in ('/me', '/start')):
         return False
     chat_id = (msg.get('chat') or {}).get('id')
-    if not owner:
+    private_sender = ((msg.get('chat') or {}).get('type')=='private'
+        and isinstance(chat_id,int) and (msg.get('from') or {}).get('id')==chat_id)
+    if not private_sender:
         send(chat_id, 'Live account queries are available only in the account owner’s private chat.')
         return True
-    text = trades_text(conn, operator=operator) if command == '/trades' else account_text(conn, operator=operator)
+    if command=='/livealerts':
+        if argument.strip() not in ('on','off'):
+            send(chat_id,'Use /livealerts on or /livealerts off. These settings only control report notifications.')
+            return True
+        with conn.cursor() as cur:
+            cur.execute('SELECT quant.set_runner_alerts(%s,%s)',(chat_id,argument.strip()=='on'))
+            linked = cur.fetchone()[0]
+        send(chat_id,('Private runner alerts '+argument.strip()+'.') if linked else
+            'Bind your Telegram account and connect a live runner report before enabling alerts.')
+        return True
+    text = trades_text(conn, operator=str(chat_id)) if command == '/trades' else account_text(conn, operator=str(chat_id))
     send(chat_id, text, MENU)
     return True

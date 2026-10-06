@@ -103,3 +103,12 @@ Both scenarios passed. It does not verify the Auth0 sign-in flow or actual owner
 actual private report receipt was separately checked against production PostgreSQL.
 Script: web/apps/app/scripts/check-account-display.mjs. Temporary screenshots:
 /tmp/account-display-en.png and /tmp/account-display-zh.png.
+
+Multi-user Telegram implementation: private /live and /trades use the requester's
+bound chat projection; groups and mismatched senders cannot query reports.
+Migration 049 renames the private projection and adds explicit opt-in alert
+subscriptions. /livealerts on/off changes only notification delivery. Other users
+have separate cursors, operator delivery is not duplicated, and explicit operator
+opt-out is honored. Existing non-operator /me remains the public follow record.
+Tests: 80 runner tests passed without skips; 11 account and 7 notification harness
+tests passed. Production migration and dispatcher deployment are still pending.

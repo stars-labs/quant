@@ -30,7 +30,7 @@ class DB:
     def __enter__(self): return self
     def __exit__(self, *args): pass
     def execute(self, sql, params):
-        assert sql == 'SELECT id,label,received_at,report FROM quant.operator_runner_reports(%s)'
+        assert sql == 'SELECT id,label,received_at,report FROM quant.private_runner_reports(%s)'
         self.calls.append(params)
     def fetchall(self): return self.rows
 
@@ -60,8 +60,7 @@ def test_no_operator_never_queries_private_db():
 
 
 def test_unauthorized_chat_and_group_never_read_account():
-    for msg in [{'chat': {'id': 456, 'type': 'private'}, 'from': {'id': 456}},
-                {'chat': {'id': 123, 'type': 'group'}, 'from': {'id': 123}},
+    for msg in [{'chat': {'id': 123, 'type': 'group'}, 'from': {'id': 123}},
                 {'chat': {'id': 123, 'type': 'private'}, 'from': {'id': 456}},
                 {'chat': {'id': 123, 'type': 'private'}}]:
         replies = []
@@ -127,3 +126,22 @@ def test_account_decisions_show_safe_owner_explanations():
         text = ha.account_text(None, now=NOW, operator='123')
     assert 'No confirmed budget' in text
     assert 'Latest execution decisions' in text
+
+
+def test_bound_user_queries_only_own_chat_and_keeps_public_me():
+    msg = {'chat':{'id':456,'type':'private'},'from':{'id':456}}
+    db, replies = DB(), []
+    assert ha.handle_account(db,msg,'/live',lambda *args:replies.append(args),'123')
+    assert db.calls==[(456,)]
+    assert replies[0][0]==456
+    assert not ha.handle_account(db,msg,'/me',lambda *args:None,'123')
+
+
+def test_unbound_private_user_receives_no_report():
+    msg = {'chat':{'id':456,'type':'private'},'from':{'id':456}}
+    db, replies = DB(), []
+    db.rows = []
+    assert ha.handle_account(db,msg,'/live',lambda *args:replies.append(args),'123')
+    assert db.calls==[(456,)]
+    assert 'No connected local runner report' in replies[0][1]
+    assert 'Tracked cash' not in replies[0][1]

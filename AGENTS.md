@@ -231,9 +231,11 @@ new service/table to its lists when you add one. `--dry-run` prints results and 
   machine; the website/collector processes hold no HTX keys or live execution capability.
   The owner’s separate personal service on Oracle holds only the owner’s credentials.
 - The existing single `quant-alert-dispatcher` reads owner-uploaded reports through
-  migration045's private `quant.operator_runner_reports` function. `htx_account.py`
-  handles operator-private `/live`, `/trades`, `/me` and bare `/start`; both chat and
-  sender must match `TELEGRAM_CHAT_ID`. Public users keep their follow record.
+  migration049's private `quant.private_runner_reports` function. `/live` and
+  `/trades` read only the requesting private chat's bound user's reports; sender
+  must equal chat ID. `/livealerts on/off` controls opt-in notifications with
+  isolated per-chat delivery state. Operator `/me` and bare `/start` retain their
+  account summary; other users keep their public follow record.
   `htx_notifications.py` tracks acknowledged fill IDs in dispatcher state; initial
   historical fills are seeded without duplicate alerts. A stale report does not
   prove that local execution stopped. Never add a second Telegram poller or give

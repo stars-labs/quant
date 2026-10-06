@@ -59,7 +59,7 @@ import psycopg2
 import psycopg2.errors
 import psycopg2.extras
 import requests
-from htx_notifications import notify_htx
+from htx_notifications import notify_operator, notify_bound_users
 from htx_account import COMMANDS as HTX_COMMANDS, handle_account
 from htx_account import MENU as HTX_MENU, account_text
 
@@ -313,7 +313,7 @@ def poll_updates(conn, state: dict) -> None:
             cmd, _, arg = text.partition(" ")
             cmd = cmd.split("@", 1)[0]  # "/me@freemanXbtc_bot" in groups
             if not (cmd == '/start' and arg.strip()) and handle_account(
-                    conn, msg, cmd, send, os.environ.get('TELEGRAM_CHAT_ID')):
+                    conn, msg, cmd, send, os.environ.get('TELEGRAM_CHAT_ID'),arg):
                 continue
             if cmd == "/start":
                 handle_start(conn, chat_id, arg.strip())
@@ -1028,7 +1028,8 @@ def main() -> int:
                                   (fan_out_dca_boost, (conn,)),
                                   (fan_out_daily_scan, (conn, state)),
                                   (fan_out_equity, (conn, state)),
-                                  (notify_htx, (conn, state, send, os.environ.get('TELEGRAM_CHAT_ID'))),
+                                  (notify_operator, (conn, state, send, os.environ.get('TELEGRAM_CHAT_ID'))),
+                                  (notify_bound_users, (conn, state, send, os.environ.get('TELEGRAM_CHAT_ID'))),
                                   (fan_out_user_fires, (conn,)),
                                   (fan_out_plan_reminders, (conn, state))):
                     try:
