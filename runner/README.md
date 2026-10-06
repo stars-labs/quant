@@ -233,3 +233,15 @@ while the owner service is stopped. A unique reference prevents duplicate credit
 Live mode checks the additional free USDT exists. Combined `fund` and `deposit`
 credits cannot exceed the configured monthly allocation caps; a withdrawal does
 not reset those gross deposit caps. The command never transfers funds or orders.
+
+### Carry unused DCA allocation
+
+Unused DCA credits remain part of tracked cash after their month ends, but do not
+automatically become the next month's spending allowance. While the owner service
+is stopped, `starslab-runner carry-dca --reference carry-september --from-month 2026-09-01 --amount 30`
+explicitly moves 30 USDT of unused September DCA allocation to the current UTC
+month. Paired debit/credit records preserve cash and net contributions, and repeated
+references do not repeat the transfer. The command rejects current/future source
+months, overspending and pending orders. Live mode reconciles and verifies the
+spot account first. Carrying does not increase monthly deposit caps or change the
+normal daily DCA sizing rule. No new funding, transfer or order is created.

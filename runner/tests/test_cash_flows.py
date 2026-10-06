@@ -56,3 +56,20 @@ class CashFlowTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.store.deposit('cap-bypass',self.month,20,10,100,100)
         self.assertEqual(self.store.net_funding(),170)
+
+    def test_carry_moves_old_allocation_once_without_adding_funding(self):
+        source = '2020-01-01'
+        self.store.fund(source,10,50)
+        cash = self.store.cash()
+        for _ in range(2):
+            self.store.carry_dca('carry',source,30)
+        self.assertEqual(self.store.budget('dca',source),20)
+        self.assertEqual(self.store.budget('dca',self.month),130)
+        self.assertEqual(self.store.cash(),cash)
+        self.assertEqual(self.store.net_funding(),cash)
+        with self.assertRaises(ValueError):
+            self.store.carry_dca('too-much',source,21)
+        with self.assertRaises(ValueError):
+            self.store.carry_dca('carry',source,31)
+        with self.assertRaises(ValueError):
+            self.store.carry_dca('current',self.month,1)

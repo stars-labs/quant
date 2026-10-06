@@ -153,6 +153,10 @@ def main(argv=None):
     commands.add_parser('doctor')
     commands.add_parser('decisions')
     commands.add_parser('history')
+    carry = commands.add_parser('carry-dca')
+    carry.add_argument('--reference',required=True)
+    carry.add_argument('--from-month',required=True)
+    carry.add_argument('--amount',type=float,required=True)
     deposit = commands.add_parser('deposit')
     deposit.add_argument('--reference',required=True)
     deposit.add_argument('--trend',type=float,required=True)
@@ -240,7 +244,15 @@ def main(argv=None):
                 return 0
         store = journal(home,config)
         try:
-            if args.command=='deposit':
+            if args.command=='carry-dca':
+                if config['mode']=='live':
+                    venue = exchange(home,config)
+                    if not venue.reconcile(store):
+                        raise ValueError('Reconcile pending orders before carrying allocation')
+                    venue.check(store)
+                store.carry_dca(args.reference,args.from_month,args.amount)
+                print('Unused DCA allocation carried to the current month; cash and contributions are unchanged.')
+            elif args.command=='deposit':
                 month = datetime.now(timezone.utc).strftime('%Y-%m-01')
                 prior = store.db.execute('SELECT 1 FROM cash_flows WHERE reference=?',(args.reference,)).fetchone()
                 if config['mode']=='live' and not prior:

@@ -275,3 +275,30 @@ class Journal:
                 raise ValueError('Deposit exceeds monthly funding caps')
             self.db.execute('INSERT INTO cash_flows VALUES (?,?,?,?,?,?)',
                 (reference,month,trend,dca,trend+dca,datetime.now(timezone.utc).isoformat()))
+
+    def carry_dca(self, reference, source_month, amount):
+        """Explicitly move unused prior-month DCA budget to the current month."""
+        current = datetime.now(timezone.utc).strftime('%Y-%m-01')
+        if not isinstance(reference,str) or not re.fullmatch(r'[A-Za-z0-9:_-]{1,120}',reference):
+            raise ValueError('Invalid carry reference')
+        parsed = date.fromisoformat(source_month)
+        if parsed.day!=1 or parsed.isoformat()!=source_month or source_month>=current:
+            raise ValueError('Carry source must be an earlier UTC month')
+        amount = finite(amount)
+        if amount<=0:
+            raise ValueError('Carry amount must be positive')
+        outgoing, incoming = reference+':out', reference+':in'
+        expected = [(outgoing,source_month,0,-amount,0),(incoming,current,0,amount,0)]
+        with self.transaction():
+            prior = [tuple(r) for r in self.db.execute('SELECT reference,month,trend_delta,dca_delta,cash_delta FROM cash_flows WHERE reference IN (?,?) ORDER BY reference DESC',(outgoing,incoming))]
+            if prior:
+                if prior!=expected:
+                    raise ValueError('Carry reference already has different amounts')
+                return
+            if self.pending():
+                raise ValueError('Reconcile pending orders before carrying allocation')
+            if amount>min(self.budget('dca',source_month),self.cash())+1e-8:
+                raise ValueError('Carry exceeds unused DCA allocation or tracked cash')
+            stamp = datetime.now(timezone.utc).isoformat()
+            self.db.executemany('INSERT INTO cash_flows VALUES (?,?,?,?,?,?)',
+                [(*row,stamp) for row in expected])

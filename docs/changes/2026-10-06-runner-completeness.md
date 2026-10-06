@@ -82,3 +82,11 @@ Private local report preserves 7 fills and includes 14 decisions / 1 history poi
 Cloudflare deployment completed, version f5dcc291-1ce6-4cec-b91d-36e70ba43358.
 Incremental-deposit tests: 78 passed, no skips. Rendered private-account browser
 verification and remaining scope still pending.
+
+Cross-month DCA: carry-dca explicitly moves a chosen unused prior-month allocation
+to the current UTC month using an atomic paired debit/credit. Cash and contributions
+stay constant; monthly deposit caps and daily sizing are unchanged. It refuses
+invalid source months, excessive amounts and ambiguous orders. A repeated reference
+is idempotent, while conflicting amounts are rejected. Live CLI reconciles and
+checks the account without making a transfer or submitting an order. Production
+funding was not changed during development.
