@@ -45,3 +45,14 @@ class CashFlowTest(unittest.TestCase):
         self.store.reserve('order','entry:1','signal:1','trend','BTC','buy',20)
         with self.assertRaises(ValueError):
             self.store.cash_flow('withdraw',self.month,-10,0)
+
+    def test_incremental_deposit_obeys_gross_monthly_caps_after_withdrawal(self):
+        self.store.db.execute('DELETE FROM funding')
+        self.store.fund(self.month,40,50)
+        for _ in range(2):
+            self.store.deposit('topup',self.month,60,50,100,100)
+        self.assertEqual(self.store.cash(),200)
+        self.store.cash_flow('withdraw',self.month,-20,-10)
+        with self.assertRaises(ValueError):
+            self.store.deposit('cap-bypass',self.month,20,10,100,100)
+        self.assertEqual(self.store.net_funding(),170)

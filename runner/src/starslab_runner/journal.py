@@ -251,3 +251,27 @@ class Journal:
         funding = self.db.execute('SELECT coalesce(sum(trend+dca),0) FROM funding').fetchone()[0]
         movements = self.db.execute('SELECT coalesce(sum(cash_delta),0) FROM cash_flows').fetchone()[0]
         return funding+movements
+
+    def deposit(self, reference, month, trend, dca, trend_limit, dca_limit):
+        """Confirm incremental funding within the owner's monthly deposit caps."""
+        if not isinstance(reference,str) or not re.fullmatch(r'[A-Za-z0-9:_-]{1,128}',reference):
+            raise ValueError('Invalid deposit reference')
+        if month!=datetime.now(timezone.utc).strftime('%Y-%m-01'):
+            raise ValueError('Only the current month can receive funding')
+        trend,dca,trend_limit,dca_limit = map(finite,(trend,dca,trend_limit,dca_limit))
+        if min(trend,dca,trend_limit,dca_limit)<0 or trend+dca<=0:
+            raise ValueError('Invalid confirmed deposit')
+        with self.transaction():
+            prior = self.db.execute('SELECT month,trend_delta,dca_delta FROM cash_flows WHERE reference=?',(reference,)).fetchone()
+            if prior:
+                if tuple(prior)!=(month,trend,dca):
+                    raise ValueError('Deposit reference already has different amounts')
+                return
+            if self.pending():
+                raise ValueError('Reconcile pending orders before confirming a deposit')
+            funded = self.db.execute('SELECT coalesce(sum(trend),0),coalesce(sum(dca),0) FROM funding WHERE month=?',(month,)).fetchone()
+            added = self.db.execute('SELECT coalesce(sum(trend_delta),0),coalesce(sum(dca_delta),0) FROM cash_flows WHERE month=? AND cash_delta>0',(month,)).fetchone()
+            if funded[0]+added[0]+trend>trend_limit+1e-8 or funded[1]+added[1]+dca>dca_limit+1e-8:
+                raise ValueError('Deposit exceeds monthly funding caps')
+            self.db.execute('INSERT INTO cash_flows VALUES (?,?,?,?,?,?)',
+                (reference,month,trend,dca,trend+dca,datetime.now(timezone.utc).isoformat()))

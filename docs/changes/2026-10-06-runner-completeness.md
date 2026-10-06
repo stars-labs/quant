@@ -68,3 +68,17 @@ price and observation times, equity, net contributions and estimated PnL in the
 selected language. 77 runner tests passed without skips; frontend check reports
 0 errors / 12 existing warnings, full lint exit 0. Migrations 047/048 applied to
 Oracle, and a private consistent pre-upgrade journal backup was created.
+
+Incremental deposits now use unique references and gross monthly allocation caps,
+including existing fund credits. Withdrawals do not reset caps. Live confirmations
+check additional free spot cash, pending reconciliation and existing holdings.
+This increment is not in the already-running Oracle deployment snapshot; it will
+be included in the next owner-runner update. No live funding was added by development.
+
+Deployment evidence: owner-operations-final completed ExecMainStatus=0, switching
+to /nix/store/lrfrm7mvr2v5c75if7ckrcqyw016dz0l-nixos-system-oracle-arm-002-26.11.20261005.494ce7f.
+Owner service active / NRestarts=0, log 2026-10-06T15:26:36Z healthy pending=0.
+Private local report preserves 7 fills and includes 14 decisions / 1 history point.
+Cloudflare deployment completed, version f5dcc291-1ce6-4cec-b91d-36e70ba43358.
+Incremental-deposit tests: 78 passed, no skips. Rendered private-account browser
+verification and remaining scope still pending.

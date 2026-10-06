@@ -226,3 +226,10 @@ Deposits and withdrawals change contributions alongside equity, so they do not
 create an investment profit or loss. These are estimated valuations, excluding
 future sell fees. Percentage returns and time-weighted attribution are not yet
 provided. History currently remains in the private local journal.
+
+For funding in several deposits during the same UTC month, use
+`starslab-runner deposit --reference topup-20261006 --trend 50 --dca 50`
+while the owner service is stopped. A unique reference prevents duplicate credits.
+Live mode checks the additional free USDT exists. Combined `fund` and `deposit`
+credits cannot exceed the configured monthly allocation caps; a withdrawal does
+not reset those gross deposit caps. The command never transfers funds or orders.
