@@ -112,3 +112,24 @@ have separate cursors, operator delivery is not duplicated, and explicit operato
 opt-out is honored. Existing non-operator /me remains the public follow record.
 Tests: 80 runner tests passed without skips; 11 account and 7 notification harness
 tests passed. Production migration and dispatcher deployment are still pending.
+
+Telegram deployment: migration 049 applied; NUR fdbc5c15, dotfiles 907024bf
+pushed and Oracle switch completed ExecMainStatus=0. Current generation:
+/nix/store/sd99lxhz0x3yz3afg9s69dhnsxd0nhqd-nixos-system-oracle-arm-002-26.11.20261006.151fa4e.
+Dispatcher active / NRestarts=0. Production privileges: quant private-report EXECUTE
+true; anon private-report EXECUTE false; authenticated alert-setting EXECUTE false.
+Subscription count 0: no automatic enrollment of other users. Account command
+harness now has 12 passing tests, including explicit on/off and group refusal.
+
+Account page now provides a private Telegram binding card, preserving existing
+research subscriptions and creating fresh private bindings with no research topics.
+Site deployed version 724511fd-d2d1-4b30-bc10-e21f22ab4fbb. Updated synthetic browser
+harness passes English desktop / Chinese mobile, including connected binding UI.
+Frontend check 0 errors / 12 existing warnings; full lint and subsequent targeted
+lint passed. Default account labels follow language until the user edits them.
+
+An observed ConnectionResetError at 15:42:11Z paused execution safely; the next
+cycle at 15:43:12Z recovered healthy, pending=0. A new un-deployed runner fix can
+reuse the last dated valuation to publish paused status and normalized reasons
+without refreshing its observed_at or fabricating price history. The existing
+server freshness limits still apply. 81 runner tests passed without skips.

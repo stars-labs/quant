@@ -41,11 +41,15 @@ export async function getMyLink(f: typeof fetch = fetch): Promise<TelegramLink |
 }
 
 /** Create the user's link row. user_id must equal the JWT sub (RLS enforces it). */
-export async function createLink(userId: string, f: typeof fetch = fetch): Promise<TelegramLink> {
+export async function createLink(
+	userId: string,
+	f: typeof fetch = fetch,
+	topics?: string[]
+): Promise<TelegramLink> {
 	const r = await f(`${CONFIG.API_BASE}/telegram_links_rw`, {
 		method: 'POST',
 		headers: { ...authHeaders(), Prefer: 'return=representation' },
-		body: JSON.stringify({ user_id: userId })
+		body: JSON.stringify({ user_id: userId, ...(topics === undefined ? {} : { topics }) })
 	});
 	if (!r.ok) throw new Error(`create ${r.status}: ${await r.text().catch(() => '')}`.slice(0, 200));
 	// The rw view returns {user_id, link_token, topics}; a fresh row is never bound.

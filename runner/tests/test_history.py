@@ -35,3 +35,22 @@ class HistoryTest(unittest.TestCase):
                 self.assertEqual(history(store)['points'],[])
             finally:
                 store.close()
+
+    def test_pause_keeps_valuation_time_and_history_without_faking_prices(self):
+        from starslab_runner.reporting import paused_report
+        from starslab_runner.config import DEFAULT
+        with tempfile.TemporaryDirectory() as folder:
+            store = Journal(Path(folder)/'account.sqlite')
+            try:
+                previous = {'venue':'htx','environment':'dry_run','sequence':1,'observed_at':'2026-10-06T12:00:00+00:00',
+                    'status':'healthy','equity_usdt':198,'history':[]}
+                decisions = [{'strategy':'account','asset':None,'reason':'signal_feed_failed','error_class':'ConnectionResetError'}]
+                result = paused_report(store,previous,DEFAULT,'paused',decisions)
+                self.assertEqual(result['observed_at'],previous['observed_at'])
+                self.assertEqual(result['equity_usdt'],198)
+                self.assertEqual(result['status'],'paused')
+                self.assertNotIn('error_class',result['decisions'][0])
+                self.assertEqual(previous['status'],'healthy')
+                self.assertEqual(history(store)['points'],[])
+            finally:
+                store.close()

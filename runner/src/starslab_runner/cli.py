@@ -15,7 +15,7 @@ from .config import DEFAULT, credentials, private_json, read_private_json, valid
 from .engine import tick
 from .exchange import HTX
 from .journal import Journal
-from .reporting import report, rpc, upload
+from .reporting import report, paused_report, rpc, upload
 from .signals import validate_snapshot, timestamp
 
 
@@ -118,9 +118,13 @@ def run(home, config, once=False):
                 print(f'Execution paused ({type(cause).__name__}); pending intents are preserved.',flush=True)
             private_json(home/'decisions.json',{'observed_at':datetime.now(timezone.utc).isoformat(),
                 'status':status,'decisions':decisions})
+            display = None
             if prices:
                 price_as_of = min(timestamp(row['last_ts']) for row in snapshot['assets'] if row['asset'] in prices).isoformat()
                 display = report(store,config,prices,status,decisions,price_as_of)
+            elif (home/'status.json').exists():
+                display = paused_report(store,read_private_json(home/'status.json'),config,status,decisions)
+            if display is not None:
                 private_json(home/'status.json',display)
                 if config['display_file']:
                     try:

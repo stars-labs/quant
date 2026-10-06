@@ -145,3 +145,26 @@ def test_unbound_private_user_receives_no_report():
     assert db.calls==[(456,)]
     assert 'No connected local runner report' in replies[0][1]
     assert 'Tracked cash' not in replies[0][1]
+
+
+def test_alert_preferences_are_private_and_require_explicit_on_off():
+    class Preference:
+        def __init__(self): self.calls=[]
+        def cursor(self): return self
+        def __enter__(self): return self
+        def __exit__(self,*args): pass
+        def execute(self,sql,args):
+            assert sql=='SELECT quant.set_runner_alerts(%s,%s)'
+            self.calls.append(args)
+        def fetchone(self): return (True,)
+    db, replies = Preference(), []
+    msg={'chat':{'id':456,'type':'private'},'from':{'id':456}}
+    for argument,expected in [('on',True),('off',False)]:
+        assert ha.handle_account(db,msg,'/livealerts',lambda *args:replies.append(args),'123',argument)
+        assert db.calls[-1]==(456,expected)
+    calls=len(db.calls)
+    assert ha.handle_account(db,msg,'/livealerts',lambda *args:replies.append(args),'123','')
+    assert len(db.calls)==calls
+    group={'chat':{'id':456,'type':'group'},'from':{'id':456}}
+    assert ha.handle_account(db,group,'/livealerts',lambda *args:replies.append(args),'123','on')
+    assert len(db.calls)==calls

@@ -6,6 +6,7 @@
 	import { getToken } from '$lib/auth';
 	import { CONFIG } from '$lib/config';
 	import { decisionText } from '$lib/runnerDecisions';
+	import RunnerTelegram from '$lib/components/runner-telegram.svelte';
 	import { execution, type RunnerConnection } from '$lib/execution';
 
 	let connections = $state<RunnerConnection[]>([]);
@@ -14,6 +15,10 @@
 	let busy = $state(false);
 	let error = $state('');
 	let label = $state('My HTX account');
+	let labelEdited = $state(false);
+	$effect(() => {
+		if (!labelEdited) label = lang === 'zh' ? '我的 HTX 账户' : 'My HTX account';
+	});
 	let environment = $state<'dry_run' | 'live'>('dry_run');
 	let displayConfig = $state('');
 	let now = $state(Date.now());
@@ -216,6 +221,9 @@
 					<label class="grid gap-2 text-sm"
 						>{t(lang, 'web.account_label')}<input
 							bind:value={label}
+							oninput={() => {
+								labelEdited = true;
+							}}
 							required
 							maxlength="64"
 							class="rounded-lg border border-border bg-background px-3 py-2"
@@ -245,6 +253,7 @@
 					'web.no_accounts_connected_yet_your_first_report_will_appear_here_after_your_local_runner_start'
 				)}
 			</p>{/if}
+		<RunnerTelegram {lang} />
 		{#each active as connection (connection.id)}
 			<section class="mb-8 rounded-xl border border-border bg-card p-5 sm:p-6">
 				<div class="flex flex-wrap items-start justify-between gap-4">

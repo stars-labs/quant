@@ -60,7 +60,7 @@ try {
 	browser('network', 'route', '**/runner_connections**', '--body', JSON.stringify(fixture));
 	browser(
 		'eval',
-		`localStorage.setItem('qt_session_v1',JSON.stringify({access_token:'fixture-only',expires_at:Date.now()+600000,user:{sub:'fixture-only'}})); document.cookie='qt_jwt=fixture-only; path=/'; const originalFetch=window.fetch.bind(window); window.fetch=(input,options)=>String(input).includes('/runner_connections') ? Promise.resolve(new Response(${JSON.stringify(JSON.stringify(fixture))},{status:200,headers:{'Content-Type':'application/json'}})) : originalFetch(input,options);`
+		`localStorage.setItem('qt_session_v1',JSON.stringify({access_token:'fixture-only',expires_at:Date.now()+600000,user:{sub:'fixture-only'}})); document.cookie='qt_jwt=fixture-only; path=/'; const originalFetch=window.fetch.bind(window); window.fetch=(input,options)=>String(input).includes('/telegram_links') ? Promise.resolve(new Response(JSON.stringify([{link_token:'fixture-only',bound:true,topics:[],coins:null}]),{status:200,headers:{'Content-Type':'application/json'}})) : String(input).includes('/runner_connections') ? Promise.resolve(new Response(${JSON.stringify(JSON.stringify(fixture))},{status:200,headers:{'Content-Type':'application/json'}})) : originalFetch(input,options);`
 	);
 	browser('wait', '31000');
 	const loaded = browser('get', 'text', 'body');
@@ -80,6 +80,8 @@ try {
 			text.includes(lang === 'en' ? 'No confirmed budget is available' : '没有可用的已确认预算')
 		);
 		assert.ok(text.includes(lang === 'en' ? 'Net contributions' : '净投入'));
+		assert.ok(text.includes(lang === 'en' ? 'Private Telegram alerts' : '私有 Telegram 提醒'));
+		assert.ok(text.includes(lang === 'en' ? 'Telegram connected' : 'Telegram 已绑定'));
 		const metrics = JSON.parse(
 			browser('eval', '({viewport:innerWidth,width:document.documentElement.scrollWidth})')
 		);
