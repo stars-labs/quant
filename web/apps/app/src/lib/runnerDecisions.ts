@@ -1,4 +1,21 @@
 const reasons: Record<string, [string, string]> = {
+	account_identity_mismatch: [
+		'Exchange account differs from your configuration',
+		'交易所账户与本地配置不一致'
+	],
+	wallet_cash_below_journal: [
+		'Wallet cash is below the journal; confirm withdrawals',
+		'钱包现金低于账本，请核对提款'
+	],
+	wallet_holdings_mismatch: [
+		'Wallet holdings differ from the journal; review manual trades',
+		'钱包持仓与账本不一致，请核对手动交易'
+	],
+	invalid_wallet_data: ['The exchange returned invalid wallet data', '交易所钱包数据无效'],
+	fee_quote_unavailable_or_excessive: [
+		'Fee quote is unavailable or above the safety ceiling',
+		'无法获取费率，或费率超过安全上限'
+	],
 	pending_reconciliation: ['Waiting for confirmation of an existing order', '等待已有订单确认'],
 	exit_submitted: ['Exit order submitted', '已提交退出订单'],
 	entry_submitted: ['Buy order submitted', '已提交买入订单'],

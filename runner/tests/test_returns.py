@@ -102,6 +102,37 @@ class ReturnTests(unittest.TestCase):
         self.snapshot(2, 100, 100)
         self.assertIsNone(self.result()['return_pct'])
 
+    def test_duplicate_observation_timestamp_unavailable(self):
+        self.snapshot(2, 100, 100)
+        self.snapshot(2, 110, 100)
+        self.assertEqual(self.result()['unavailable_reason'], 'invalid_observation_times')
+
+    def test_nonfinite_valuation_unavailable(self):
+        self.snapshot(2, 100, 100)
+        self.snapshot(6, float('inf'), 100)
+        self.assertEqual(self.result()['unavailable_reason'], 'invalid_valuation')
+
+    def test_negative_funding_component_unavailable(self):
+        self.db.execute('UPDATE funding SET trend=110,dca=-10')
+        self.snapshot(2, 100, 100)
+        self.snapshot(6, 110, 100)
+        self.assertEqual(self.result()['unavailable_reason'], 'invalid_cash_flow')
+
+    def test_zero_equity_interval_then_deposit_is_neutral(self):
+        self.flow(2, -100)
+        self.snapshot(2, 0, 0)
+        self.flow(4, 100)
+        self.snapshot(6, 100, 100)
+        self.assertEqual(self.result()['return_pct'], 0)
+
+    def test_same_time_flows_reconcile_together(self):
+        self.snapshot(2, 100, 100)
+        self.flow(4, -20)
+        self.flow(4, 50)
+        self.snapshot(4, 130, 130)
+        self.snapshot(6, 130, 130)
+        self.assertEqual(self.result()['return_pct'], 0)
+
     def test_endpoint_deposit_has_zero_weight(self):
         self.snapshot(2, 100, 100)
         self.flow(6, 100)
@@ -111,7 +142,8 @@ class ReturnTests(unittest.TestCase):
     def test_nonpositive_withdrawal_weighted_capital(self):
         self.snapshot(2, 100, 100)
         self.flow(3, -200)
-        self.snapshot(6, -100, -100)
+        self.flow(6, 200)
+        self.snapshot(6, 100, 100)
         self.assertEqual(self.result()['unavailable_reason'], 'nonpositive_capital')
 
 

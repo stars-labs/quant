@@ -59,6 +59,32 @@ class CommandTest(unittest.TestCase):
         self.assertEqual({k:v for k,v in updated.items() if k!='account_lock_owner'},config)
         self.assertEqual(updated['account_lock_owner']['home'],str(self.home))
 
+    def test_offline_doctor_verifies_stopped_journal_without_heartbeat(self):
+        self.command('init')
+        self.command('fund')
+        self.assertEqual(self.command('doctor','--offline'),0)
+
+    def test_reconcile_does_not_run_strategy_or_submit_new_orders(self):
+        from unittest.mock import Mock
+        self.command('init')
+        venue=Mock()
+        venue.reconcile.return_value=True
+        with patch('starslab_runner.cli.exchange',return_value=venue), patch('starslab_runner.cli.tick',side_effect=AssertionError):
+            self.assertEqual(self.command('reconcile'),0)
+        venue.submit.assert_not_called()
+        venue.check.assert_called_once()
+
+    def test_pending_orders_are_read_only_and_visible_with_active_journal(self):
+        self.command('init')
+        store=Journal(self.home/'htx-dry_run.sqlite')
+        try:
+            store.fund(datetime.now(timezone.utc).strftime('%Y-%m-01'),100,100)
+            store.reserve('pending-demo','entry:demo','signal:demo','trend','BTC','buy',20)
+            self.assertEqual(self.command('pending-orders'),0)
+            self.assertIn('pending-demo',self.output.getvalue())
+            self.assertEqual(len(store.pending()),1)
+        finally: store.close()
+
     def test_display_config_does_not_change_execution_settings(self):
         self.command('init')
         before = read_private_json(self.home/'config.json')

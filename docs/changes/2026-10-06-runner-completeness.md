@@ -215,3 +215,16 @@ harness passed English desktop and Chinese mobile with funding/return sections.
 Built wheel matches every current Python source and contains license, no private
 state. A staged wheel environment passed version, simulation setup and funding
 history commands with no exchange calls. Public release download remains pending.
+
+Final diagnostic gap: internal wallet/account/fee validations now use fixed safe
+ValueError-compatible reason codes; external exception text is never forwarded.
+Local/public decisions and Telegram explain account identity mismatch, cash below
+journal, holdings mismatch, invalid wallet data and unavailable/excessive fees.
+Pending-order views display safe tracking IDs and requested amounts; healthy status
+with pending orders is rejected. pending-orders is read-only; reconcile looks up
+existing orders/fills without submitting new orders. Offline doctor validates a
+stopped installation without requiring a running heartbeat. Return reconciliation
+was optimized to a single sorted-flow scan and rejects invalid/overflowing history.
+137 runner tests passed without skips; frontend check zero errors, lint pending at
+this observation. Migration 054 applied; NUR d5bb11c pushed. Final owner deployment
+running in owner-recovery-final, log /var/tmp/owner-recovery-final.log.

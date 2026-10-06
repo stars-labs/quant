@@ -47,6 +47,7 @@ class DisplayDatabaseTest(unittest.TestCase):
             cur.execute((migration.parent / '051_runner_funding_history.sql').read_text())
             cur.execute((migration.parent / '052_runner_observed_returns.sql').read_text())
             cur.execute((migration.parent / '053_runner_net_contributions.sql').read_text())
+            cur.execute((migration.parent / '054_runner_recovery_diagnostics.sql').read_text())
 
     @classmethod
     def tearDownClass(cls):
@@ -90,6 +91,19 @@ class DisplayDatabaseTest(unittest.TestCase):
         from psycopg2.extras import Json
         return self.sql('SELECT api.upload_runner_report(%s,%s)',
             (token or self.first['upload_token'], Json(self.report if report is None else report)))[0][0]
+
+    def test_pending_order_reports_allow_safe_identifiers_and_reject_secret_fields(self):
+        import psycopg2
+        self.anonymous()
+        order={'client_id':'pending-demo','exchange_id':None,'strategy':'trend','asset':'BTC',
+            'side':'buy','requested':20,'created_at':datetime.now(timezone.utc).isoformat()}
+        report=copy.deepcopy(self.report)
+        report['pending_orders']=[{**order,'api_key':'secret'}]
+        with self.assertRaises(psycopg2.Error): self.upload(report)
+        report['pending_orders']=[order]
+        report['status']='pending'
+        report['decisions']=[{'strategy':'account','asset':None,'reason':'wallet_cash_below_journal'}]
+        self.assertEqual(self.upload(report),'accepted')
 
     def test_profit_withdrawal_can_leave_negative_net_contributions(self):
         self.anonymous()

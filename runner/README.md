@@ -290,3 +290,14 @@ is not annualized, and does not claim exact time-weighted performance or GIPS
 compliance. Unknown legacy funding can form the opening baseline only when it
 fully reconciles to that first valuation. Missing within-period timing, inconsistent
 funding balances or nonpositive invested capital produce no percentage.
+
+### Resolve a paused execution cycle
+
+`starslab-runner pending-orders` reads safe tracking IDs, exchange order IDs and
+requested amounts even while the owner service is running. For recovery, stop the
+service first and run `starslab-runner reconcile` on the designated owner. This
+looks up existing orders and their actual fills; it submits no new order. Unknown
+or nonterminal orders remain blocked. Do not delete or resubmit their intents.
+`starslab-runner doctor --offline` checks private configuration, owner context,
+credentials and journal integrity while the service is stopped. Regular `doctor`
+also checks heartbeat and the latest precise wallet/feed/fee diagnostics.

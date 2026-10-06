@@ -16,7 +16,7 @@ const report = {
 	version: 1,
 	sequence: 1,
 	observed_at: now,
-	status: 'healthy',
+	status: 'pending',
 	venue: 'htx',
 	environment: 'live',
 	cash_usdt: 100,
@@ -28,6 +28,17 @@ const report = {
 	positions: [],
 	fills: [],
 	decisions: [{ strategy: 'trend', asset: 'BTC', reason: 'confirmed_budget_unavailable' }],
+	pending_orders: [
+		{
+			client_id: 'pending-fixture',
+			exchange_id: null,
+			strategy: 'trend',
+			asset: 'BTC',
+			side: 'buy',
+			requested: 20,
+			created_at: now
+		}
+	],
 	return_summary: {
 		method: 'modified_dietz',
 		estimated: true,
@@ -113,6 +124,8 @@ try {
 		assert.ok(text.includes(lang === 'en' ? 'Live PnL attribution' : '实盘收益归因'));
 		assert.ok(text.includes(lang === 'en' ? 'Funding and allocation history' : '资金与预算流水'));
 		assert.ok(text.includes(lang === 'en' ? 'Confirmation time unrecorded' : '确认时间未记录'));
+		assert.ok(text.includes(lang === 'en' ? 'Orders awaiting confirmation' : '待确认订单'));
+		assert.ok(text.includes('pending-fixture'));
 		assert.ok(
 			text.includes(
 				lang === 'en'

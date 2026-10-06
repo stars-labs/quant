@@ -59,6 +59,15 @@ export interface RunnerReturnSummary {
 	return_pct: number | null;
 	unavailable_reason: string | null;
 }
+export interface RunnerPendingOrder {
+	client_id: string;
+	exchange_id: string | null;
+	strategy: 'trend' | 'dca';
+	asset: string;
+	side: 'buy' | 'sell';
+	requested: number;
+	created_at: string;
+}
 export interface RunnerReport {
 	version: number;
 	sequence: number;
@@ -79,6 +88,7 @@ export interface RunnerReport {
 	attribution?: RunnerAttribution[];
 	funding_history?: RunnerFundingEvent[];
 	return_summary?: RunnerReturnSummary;
+	pending_orders?: RunnerPendingOrder[];
 }
 export interface RunnerConnection {
 	id: string;

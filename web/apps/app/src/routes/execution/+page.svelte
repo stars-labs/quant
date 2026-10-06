@@ -307,6 +307,39 @@
 						{t(lang, 'web.current_month_dca')}
 						{money(connection.report.dca_available_usdt)}
 					</p>
+					{#if connection.report.pending_orders?.length}
+						<section class="mt-6 rounded-lg border border-destructive/40 p-4">
+							<h3 class="font-medium">
+								{lang === 'zh' ? '待确认订单' : 'Orders awaiting confirmation'}
+							</h3>
+							<p class="mt-2 text-sm text-muted-foreground">
+								{lang === 'zh'
+									? '新订单保持阻止。请在执行器主机上核对这些已有订单，确认前不要删除或重新下单。'
+									: 'New orders remain blocked. Reconcile these existing orders on the owner runner before resuming; do not delete or resubmit them.'}
+							</p>
+							{#each connection.report.pending_orders as order, index (index)}
+								<div class="mt-3 border-t border-border pt-3 text-sm">
+									<p>
+										{order.asset} · {order.side === 'buy'
+											? lang === 'zh'
+												? '买入'
+												: 'Buy'
+											: lang === 'zh'
+												? '卖出'
+												: 'Sell'} · {quantity(order.requested)}
+										{order.side === 'buy' ? 'USDT' : order.asset}
+									</p>
+									<p class="mt-1 text-xs break-all text-muted-foreground">
+										{lang === 'zh' ? '跟踪编号：' : 'Tracking ID: '}{order.client_id}
+									</p>
+									{#if order.exchange_id}<p class="mt-1 text-xs break-all text-muted-foreground">
+											{lang === 'zh' ? '交易所订单：' : 'Exchange order: '}{order.exchange_id}
+										</p>{/if}
+									<p class="mt-1 text-xs text-muted-foreground">{time(order.created_at)}</p>
+								</div>
+							{/each}
+						</section>
+					{/if}
 					{#if connection.report.decisions?.length}
 						<h3 class="mt-6 font-medium">
 							{lang === 'zh' ? '最近一轮执行说明' : 'Latest execution decisions'}

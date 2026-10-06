@@ -53,7 +53,12 @@ def account_text(conn, now=None, operator=None):
         lines.append('No reported positions.')
     decisions = report.get('decisions') or []
     if decisions:
-        reasons = {'pending_reconciliation':'Awaiting existing order confirmation',
+        reasons = {'account_identity_mismatch':'Account identity mismatch',
+            'wallet_cash_below_journal':'Wallet cash below journal; confirm withdrawals',
+            'wallet_holdings_mismatch':'Wallet holdings mismatch; review manual trades',
+            'invalid_wallet_data':'Invalid exchange wallet data',
+            'fee_quote_unavailable_or_excessive':'Fee quote unavailable or above safety ceiling',
+            'pending_reconciliation':'Awaiting existing order confirmation',
             'exit_submitted':'Exit submitted','entry_submitted':'Buy submitted',
             'below_exchange_minimum':'Below exchange minimum','no_entry_signal':'No entry signal',
             'target_already_processed':'Signal already processed',
@@ -64,6 +69,12 @@ def account_text(conn, now=None, operator=None):
         lines.append('\n<b>Latest execution decisions</b>')
         for decision in decisions[:14]:
             lines.append(escape(decision.get('asset') or 'Account')+' · '+reasons.get(decision['reason'],'Check owner diagnostics'))
+    pending = report.get('pending_orders') or []
+    if pending:
+        lines.append('\n<b>Orders awaiting confirmation</b>')
+        for order in pending[:3]:
+            lines.append(escape(order['asset'])+' · '+escape(order['client_id']))
+        lines.append('New orders remain blocked. Reconcile existing orders on your owner runner.')
     attribution = report.get('attribution') or []
     if attribution:
         lines.append('\n<b>Net PnL by strategy</b>')
