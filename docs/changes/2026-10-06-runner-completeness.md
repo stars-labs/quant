@@ -90,3 +90,16 @@ invalid source months, excessive amounts and ambiguous orders. A repeated refere
 is idempotent, while conflicting amounts are rejected. Live CLI reconciles and
 checks the account without making a transfer or submitting an order. Production
 funding was not changed during development.
+
+Funding-tool deployment completed ExecMainStatus=0 and switched to
+/nix/store/dg7qbfxanvwbvnk18xj67lx51harjhr4-nixos-system-oracle-arm-002-26.11.20261006.151fa4e.
+Owner service active, NRestarts=0, 2026-10-06T15:32:29Z healthy pending=0.
+Dotfiles funding-tools commit ba47e50a pushed.
+
+Production account-page browser harness uses synthetic reports, a fake local token,
+and mocked reads / aborted RPC writes. It verifies the rendered history, contribution
+labels, execution reasons and viewport bounds in English desktop and Chinese mobile.
+Both scenarios passed. It does not verify the Auth0 sign-in flow or actual owner data;
+actual private report receipt was separately checked against production PostgreSQL.
+Script: web/apps/app/scripts/check-account-display.mjs. Temporary screenshots:
+/tmp/account-display-en.png and /tmp/account-display-zh.png.
