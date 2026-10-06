@@ -5,6 +5,7 @@ import copy
 from datetime import datetime, timezone
 import getpass
 import json
+import math
 import os
 from pathlib import Path
 import sys
@@ -150,6 +151,10 @@ def main(argv=None):
     commands.add_parser('status')
     commands.add_parser('doctor')
     commands.add_parser('decisions')
+    adjust = commands.add_parser('cash-flow')
+    adjust.add_argument('--reference',required=True)
+    adjust.add_argument('--trend',type=float,required=True)
+    adjust.add_argument('--dca',type=float,required=True)
     save = commands.add_parser('backup')
     save.add_argument('destination',type=Path)
     verify = commands.add_parser('verify-backup')
@@ -220,7 +225,24 @@ def main(argv=None):
                 return 0
         store = journal(home,config)
         try:
-            if args.command=='fund':
+            if args.command=='cash-flow':
+                month = datetime.now(timezone.utc).strftime('%Y-%m-01')
+                prior = store.db.execute('SELECT 1 FROM cash_flows WHERE reference=?',(args.reference,)).fetchone()
+                if config['mode']=='live' and not prior:
+                    venue = exchange(home,config)
+                    if not venue.reconcile(store):
+                        raise ValueError('Reconcile pending orders before adjusting cash')
+                    expected_cash = store.cash()+args.trend+args.dca
+                    if not math.isfinite(expected_cash) or not math.isclose(
+                        float(venue.balance()['total'].get('USDT') or 0),expected_cash,rel_tol=0,abs_tol=.01):
+                        raise ValueError('Exchange cash does not match the confirmed movement')
+                    class AdjustedAccount:
+                        def cash(self): return expected_cash
+                        def holdings(self): return store.holdings()
+                    venue.check(AdjustedAccount())
+                store.cash_flow(args.reference,month,args.trend,args.dca)
+                print('Cash movement confirmed locally. No exchange transfer or order was submitted.')
+            elif args.command=='fund':
                 if args.month!=datetime.now(timezone.utc).strftime('%Y-%m-01'):
                     raise ValueError('Only the current UTC month can be funded')
                 trend = config['monthly_trend_usdt'] if args.trend is None else args.trend

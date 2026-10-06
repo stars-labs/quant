@@ -39,3 +39,13 @@ not start execution. Restored funding is covered by a round-trip test. Runner:
 68 tests passed, no skips. Full frontend lint completed with exit code 0.
 Cross-host exclusion, exchange recovery exercise, equity history and cash-flow
 workflow remain required; this increment is not overall completion.
+
+Cash-flow increment: owner-confirmed withdrawals and current-month allocation
+transfers have durable reference IDs, reject conflicting repeats, negative
+allocations, positive unconfirmed deposits and pending orders. Live confirmation
+requires observed cash to match resulting journal cash and holdings to match the
+journal; it never submits a transfer or order. Reports use net contributions so
+withdrawals do not appear as losses. New deposits still use the existing monthly
+fund command; profit withdrawals, incremental deposits and prior-month DCA
+reclassification remain incomplete. Test coverage includes unchanged journal on
+unverified live balance, idempotence, allocation conservation and pending refusal.

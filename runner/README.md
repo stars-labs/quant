@@ -197,3 +197,20 @@ stopped the original executor on every host; the current machine's account lock
 also blocks a concurrently running local live executor. Resume only after checking
 for fills newer than the backup. Configuration, credentials and upload tokens
 are deliberately not copied by this command.
+
+### Confirm withdrawals and reallocate cash
+
+Stop the owner service before changing the cash ledger. A withdrawal is performed
+manually at HTX; the runner only records its already-completed net cash reduction.
+For example, `starslab-runner cash-flow --reference withdrawal-20261006 --trend -20 --dca -10`
+records a 30 USDT withdrawal. Live mode verifies that the spot cash balance matches
+the resulting tracked cash and that asset holdings still match the journal.
+
+`starslab-runner cash-flow --reference allocation-20261006 --trend 20 --dca -20`
+reassigns 20 USDT of current available DCA allocation to trend without changing cash
+or contributing a deposit. References are idempotent; changing amounts under an
+existing reference is rejected. Pending orders and insufficient allocations block
+adjustments. Positive net deposits still use the monthly `fund` command. These
+commands never transfer money or submit orders. Net confirmed funding in reports
+subtracts withdrawals so a withdrawal is not shown as a trading loss. Withdrawals
+of profits beyond net contributions are currently rejected.

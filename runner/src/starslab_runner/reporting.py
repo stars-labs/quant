@@ -50,7 +50,7 @@ def report(store, config, prices, status, decisions=None):
             fills.append({'client_id':row['client_id'],'strategy':row['kind'],'asset':row['asset'],
                 'side':row['side'],'quantity':row['amount'],'quote_usdt':row['cost'],
                 'fee_usdt':fee,'fee_rate':rate,'finished_at':row['finished_at']})
-    funded = store.db.execute('SELECT coalesce(sum(trend+dca),0) FROM funding').fetchone()[0]
+    funded = store.net_funding()
     now = datetime.now(timezone.utc)
     return {'version':1,'sequence':store.next_sequence(),'observed_at':now.isoformat(),
         'status':status,'venue':config['venue'],'environment':config['mode'],

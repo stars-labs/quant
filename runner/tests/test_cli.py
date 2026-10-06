@@ -67,6 +67,43 @@ class CommandTest(unittest.TestCase):
             self.assertEqual(main(['--home',str(self.home),'status']),0)
         self.assertEqual(json.loads(output.getvalue())['cash_usdt'],200)
 
+    def test_cash_flow_command_is_idempotent_and_preserves_live_authorization(self):
+        self.command('init')
+        self.command('fund')
+        for _ in range(2):
+            self.assertEqual(self.command('cash-flow','--reference','withdraw-1','--trend','-20','--dca','-10'),0)
+        store = Journal(self.home/'htx-dry_run.sqlite')
+        try:
+            self.assertEqual(store.cash(),170)
+            self.assertEqual(store.net_funding(),170)
+        finally:
+            store.close()
+        self.assertFalse(read_private_json(self.home/'config.json')['allow_live'])
+        self.assertEqual(self.command('cash-flow','--reference','bad-deposit','--trend','10','--dca','0'),1)
+
+    def test_live_cash_flow_rejects_unverified_exchange_balance(self):
+        from unittest.mock import Mock
+        self.command('init')
+        config = read_private_json(self.home/'config.json')
+        config.update(mode='live',allow_live=True,account_uid='123',spot_account_id='456')
+        private_json(self.home/'config.json',config)
+        store = Journal(self.home/'htx-live.sqlite')
+        store.bind(json.dumps(['htx','live','123','456']))
+        store.fund(datetime.now(timezone.utc).strftime('%Y-%m-01'),100,100)
+        store.close()
+        venue = Mock()
+        venue.reconcile.return_value = True
+        venue.balance.return_value = {'total':{'USDT':200}}
+        with patch('starslab_runner.cli.exchange',return_value=venue):
+            self.assertEqual(self.command('cash-flow','--reference','withdraw-live','--trend','-20','--dca','0'),1)
+        store = Journal(self.home/'htx-live.sqlite')
+        try:
+            self.assertEqual(store.cash(),200)
+            self.assertEqual(store.db.execute('SELECT count(*) FROM cash_flows').fetchone()[0],0)
+        finally:
+            store.close()
+        venue.submit.assert_not_called()
+
     def test_status_available_while_executor_holds_journal_lock(self):
         self.command('init')
         private_json(self.home/'status.json',{'venue':'htx','environment':'dry_run',
