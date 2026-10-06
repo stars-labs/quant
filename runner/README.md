@@ -14,7 +14,7 @@ Linux and macOS are supported; Windows users can use WSL2. Install the tagged
 release with one command:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/stars-labs/quant/runner-v0.2.0/runner/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/stars-labs/quant/runner-v0.2.1/runner/install.sh | sh
 ```
 
 The installer uses [uv](https://docs.astral.sh/uv/guides/tools/) and Python 3.13 in

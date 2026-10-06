@@ -153,6 +153,21 @@ class EngineTest(unittest.TestCase):
         self.assertIn('confirmed_budget_unavailable',[row['reason'] for row in decisions])
         self.assertEqual(self.ex.created,0)
 
+    def test_tiny_remainder_skips_before_precision_can_raise(self):
+        def precision(symbol,amount): raise AssertionError('Below minimum must skip first')
+        self.ex.amount_to_precision=precision
+        self.assertFalse(self.venue.submit(self.store,'trend','BTC','buy','small','signal:small',.3))
+        self.assertEqual(self.ex.created,0)
+        self.assertEqual(self.store.pending(),[])
+
+    def test_zero_after_local_precision_does_not_create_an_intent(self):
+        from ccxt.base.errors import InvalidOrder
+        def precision(symbol,amount): raise InvalidOrder('amount truncates to zero')
+        self.ex.amount_to_precision=precision
+        self.assertFalse(self.venue.submit(self.store,'trend','BTC','buy','rounded-zero','signal:zero',20))
+        self.assertEqual(self.ex.created,0)
+        self.assertEqual(self.store.pending(),[])
+
     def test_reservation_committed_before_network_and_actual_fee_used(self):
         def committed():
             import sqlite3

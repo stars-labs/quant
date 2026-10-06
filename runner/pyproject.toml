@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "starslab-runner"
-version = "0.2.0"
+version = "0.2.1"
 description = "User-owned spot execution and local accounting for Starslab signals"
 requires-python = ">=3.11"
 license = "MIT"

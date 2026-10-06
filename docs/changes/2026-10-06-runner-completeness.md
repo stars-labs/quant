@@ -228,3 +228,17 @@ was optimized to a single sorted-flow scan and rejects invalid/overflowing histo
 137 runner tests passed without skips; frontend check zero errors, lint pending at
 this observation. Migration 054 applied; NUR d5bb11c pushed. Final owner deployment
 running in owner-recovery-final, log /var/tmp/owner-recovery-final.log.
+
+Public 0.2.0 release was published and its real downloaded installer passed fresh
+simulation setup, fund, offline doctor, byte-preserving reinstall, verified backup
+and restore into an initialized home. Release assets include wheel, sdist and checksums.
+CI 37502631628 passed; production synthetic pending-order UI passed both languages.
+
+Post-release runtime review found a tiny trend-budget remainder could raise CCXT
+InvalidOrder during local amount precision, before reserve. The fix checks cost and
+quantity minima before rounding, skips zero precision amounts, and creates no intent
+or order for these cases. 139 runner tests passed. Owner precision deployment
+completed ExecMainStatus=0, generation
+/nix/store/59r27gf8gbvr0m46jd0zf8cm6f7qmv20-nixos-system-oracle-arm-002-26.11.20261006.151fa4e.
+17:27:48Z live healthy pending=0. Patch release 0.2.1 is being prepared; existing
+0.2.0 release assets are kept immutable.

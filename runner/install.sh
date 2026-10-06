@@ -90,7 +90,7 @@ if home.exists():
         except BlockingIOError:
             raise SystemExit('Stop the executor before reinstalling')
 subprocess.run(['uv', 'tool', 'install', '--force', '--reinstall', '--python', '3.13',
-    'https://github.com/stars-labs/quant/releases/download/runner-v0.2.0/starslab_runner-0.2.0-py3-none-any.whl'], check=True)
+    'https://github.com/stars-labs/quant/releases/download/runner-v0.2.1/starslab_runner-0.2.1-py3-none-any.whl'], check=True)
 PYTHON
 
 # Installation leaves existing configuration untouched, including legacy schemas.
@@ -103,4 +103,4 @@ fi
 echo "Installed and checked: $runner_bin"
 echo 'Next: starslab-runner fund, then starslab-runner run --once (simulation).'
 echo 'For local live authorization and display reporting, follow the setup guide:'
-echo 'https://github.com/stars-labs/quant/tree/runner-v0.2.0/runner'
+echo 'https://github.com/stars-labs/quant/tree/runner-v0.2.1/runner'
