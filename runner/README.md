@@ -14,7 +14,7 @@ Linux and macOS are supported; Windows users can use WSL2. Install the tagged
 release with one command:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/stars-labs/quant/runner-v0.1.1/runner/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/stars-labs/quant/runner-v0.2.0/runner/install.sh | sh
 ```
 
 The installer uses [uv](https://docs.astral.sh/uv/guides/tools/) and Python 3.13 in
@@ -196,8 +196,9 @@ explicitly moving ownership to a new machine.
 For an empty destination with the original matching private configuration,
 `starslab-runner restore /private/path/journal.sqlite --confirm-original-stopped`
 verifies the checksum, SQLite integrity and account identity, then restores the
-journal without starting a service or submitting orders. It refuses any existing
-journal, WAL, shared-memory or lock file. The confirmation asserts that you have
+journal without starting a service or submitting orders. It refuses an existing
+journal, WAL or shared-memory file. Inactive installation lock files are accepted;
+held journal/account locks refuse restoration. The confirmation asserts that you have
 stopped the original executor on every host; the current machine's account lock
 also blocks a concurrently running local live executor. Resume only after checking
 for fills newer than the backup. Configuration, credentials and upload tokens
@@ -217,8 +218,9 @@ or contributing a deposit. References are idempotent; changing amounts under an
 existing reference is rejected. Pending orders and insufficient allocations block
 adjustments. Positive net deposits still use the monthly `fund` command. These
 commands never transfer money or submit orders. Net confirmed funding in reports
-subtracts withdrawals so a withdrawal is not shown as a trading loss. Withdrawals
-of profits beyond net contributions are currently rejected.
+subtracts withdrawals so a withdrawal is not shown as a trading loss. Realized profits can be withdrawn within available cash and strategy allocations.
+Net contributions can become negative after more capital is withdrawn than deposited;
+that is not borrowing and does not reduce the recorded investment profit.
 
 ### Account valuation history
 
@@ -229,8 +231,8 @@ fabricated. Each point identifies the hourly research-close price timestamp,
 tracked equity and cash, net contributions, actual fees and net investment PnL.
 Deposits and withdrawals change contributions alongside equity, so they do not
 create an investment profit or loss. These are estimated valuations, excluding
-future sell fees. Percentage returns and time-weighted attribution are not yet
-provided. History currently remains in the private local journal.
+future sell fees. An estimated observed-period percentage is reported with its start/end timestamps
+and methodology. Private account displays include the recent history.
 
 For funding in several deposits during the same UTC month, use
 `starslab-runner deposit --reference topup-20261006 --trend 50 --dca 50`
@@ -264,3 +266,27 @@ sales use net proceeds. Actual fill fees are shown separately for transparency
 and are already included in PnL. Attribution totals reconcile to tracked equity
 minus net contributions. Unrealized PnL uses research closes and excludes future
 sale fees. Migration 050 must be applied before runners upload attribution.
+
+### Guided setup and upgrades
+
+`starslab-runner setup` creates a private simulation configuration and starts no
+service, funding or order. `starslab-runner setup --live` uses hidden local inputs,
+verifies the dedicated HTX account and requires the existing ENABLE LIVE prompt.
+Confirm real deposits separately with fund/deposit, attach an upload-only display
+file with connect-display, then start the owner service.
+
+Stop the original service before upgrading a legacy installation. On its original
+machine, as its original OS user and with its original home, run
+`starslab-runner upgrade-owner --confirm-original-stopped --confirm-this-is-original-owner`.
+These flags explicitly attest original custody; copied configurations are not
+automatically adopted. The upgrade preserves account identity, budgets, credentials
+and journals. Existing designated-owner configurations must already match this
+machine, OS user and home. The installer preserves existing data and refuses active
+services, foreground runners and held account/journal/installation locks.
+
+The estimated observed-period return uses [Modified Dietz](https://www.gipsstandards.org/standards/gips-standards-for-firms/gips-standards-handbook-for-firms/)
+with local confirmation-time weights. It begins at the first recorded valuation,
+is not annualized, and does not claim exact time-weighted performance or GIPS
+compliance. Unknown legacy funding can form the opening baseline only when it
+fully reconciles to that first valuation. Missing within-period timing, inconsistent
+funding balances or nonpositive invested capital produce no percentage.

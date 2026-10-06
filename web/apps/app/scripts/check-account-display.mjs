@@ -28,6 +28,25 @@ const report = {
 	positions: [],
 	fills: [],
 	decisions: [{ strategy: 'trend', asset: 'BTC', reason: 'confirmed_budget_unavailable' }],
+	return_summary: {
+		method: 'modified_dietz',
+		estimated: true,
+		start_at: new Date(Date.now() - 3600000).toISOString(),
+		end_at: now,
+		return_pct: 1,
+		unavailable_reason: null
+	},
+	funding_history: [
+		{
+			reference: 'fund:2026-10-01',
+			month: '2026-10-01',
+			kind: 'deposit',
+			confirmed_at: null,
+			trend_delta_usdt: 100,
+			dca_delta_usdt: 100,
+			cash_delta_usdt: 200
+		}
+	],
 	attribution: [
 		{
 			strategy: 'trend',
@@ -92,6 +111,15 @@ try {
 		assert.ok(text.includes(lang === 'en' ? 'Net contributions' : '净投入'));
 		assert.ok(text.includes(lang === 'en' ? 'Private Telegram alerts' : '私有 Telegram 提醒'));
 		assert.ok(text.includes(lang === 'en' ? 'Live PnL attribution' : '实盘收益归因'));
+		assert.ok(text.includes(lang === 'en' ? 'Funding and allocation history' : '资金与预算流水'));
+		assert.ok(text.includes(lang === 'en' ? 'Confirmation time unrecorded' : '确认时间未记录'));
+		assert.ok(
+			text.includes(
+				lang === 'en'
+					? 'Observed return (estimated, cash-flow adjusted)'
+					: '观测期收益率（资金调整估算）'
+			)
+		);
 		assert.ok(text.includes(lang === 'en' ? 'Telegram connected' : 'Telegram 已绑定'));
 		const metrics = JSON.parse(
 			browser('eval', '({viewport:innerWidth,width:document.documentElement.scrollWidth})')

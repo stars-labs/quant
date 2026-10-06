@@ -73,3 +73,17 @@ class CashFlowTest(unittest.TestCase):
             self.store.carry_dca('carry',source,31)
         with self.assertRaises(ValueError):
             self.store.carry_dca('current',self.month,1)
+
+    def test_realized_profit_withdrawal_preserves_pnl_and_positive_cash(self):
+        from starslab_runner.attribution import attribution
+        from starslab_runner.history import record_snapshot
+        self.store.reserve('profit-buy','entry:profit','signal:profit','trend','BTC','buy',100)
+        self.store.finish('profit-buy',1,-100,1,100)
+        self.store.reserve('profit-sell','exit:profit','signal:profit','trend','BTC','sell',1)
+        self.store.finish('profit-sell',-1,150,1,150)
+        self.store.cash_flow('profit-withdrawal',self.month,-150,-90)
+        self.assertEqual(self.store.cash(),10)
+        self.assertEqual(self.store.net_funding(),-40)
+        self.assertEqual(attribution(self.store,{})[0]['net_pnl_usdt'],50)
+        now=datetime.now(timezone.utc).isoformat()
+        record_snapshot(self.store,1,now,now,10,10,-40,0)

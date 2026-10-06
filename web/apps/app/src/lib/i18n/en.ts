@@ -785,7 +785,7 @@ export default {
 		'. Valuation uses hourly research closes. These figures are supplied by your runner and are not independently verified by Starslab.',
 	'web.tracked_equity': 'Tracked equity',
 	'web.tracked_cash': 'Tracked cash',
-	'web.confirmed_funding': 'Confirmed funding',
+	'web.net_contributions': 'Net contributions',
 	'web.actual_fees': 'Actual fees',
 	'web.simulated_fees': 'Simulated fees',
 	'web.estimated_net_p_l': 'Estimated net P&L',

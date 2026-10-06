@@ -84,3 +84,20 @@ class RecoveryTest(unittest.TestCase):
             result = diagnose(home)
             self.assertEqual(result[0]['status'],'attention')
             self.assertNotIn('secret-key',json.dumps(result))
+
+    def test_restore_accepts_inactive_installation_lock_files(self):
+        from starslab_runner.setup import initialize
+        with tempfile.TemporaryDirectory() as folder:
+            home=Path(folder)
+            source=Journal(home/'source.sqlite')
+            source.bind(json.dumps(['htx','dry_run',None,None]))
+            source.fund('2026-10-01',100,100)
+            backup(home/'source.sqlite',home/'backup.sqlite')
+            source.close()
+            target=home/'destination'
+            config=initialize(target)
+            self.assertTrue((target/'htx-dry_run.sqlite.lock').exists())
+            restore(home/'backup.sqlite',target,config,True)
+            recovered=Journal(target/'htx-dry_run.sqlite')
+            try: self.assertEqual(recovered.cash(),200)
+            finally: recovered.close()

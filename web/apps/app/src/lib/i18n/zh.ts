@@ -753,7 +753,7 @@ export default {
 		'。估值使用小时研究收盘价。这些数据由你的执行器提供，Starslab 未作独立核验。',
 	'web.tracked_equity': '账本估值',
 	'web.tracked_cash': '账本现金',
-	'web.confirmed_funding': '已确认资金',
+	'web.net_contributions': '已确认净投入',
 	'web.actual_fees': '实扣手续费',
 	'web.simulated_fees': '模拟手续费',
 	'web.estimated_net_p_l': '估算净盈亏',

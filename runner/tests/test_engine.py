@@ -89,6 +89,7 @@ class EngineTest(unittest.TestCase):
         self.ex = Exchange()
         self.venue = HTX(self.ex,'live','123','456')
         self.config = copy.deepcopy(DEFAULT)
+        self.config['account_lock_owner']['home']=str(self.path.parent)
         self.config.update(assets=['BTC'],mode='live',allow_live=True,account_uid='123',spot_account_id='456',dca=False)
         self.data = {'version':1,'server_time':self.now.isoformat(),
             'assets':[{'asset':'BTC','last_close':100,'last_ts':(self.now-timedelta(hours=1)).isoformat(),
@@ -105,6 +106,12 @@ class EngineTest(unittest.TestCase):
         self.config['account_lock_owner']['machine_id']='0'*64
         with self.assertRaises(RuntimeError):
             self.step()
+        self.assertEqual(self.ex.created,0)
+        self.assertEqual(self.store.pending(),[])
+
+    def test_copied_journal_in_another_directory_cannot_trade(self):
+        self.config['account_lock_owner']['home']=str(self.path.parent/'different-owner')
+        with self.assertRaises(RuntimeError): self.step()
         self.assertEqual(self.ex.created,0)
         self.assertEqual(self.store.pending(),[])
 

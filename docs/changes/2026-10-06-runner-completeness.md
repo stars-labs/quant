@@ -183,3 +183,35 @@ active; 2026-10-06T16:09:25Z healthy pending=0. Website version
 passed English desktop and Chinese mobile, now including attribution heading.
 Percentage return measurement, full funding-flow display, user setup/upgrade and
 package release verification remain pending; the overall objective is not complete.
+
+Funding/return/delivery integration (2026-10-07): recent funding records include
+locally confirmed deposits, withdrawals, budget transfers and paired DCA carry.
+Unknown legacy confirmation times remain null; imports do not invent timestamps.
+Private account UI includes mobile funding cards and states amounts in USDT.
+Observed-period Modified Dietz estimates use timestamp-weighted local cash flows;
+unknown opening legacy funding is permitted only when it reconciles to opening
+net contributions. Timing/funding inconsistencies and nonpositive capital yield
+unavailable reasons. No annualization, inception reconstruction or double fee charge.
+Primary methodology reference: https://www.gipsstandards.org/standards/gips-standards-for-firms/gips-standards-handbook-for-firms/.
+
+Runner setup defaults to simulation and starts no funding, service or order.
+Legacy owner upgrade requires explicit stopped/original-owner attestations and
+preserves credentials, identity, budgets and ledger. Installers refuse active
+services, foreground runners and held locks; modern CLI launchers share a global
+installation lock to prevent startup during replacement. Restores accept inactive
+installation lock files, refuse held locks, and initialize missing auxiliary tables.
+Owner machine/user/state-directory pinning prevents copied-journal execution.
+Realized-profit withdrawals may leave negative net contributions while cash stays
+nonnegative; account and attribution PnL stay reconciled.
+
+Validation: 123 runner tests passed without skips, sh -n installer passed; frontend
+check 0 errors / 12 existing warnings, lint passed. Migrations 051–053 applied.
+NUR 5a4e9a1 pushed, owner-runner-v020 deployment completed ExecMainStatus=0, generation
+/nix/store/q13y1zsidhl2aaara0lcrg28pd07l0lj-nixos-system-oracle-arm-002-26.11.20261006.151fa4e.
+Production private report healthy / funding_history count=1 / modified_dietz
+percentage present. 16:58:20Z healthy pending=0; installed CLI version 0.2.0.
+Website version 27ca3e03-3a44-4942-88d4-6d6093d03675 deployed; synthetic browser
+harness passed English desktop and Chinese mobile with funding/return sections.
+Built wheel matches every current Python source and contains license, no private
+state. A staged wheel environment passed version, simulation setup and funding
+history commands with no exchange calls. Public release download remains pending.

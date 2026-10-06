@@ -42,6 +42,23 @@ export interface RunnerAttribution {
 	net_pnl_usdt: number;
 	fees_usdt: number;
 }
+export interface RunnerFundingEvent {
+	reference: string;
+	month: string;
+	kind: 'deposit' | 'withdrawal' | 'allocation' | 'carry';
+	confirmed_at: string | null;
+	trend_delta_usdt: number;
+	dca_delta_usdt: number;
+	cash_delta_usdt: number;
+}
+export interface RunnerReturnSummary {
+	method: 'modified_dietz';
+	estimated: true;
+	start_at: string | null;
+	end_at: string | null;
+	return_pct: number | null;
+	unavailable_reason: string | null;
+}
 export interface RunnerReport {
 	version: number;
 	sequence: number;
@@ -60,6 +77,8 @@ export interface RunnerReport {
 	decisions?: RunnerDecision[];
 	history?: RunnerHistoryPoint[];
 	attribution?: RunnerAttribution[];
+	funding_history?: RunnerFundingEvent[];
+	return_summary?: RunnerReturnSummary;
 }
 export interface RunnerConnection {
 	id: string;

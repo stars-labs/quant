@@ -36,7 +36,7 @@ def account_text(conn, now=None, operator=None):
     if health in ('stale', 'missing'):
         lines.append('Reporting is unavailable or over 5 minutes old. Local execution may still be running.')
     lines += [f"Last observed: {timestamp(report['observed_at']):%m-%d %H:%M UTC}",
-              f"Confirmed funding: {report['funded_usdt']:.2f} USDT",
+              f"Net contributions: {report['funded_usdt']:.2f} USDT",
               f"Tracked cash: {report['cash_usdt']:.2f} USDT",
               f"Tracked equity: {report['equity_usdt']:.2f} USDT",
               f"Estimated net PnL: {report['equity_usdt']-report['funded_usdt']:+.2f} USDT",

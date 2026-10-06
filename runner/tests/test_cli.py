@@ -39,6 +39,26 @@ class CommandTest(unittest.TestCase):
         self.assertEqual(read_private_json(self.home/'config.json')['order_usdt'],10)
         self.assertEqual((self.home/'config.json').stat().st_mode & 0o777,0o600)
 
+    def test_guided_setup_stays_simulation_without_funding_or_orders(self):
+        with patch('starslab_runner.cli.exchange',side_effect=AssertionError('No exchange call expected')):
+            self.assertEqual(self.command('setup'),0)
+        config=read_private_json(self.home/'config.json')
+        self.assertEqual(config['mode'],'dry_run')
+        self.assertFalse(config['allow_live'])
+        self.assertFalse((self.home/'htx-dry_run.sqlite').exists())
+
+    def test_legacy_upgrade_requires_original_owner_and_stopped_attestations(self):
+        self.command('init')
+        config=read_private_json(self.home/'config.json')
+        config.pop('account_lock_owner')
+        config.update(monthly_trend_usdt=75,monthly_dca_usdt=25,order_usdt=10)
+        private_json(self.home/'config.json',config)
+        self.assertEqual(self.command('upgrade-owner','--confirm-original-stopped'),1)
+        self.assertEqual(self.command('upgrade-owner','--confirm-original-stopped','--confirm-this-is-original-owner'),0)
+        updated=read_private_json(self.home/'config.json')
+        self.assertEqual({k:v for k,v in updated.items() if k!='account_lock_owner'},config)
+        self.assertEqual(updated['account_lock_owner']['home'],str(self.home))
+
     def test_display_config_does_not_change_execution_settings(self):
         self.command('init')
         before = read_private_json(self.home/'config.json')

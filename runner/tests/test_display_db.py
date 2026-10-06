@@ -44,6 +44,9 @@ class DisplayDatabaseTest(unittest.TestCase):
             cur.execute((migration.parent / '048_runner_history.sql').read_text())
             cur.execute((migration.parent / '049_runner_telegram_subscriptions.sql').read_text())
             cur.execute((migration.parent / '050_runner_attribution.sql').read_text())
+            cur.execute((migration.parent / '051_runner_funding_history.sql').read_text())
+            cur.execute((migration.parent / '052_runner_observed_returns.sql').read_text())
+            cur.execute((migration.parent / '053_runner_net_contributions.sql').read_text())
 
     @classmethod
     def tearDownClass(cls):
@@ -87,6 +90,43 @@ class DisplayDatabaseTest(unittest.TestCase):
         from psycopg2.extras import Json
         return self.sql('SELECT api.upload_runner_report(%s,%s)',
             (token or self.first['upload_token'], Json(self.report if report is None else report)))[0][0]
+
+    def test_profit_withdrawal_can_leave_negative_net_contributions(self):
+        self.anonymous()
+        report=copy.deepcopy(self.report)
+        report.update(equity_usdt=10,cash_usdt=10,funded_usdt=-40,fees_usdt=0,positions=[],fills=[])
+        report['attribution']=[{'strategy':'trend','asset':'BTC','realized_pnl_usdt':50,
+            'unrealized_pnl_usdt':0,'net_pnl_usdt':50,'fees_usdt':0}]
+        self.assertEqual(self.upload(report),'accepted')
+
+    def test_observed_return_validates_method_nullability_and_timestamps(self):
+        import psycopg2
+        self.anonymous()
+        end=datetime.now(timezone.utc)
+        summary={'method':'modified_dietz','estimated':True,'start_at':(end-timedelta(hours=1)).isoformat(),
+            'end_at':end.isoformat(),'return_pct':1,'unavailable_reason':None}
+        for change in ({'api_key':'secret'},{'method':None},{'estimated':False},{'return_pct':None}):
+            report=copy.deepcopy(self.report)
+            report['return_summary']={**summary,**change}
+            with self.assertRaises(psycopg2.Error): self.upload(report)
+        report=copy.deepcopy(self.report)
+        report['return_summary']=summary
+        self.assertEqual(self.upload(report),'accepted')
+
+    def test_funding_history_rejects_secret_fields_and_false_cash_movements(self):
+        import psycopg2
+        self.anonymous()
+        point={'reference':'fund:2026-10-01','month':'2026-10-01','kind':'deposit',
+            'confirmed_at':None,'trend_delta_usdt':100,'dca_delta_usdt':100,'cash_delta_usdt':200}
+        for change in ({'api_key':'secret'},{'cash_delta_usdt':300},{'confirmed_at':'invalid'}):
+            report=copy.deepcopy(self.report)
+            report['funding_history']=[{**point,**change}]
+            with self.assertRaises(psycopg2.Error): self.upload(report)
+        report=copy.deepcopy(self.report)
+        report['funding_history']=[point,{'reference':'carry:out','month':'2020-01-01',
+            'kind':'carry','confirmed_at':datetime.now(timezone.utc).isoformat(),
+            'trend_delta_usdt':0,'dca_delta_usdt':-20,'cash_delta_usdt':0}]
+        self.assertEqual(self.upload(report),'accepted')
 
     def test_attribution_rejects_unknown_fields_and_reconciles_totals(self):
         import psycopg2

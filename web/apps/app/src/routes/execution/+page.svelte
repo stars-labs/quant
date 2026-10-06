@@ -6,6 +6,8 @@
 	import { getToken } from '$lib/auth';
 	import { CONFIG } from '$lib/config';
 	import { decisionText } from '$lib/runnerDecisions';
+	import { returnReason } from '$lib/runnerReturns';
+	import FundingHistory from '$lib/components/funding-history.svelte';
 	import RunnerTelegram from '$lib/components/runner-telegram.svelte';
 	import { execution, type RunnerConnection } from '$lib/execution';
 
@@ -25,9 +27,9 @@
 	const active = $derived(connections.filter((connection) => !connection.revoked_at));
 	const money = (value: number) =>
 		new Intl.NumberFormat(lang === 'zh' ? 'zh-CN' : 'en-US', {
-			style: 'currency',
-			currency: 'USD'
-		}).format(value);
+			minimumFractionDigits: 2,
+			maximumFractionDigits: 2
+		}).format(value) + ' USDT';
 	const quantity = (value: number) =>
 		new Intl.NumberFormat(lang === 'zh' ? 'zh-CN' : 'en-US', {
 			maximumSignificantDigits: 10
@@ -290,7 +292,7 @@
 						)}
 					</p>
 					<div class="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-						{#each [[t(lang, 'web.tracked_equity'), connection.report.equity_usdt], [t(lang, 'web.tracked_cash'), connection.report.cash_usdt], [t(lang, 'web.confirmed_funding'), connection.report.funded_usdt], [connection.environment === 'live' ? t(lang, 'web.actual_fees') : t(lang, 'web.simulated_fees'), connection.report.fees_usdt]] as metric (metric[0])}
+						{#each [[t(lang, 'web.tracked_equity'), connection.report.equity_usdt], [t(lang, 'web.tracked_cash'), connection.report.cash_usdt], [t(lang, 'web.net_contributions'), connection.report.funded_usdt], [connection.environment === 'live' ? t(lang, 'web.actual_fees') : t(lang, 'web.simulated_fees'), connection.report.fees_usdt]] as metric (metric[0])}
 							<div>
 								<p class="text-xs text-muted-foreground">{metric[0]}</p>
 								<p class="mt-1 text-xl font-semibold">{money(Number(metric[1]))}</p>
@@ -405,6 +407,47 @@
 							</table>
 						</div>
 					{/if}
+					{#if connection.report.return_summary}
+						<div class="mt-6 rounded-lg border border-border p-4">
+							<h3 class="font-medium">
+								{lang === 'zh'
+									? '观测期收益率（资金调整估算）'
+									: 'Observed return (estimated, cash-flow adjusted)'}
+							</h3>
+							<p class="mt-2 text-xl font-semibold">
+								{connection.report.return_summary.return_pct === null
+									? lang === 'zh'
+										? '暂不可计算'
+										: 'Unavailable'
+									: new Intl.NumberFormat(lang === 'zh' ? 'zh-CN' : 'en-US', {
+											style: 'percent',
+											maximumFractionDigits: 2,
+											signDisplay: 'exceptZero'
+										}).format(connection.report.return_summary.return_pct / 100)}
+							</p>
+							{#if connection.report.return_summary.return_pct === null}<p
+									class="mt-2 text-sm text-muted-foreground"
+								>
+									{returnReason(connection.report.return_summary.unavailable_reason, lang)}
+								</p>{/if}
+							{#if connection.report.return_summary.start_at && connection.report.return_summary.end_at}<p
+									class="mt-2 text-xs text-muted-foreground"
+								>
+									{time(connection.report.return_summary.start_at)} → {time(
+										connection.report.return_summary.end_at
+									)}
+								</p>{/if}
+							<p class="mt-2 text-xs text-muted-foreground">
+								{lang === 'zh'
+									? '仅覆盖已记录的估值，按本地确认时间对资金进出加权。不年化；缺少可靠时间或资金核对失败时不展示数值。'
+									: 'Covers recorded valuations only; contributions are weighted by local confirmation time. Not annualized. Missing timing or unreconciled cash flows produce no number.'}
+							</p>
+						</div>
+					{/if}
+					{#if connection.report.funding_history?.length}<FundingHistory
+							items={connection.report.funding_history}
+							{lang}
+						/>{/if}
 					<h3 class="mt-6 font-medium">{t(lang, 'web.positions')}</h3>
 					{#if connection.report.positions.length === 0}<p
 							class="mt-2 text-sm text-muted-foreground"
