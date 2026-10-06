@@ -1,6 +1,6 @@
 # Self-hosted execution
 
-Status: completed and verified — public runner, owner-local HTX execution, private web/Telegram displays and hosted live retirement.
+Status: completed and verified — public runner, owner-operated HTX execution, private web/Telegram displays and hosted live retirement. Personal placement was subsequently corrected to the owner’s Oracle server; see `2026-10-06-owner-oracle-runner.md`.
 
 The public service provides research signals and private account displays. Exchange
 credentials, funding confirmations, order submission and durable order recovery belong
@@ -87,8 +87,8 @@ Cutover preparation and verification:
   retain null quotes; actual fees are derived from their reconciled movements.
 - All 59 runner tests passed against disposable PostgreSQL, including operator
   report projection, chat ownership, token isolation and retirement of hosted access.
-- Local source units `systemd/starslab-runner*.service` match installed user units.
-  The SSH tunnel is independently supervised; exchange HTTPS remains end-to-end.
+- Initial desktop units and tunnel were subsequently retired. Personal execution
+  now runs as an isolated Oracle system service; see the Oracle cutover record.
 - Migration045 is applied. Production privilege checks return false for anonymous
   and authenticated callers and true for the private dispatcher role. The personal
   connection receives healthy live reports with six original fills.

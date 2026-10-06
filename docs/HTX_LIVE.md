@@ -11,22 +11,38 @@ confirmed monthly funding, service operation and pending-order recovery.
 ## Personal deployment
 
 The authorized account uses monthly confirmed funding of 200 USDT: trend 100,
-BTC DCA 100, with trend sale proceeds reusable. Its runner is a game-box user
-service, `starslab-runner.service`; `starslab-runner-egress.service` carries HTTPS
-through the owner's allowlisted server. No exchange keys reside on the display
-server. Source units live in `systemd/`, installed copies in the user's systemd
-directory. Keep both copies in sync.
+BTC DCA 100, with trend sale proceeds reusable. Its runner is a dedicated personal system service on the owner’s Oracle server,
+`owner-starslab-runner.service`. The `starslab-runner` OS user owns its private
+state and credentials. Website, collector and Telegram processes cannot read that
+state directory. Oracle’s egress IP is already allowlisted; no desktop tunnel is
+needed. The NixOS configuration lives in dotfiles under
+`nixos-configurations/oracle-arm-002/owner-runner.nix`, with vendored canonical
+runner sources. Keep those sources synchronized with `runner/src/starslab_runner/`.
 
 Private configuration, credentials, SQLite accounting and upload-only display
-configuration live in `~/.config/starslab-runner/`. Temporary local credential
+configuration live in `/var/lib/starslab-runner/`. Temporary local credential
 storage remains until the owner completes their SOPS update. Do not put credentials
 in chat, git or a display report.
 
-Check the local service with `systemctl --user status starslab-runner` and the
-runner with `starslab-runner status`. Stop the runner before confirming a new
-month's funding with `starslab-runner fund --trend 100 --dca 100`; a calendar
-change alone does not confirm a deposit. Restart it afterward. The funding command
-checks available cash and does not transfer money or submit an order.
+Check the service with `systemctl status owner-starslab-runner`. The installed
+CLI runs under the private service user:
+
+```bash
+sudo -u starslab-runner starslab-runner --home /var/lib/starslab-runner status
+```
+
+For a new month, deposit first, stop the service, confirm the new funding and restart:
+
+```bash
+sudo systemctl stop owner-starslab-runner
+sudo -u starslab-runner starslab-runner --home /var/lib/starslab-runner fund --trend 100 --dca 100
+sudo systemctl start owner-starslab-runner
+```
+
+Calendar rollover alone does not confirm a deposit. The funding command checks
+available cash and does not transfer money or submit an order. The retired desktop
+service and tunnel are removed, its configuration is simulation-only, and its live
+journal remains a private inactive archive.
 
 ## Private displays and Telegram
 

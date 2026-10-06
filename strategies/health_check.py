@@ -81,14 +81,13 @@ ROLES = {
         "required": ["postgresql.service", "nautilus-trend.service",
                      "nautilus-accumulator.service", "nautilus-signal.service",
                      "quant-signal-evaluator.service", "quant-alert-dispatcher.service",
-                     "quant-executor.service"],
+                     "quant-executor.service", "owner-starslab-runner.service"],
         "peer": ("desk", 120),     # game box may be off for a while — be lenient
     },
     "desk": {
         "systemctl": ["systemctl", "--user"],
         "failed_scope": ["quant-*", "starslab-runner*"],  # a desktop: ignore desktop-session units
-        "required": ["quant-equity.service", "quant-backtest-runner.service",
-                     "starslab-runner.service", "starslab-runner-egress.service"],
+        "required": ["quant-equity.service", "quant-backtest-runner.service"],
         "peer": ("server", 30),
     },
 }

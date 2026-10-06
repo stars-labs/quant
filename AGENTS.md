@@ -82,8 +82,8 @@ for stage status and `STRATEGY_LEADERBOARD.md` for the strategy research log.
   Test: `python -m unittest discover -s runner/tests -v`; set `RUNNER_TEST_DSN` to an
   empty disposable `starslab_runner_test` PostgreSQL DB to include permission tests.
   Never introduce exchange credentials, hosted order endpoints or remote execution
-  controls into the display connection. The personal HTX runner lives on the game box
-  as `starslab-runner.service`; never enable another executor for the same account.
+  controls into the display connection. The personal HTX runner lives on the owner’s Oracle server
+  as `owner-starslab-runner.service`; never enable another executor for the same account.
 - `scripts/` — `sync_local_state_to_timescale.py` (wf → TimescaleDB), `testnet_usdt_recycler.py`,
   misc backtest/sync/report helpers.
   (`download_binance.py` lives in `nautilus_crypto/`, not here.)
@@ -228,7 +228,8 @@ new service/table to its lists when you add one. `--dry-run` prints results and 
 - Hosted Gate/HTX execution uses `strategies/ccxt_executor.py` in simulation or sandbox
   modes only (`gate:dry_run,htx:dry_run`). Live mode is rejected even if credentials
   are present. User-funded HTX spot execution belongs to `runner/` on the owner's
-  machine; the platform holds no HTX keys or live execution process.
+  machine; the website/collector processes hold no HTX keys or live execution capability.
+  The owner’s separate personal service on Oracle holds only the owner’s credentials.
 - The existing single `quant-alert-dispatcher` reads owner-uploaded reports through
   migration045's private `quant.operator_runner_reports` function. `htx_account.py`
   handles operator-private `/live`, `/trades`, `/me` and bare `/start`; both chat and
@@ -296,9 +297,10 @@ The crypto bots `quant-event-dca`/`quant-reactor`/`quant-dca` were **retired** (
   The local `runner/` SQLite journal commits intents before submitting; unknown
   orders pause and are never resubmitted. Funding requires a confirmed deposit via
   `starslab-runner fund` while the runner is stopped; no calendar credits. Private
-  credentials/configuration live in `~/.config/starslab-runner/` on the owner's
-  machine. The SSH egress service preserves the key's existing IP allowlist; the
-  display server receives no exchange credentials. See `docs/HTX_LIVE.md`.
+  credentials/configuration live on the owner’s Oracle server in
+  `/var/lib/starslab-runner/`, readable only by the dedicated
+  `starslab-runner` OS user. Oracle egress already matches the key’s IP allowlist;
+  no desktop SSH tunnel is needed. Other users run executors on their own machines. See `docs/HTX_LIVE.md`.
 - Binance EXECUTION on Nautilus requires an **Ed25519** key (HMAC/RSA fail at session.logon).
 - Data-only mainnet nodes must pass **no** Binance key (a placeholder → -2008 → 0 instruments).
 - Never commit plaintext secrets, venvs, or generated data/catalogs/reports. Commit/push only when asked.
