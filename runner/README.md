@@ -184,9 +184,14 @@ is written even when price fetching fails. Normalized reasons are included in pr
 
 Live execution also holds an account lock under the OS user's private state
 folder, independent of `--home` and journal location. A second process for the
-same HTX account under that OS user fails before exchange access. This lock does
-not coordinate different OS users or servers: keep exactly one owner service and
-stop the original host before migration or restore.
+same HTX account under that OS user fails before exchange access. Private
+configuration identifies the designated owner machine. Live account operations
+and execution must run as the designated OS user on that machine; use SSH from another computer to operate
+the same owner journal. Copied configurations cannot directly trade elsewhere.
+Recovery from another machine verifies the owner account lock through an SSH
+channel before touching the destination journal. All copies for an account must
+retain the same owner designation. Stop and disable the original service before
+explicitly moving ownership to a new machine.
 
 For an empty destination with the original matching private configuration,
 `starslab-runner restore /private/path/journal.sqlite --confirm-original-stopped`
@@ -245,3 +250,10 @@ references do not repeat the transfer. The command rejects current/future source
 months, overspending and pending orders. Live mode reconciles and verifies the
 spot account first. Carrying does not increase monthly deposit caps or change the
 normal daily DCA sizing rule. No new funding, transfer or order is created.
+
+The account_lock_owner configuration names the owner's machine identity, SSH
+address, OS user, state directory and executable. The machine identity is a hash
+of the local machine ID. A normal init records the current owner; the personal
+account designates oracle-arm-002. SSH uses existing owner authentication and
+never sends exchange keys or display tokens. Lock helpers only hold a file lock
+and answer nonce checks. They have no hosted control endpoint and submit no orders.

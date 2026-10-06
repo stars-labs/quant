@@ -24,6 +24,9 @@ def load(home):
 
 
 def exchange(home, config):
+    from .config import is_owner_process
+    if config['mode']=='live' and not is_owner_process(config):
+        raise RuntimeError('Run live account operations on the designated owner server over SSH')
     import ccxt
     options = {'enableRateLimit':True,'timeout':20000}
     if config['mode']=='live':
@@ -145,6 +148,8 @@ def main(argv=None):
     commands = parser.add_subparsers(dest='command',required=True)
     commands.add_parser('init')
     commands.add_parser('configure-live')
+    lock_server = commands.add_parser('hold-account-lock')
+    lock_server.add_argument('--fingerprint',required=True)
     attach = commands.add_parser('connect-display')
     attach.add_argument('file',type=Path)
     fund = commands.add_parser('fund')
@@ -184,7 +189,9 @@ def main(argv=None):
                 validate(read_private_json(home/'config.json'))
                 print('Existing local configuration verified; preserved.')
             else:
-                private_json(home/'config.json',copy.deepcopy(DEFAULT))
+                initial = copy.deepcopy(DEFAULT)
+                initial['account_lock_owner']['home'] = str(home)
+                private_json(home/'config.json',initial)
                 print(f'Simulation configuration created at {home}/config.json. No live orders are enabled.')
             return 0
         if args.command=='decisions':
@@ -200,6 +207,22 @@ def main(argv=None):
             print(json.dumps(verify_backup(args.file)))
             return 0
         config = load(home)
+        if args.command=='hold-account-lock':
+            from .account_lock import acquire_local, fingerprint
+            from .config import is_owner_process
+            if config['mode']!='live' or not is_owner_process(config) or args.fingerprint!=fingerprint(config):
+                raise ValueError('Requested account differs from the owner configuration')
+            lock = acquire_local(config)
+            try:
+                print('READY',flush=True)
+                for line in sys.stdin:
+                    import re
+                    if not re.fullmatch(r'PING [a-f0-9]{32}\n',line):
+                        raise ValueError('Invalid lock channel request')
+                    print('PONG '+line[5:].strip(),flush=True)
+            finally:
+                lock.close()
+            return 0
         if args.command=='history':
             import sqlite3
             from types import SimpleNamespace

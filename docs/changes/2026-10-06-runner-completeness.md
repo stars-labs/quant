@@ -133,3 +133,29 @@ cycle at 15:43:12Z recovered healthy, pending=0. A new un-deployed runner fix ca
 reuse the last dated valuation to publish paused status and normalized reasons
 without refreshing its observed_at or fabricating price history. The existing
 server freshness limits still apply. 81 runner tests passed without skips.
+
+Cross-host protection: private configuration now pins live account operations to
+the designated owner machine. Other computers use SSH to that owner and the same
+journal, preventing separate copied journals from submitting live orders. The
+owner SSH lock channel supports guarded remote recovery and answers nonce probes
+without exchange keys, reporting tokens or trading calls. All copies must retain
+the same owner designation; deliberate ownership migration requires stopping and
+disabling the original service. No mechanism can prevent an owner from deliberately
+creating independent configurations for the same exchange credentials.
+
+84 runner tests passed, including lost-channel refusal and copied-configuration
+order refusal. Actual game-box -> Oracle SSH probes passed competition refusal,
+release/reacquisition, and refusal against the currently active real-account lock.
+These probes did not call the trading API. Initial guard deployment completed
+ExecMainStatus=0; a final owner-machine enforcement update is building in
+owner-primary-execution.service, log /var/tmp/owner-primary-execution.log.
+
+Final owner-policy deployment completed ExecMainStatus=0, generation
+/nix/store/by1fhx1f2g80cp4scrpvki6vywg2x4q0-nixos-system-oracle-arm-002-26.11.20261006.151fa4e.
+15:55:56Z live healthy pending=0. Live execution also requires the designated
+OS user, so another local user cannot create an independent lock domain.
+86 runner tests passed, including partial SSH responses timing out. Production
+installed lock helper separately passed duplicate refusal and active-real-account
+fencing. Running-owner backup verified integrity=ok, orders=7, funding=1.
+Private probe configurations and the sandbox lock were removed; real-account
+lock and private consistent backup were preserved.

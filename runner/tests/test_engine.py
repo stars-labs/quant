@@ -101,6 +101,30 @@ class EngineTest(unittest.TestCase):
     def step(self):
         return tick(self.store,self.venue,self.config,self.data,self.now)
 
+    def test_copied_live_configuration_cannot_trade_on_another_machine(self):
+        self.config['account_lock_owner']['machine_id']='0'*64
+        with self.assertRaises(RuntimeError):
+            self.step()
+        self.assertEqual(self.ex.created,0)
+        self.assertEqual(self.store.pending(),[])
+
+    def test_another_os_user_cannot_trade_the_owner_account(self):
+        self.config['account_lock_owner']['user']='another-owner'
+        with self.assertRaises(RuntimeError):
+            self.step()
+        self.assertEqual(self.ex.created,0)
+        self.assertEqual(self.store.pending(),[])
+
+    def test_lost_owner_lock_blocks_exchange_submission(self):
+        class LostLock:
+            def check(self): raise RuntimeError('Owner channel lost')
+            def close(self): pass
+        self.store.account_lock = LostLock()
+        with self.assertRaises(RuntimeError):
+            self.step()
+        self.assertEqual(self.ex.created,0)
+        self.assertEqual(self.store.pending(),[])
+
     def test_decisions_explain_alignment_and_absent_signals(self):
         decisions = []
         self.assertEqual(tick(self.store,self.venue,self.config,self.data,self.now,decisions),'healthy')

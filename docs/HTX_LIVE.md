@@ -28,14 +28,14 @@ Check the service with `systemctl status owner-starslab-runner`. The installed
 CLI runs under the private service user:
 
 ```bash
-sudo -u starslab-runner starslab-runner --home /var/lib/starslab-runner status
+sudo -H -u starslab-runner starslab-runner --home /var/lib/starslab-runner status
 ```
 
 For a new month, deposit first, stop the service, confirm the new funding and restart:
 
 ```bash
 sudo systemctl stop owner-starslab-runner
-sudo -u starslab-runner starslab-runner --home /var/lib/starslab-runner fund --trend 100 --dca 100
+sudo -H -u starslab-runner starslab-runner --home /var/lib/starslab-runner fund --trend 100 --dca 100
 sudo systemctl start owner-starslab-runner
 ```
 
@@ -68,3 +68,12 @@ exchange IDs, net movements and funding are retained; position names are mapped
 to the local runner's names. Absent historical fee quotes stay absent. Actual fill
 fees are retained. The original hosted orders/funding are private read-only audit
 records; their public execution projection is removed without inventing a sale.
+
+## Owner machine boundary
+
+Live account operations run only as the configured OS user on the designated
+owner machine. The personal account uses starslab-runner on oracle-arm-002.
+From another computer, SSH to Oracle and use the same private home and journal.
+A copied configuration cannot directly execute on another machine or OS user.
+Private owner lock routing is preserved during backup; ownership migration
+requires stopping and disabling the original service before reassignment.
