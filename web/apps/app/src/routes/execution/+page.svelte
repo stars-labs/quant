@@ -5,6 +5,7 @@
 	import { onMount } from 'svelte';
 	import { getToken } from '$lib/auth';
 	import { CONFIG } from '$lib/config';
+	import { decisionText } from '$lib/runnerDecisions';
 	import { execution, type RunnerConnection } from '$lib/execution';
 
 	let connections = $state<RunnerConnection[]>([]);
@@ -295,6 +296,27 @@
 						{t(lang, 'web.current_month_dca')}
 						{money(connection.report.dca_available_usdt)}
 					</p>
+					{#if connection.report.decisions?.length}
+						<h3 class="mt-6 font-medium">
+							{lang === 'zh' ? '最近一轮执行说明' : 'Latest execution decisions'}
+						</h3>
+						<ul class="mt-2 space-y-1 text-sm text-muted-foreground">
+							{#each connection.report.decisions as decision, index (index)}
+								<li>
+									{decision.asset ?? (lang === 'zh' ? '账户' : 'Account')} · {decision.strategy ===
+									'trend'
+										? lang === 'zh'
+											? '趋势'
+											: 'Trend'
+										: decision.strategy === 'dca'
+											? lang === 'zh'
+												? '定投'
+												: 'DCA'
+											: ''} · {decisionText(decision.reason, lang)}
+								</li>
+							{/each}
+						</ul>
+					{/if}
 					<h3 class="mt-6 font-medium">{t(lang, 'web.positions')}</h3>
 					{#if connection.report.positions.length === 0}<p
 							class="mt-2 text-sm text-muted-foreground"

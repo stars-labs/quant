@@ -40,6 +40,7 @@ class DisplayDatabaseTest(unittest.TestCase):
             migration = Path(__file__).resolve().parents[2] / 'migrations/043_runner_display_connections.sql'
             cur.execute(migration.read_text())
             cur.execute((migration.parent / '045_runner_telegram_reports.sql').read_text())
+            cur.execute((migration.parent / '047_runner_decisions.sql').read_text())
 
     @classmethod
     def tearDownClass(cls):
@@ -83,6 +84,19 @@ class DisplayDatabaseTest(unittest.TestCase):
         from psycopg2.extras import Json
         return self.sql('SELECT api.upload_runner_report(%s,%s)',
             (token or self.first['upload_token'], Json(self.report if report is None else report)))[0][0]
+
+    def test_decisions_allow_only_safe_normalized_reasons(self):
+        import psycopg2
+        self.anonymous()
+        decision = {'strategy':'trend','asset':'BTC','reason':'no_entry_signal'}
+        for change in ({'api_key':'secret'}, {'reason':'arbitrary signed URL'}, {'asset':None,'strategy':None}):
+            report = copy.deepcopy(self.report)
+            report['decisions'] = [{**decision,**change}]
+            with self.assertRaises(psycopg2.Error):
+                self.upload(report)
+        report = copy.deepcopy(self.report)
+        report['decisions'] = [decision]
+        self.assertEqual(self.upload(report),'accepted')
 
     def test_upload_token_cannot_read_display_or_create_connection(self):
         import psycopg2

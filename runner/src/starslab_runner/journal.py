@@ -61,6 +61,9 @@ class Journal:
     def close(self):
         self.db.close()
         self.lock.close()
+        account_lock = getattr(self,'account_lock',None)
+        if account_lock is not None:
+            account_lock.close()
 
     def bind(self, identity):
         with self.transaction():

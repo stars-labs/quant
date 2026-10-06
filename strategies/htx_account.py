@@ -47,6 +47,19 @@ def account_text(conn, now=None, operator=None):
                      f"{position['quantity']:.10g} · estimated value {value:.2f} USDT")
     if not report['positions']:
         lines.append('No reported positions.')
+    decisions = report.get('decisions') or []
+    if decisions:
+        reasons = {'pending_reconciliation':'Awaiting existing order confirmation',
+            'exit_submitted':'Exit submitted','entry_submitted':'Buy submitted',
+            'below_exchange_minimum':'Below exchange minimum','no_entry_signal':'No entry signal',
+            'target_already_processed':'Signal already processed',
+            'confirmed_budget_unavailable':'No confirmed budget','entries_disabled':'Entries disabled',
+            'no_dca_signal':'No DCA instruction','today_already_processed':'Today’s DCA processed',
+            'reconciliation_failed':'Reconciliation failed','signal_feed_failed':'Signal feed unavailable',
+            'execution_failed':'Execution checks failed'}
+        lines.append('\n<b>Latest execution decisions</b>')
+        for decision in decisions[:20]:
+            lines.append(escape(decision.get('asset') or 'Account')+' · '+reasons.get(decision['reason'],'Check owner diagnostics'))
     lines.append('User-reported local journal; hourly research close valuation. Unconfirmed deposits are excluded; future sell fees are excluded.')
     return '\n'.join(lines)
 

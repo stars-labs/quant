@@ -101,6 +101,27 @@ class EngineTest(unittest.TestCase):
     def step(self):
         return tick(self.store,self.venue,self.config,self.data,self.now)
 
+    def test_decisions_explain_alignment_and_absent_signals(self):
+        decisions = []
+        self.assertEqual(tick(self.store,self.venue,self.config,self.data,self.now,decisions),'healthy')
+        self.assertIn('entry_submitted',[row['reason'] for row in decisions])
+        decisions.clear()
+        tick(self.store,self.venue,self.config,self.data,self.now,decisions)
+        self.assertIn('target_already_processed',[row['reason'] for row in decisions])
+        self.assertEqual(self.ex.created,1)
+        self.data['targets'] = []
+        decisions.clear()
+        tick(self.store,self.venue,self.config,self.data,self.now,decisions)
+        self.assertIn('no_entry_signal',[row['reason'] for row in decisions])
+        self.assertIn('exit_submitted',[row['reason'] for row in decisions])
+
+    def test_decisions_identify_missing_confirmed_funding(self):
+        self.store.db.execute('DELETE FROM funding')
+        decisions = []
+        tick(self.store,self.venue,self.config,self.data,self.now,decisions)
+        self.assertIn('confirmed_budget_unavailable',[row['reason'] for row in decisions])
+        self.assertEqual(self.ex.created,0)
+
     def test_reservation_committed_before_network_and_actual_fee_used(self):
         def committed():
             import sqlite3

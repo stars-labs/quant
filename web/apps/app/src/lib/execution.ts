@@ -20,6 +20,11 @@ export interface RunnerFill {
 	fee_rate: number;
 	finished_at: string;
 }
+export interface RunnerDecision {
+	strategy: 'account' | 'trend' | 'dca';
+	asset: string | null;
+	reason: string;
+}
 export interface RunnerReport {
 	version: number;
 	sequence: number;
@@ -35,6 +40,7 @@ export interface RunnerReport {
 	fees_usdt: number;
 	positions: RunnerPosition[];
 	fills: RunnerFill[];
+	decisions?: RunnerDecision[];
 }
 export interface RunnerConnection {
 	id: string;

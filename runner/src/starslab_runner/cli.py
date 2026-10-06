@@ -37,7 +37,15 @@ def exchange(home, config):
 
 
 def journal(home, config):
-    store = Journal(home/f"{config['venue']}-{config['mode']}.sqlite")
+    from .account_lock import acquire
+    lock = acquire(config)
+    try:
+        store = Journal(home/f"{config['venue']}-{config['mode']}.sqlite")
+    except BaseException:
+        if lock is not None:
+            lock.close()
+        raise
+    store.account_lock = lock
     try:
         store.bind(json.dumps([config['venue'],config['mode'],config['account_uid'],config['spot_account_id']]))
         return store
@@ -90,20 +98,27 @@ def run(home, config, once=False):
         venue = exchange(home,config)
         while True:
             status, prices = 'paused', {}
+            decisions = []
+            stage = 'reconciliation'
             try:
                 # Recovery precedes feed fetching, so a service outage cannot hide
                 # an already-submitted order from the local journal.
                 if not venue.reconcile(store):
                     status = 'pending'
+                stage = 'signal_feed'
                 snapshot = rpc(config['api_base'],'runner_signals',{})
                 held = {row['asset'] for row in store.holdings() if row['quantity']>1e-12}
                 prices = validate_snapshot(snapshot,set(config['assets']) | held)['prices']
-                status = tick(store,venue,config,snapshot)
+                stage = 'execution'
+                status = tick(store,venue,config,snapshot,decisions=decisions)
             except Exception as cause:
                 # Exchange exception messages can include signed URLs and keys.
+                decisions.append({'strategy':'account','asset':None,'reason':stage+'_failed','error_class':type(cause).__name__})
                 print(f'Execution paused ({type(cause).__name__}); pending intents are preserved.',flush=True)
+            private_json(home/'decisions.json',{'observed_at':datetime.now(timezone.utc).isoformat(),
+                'status':status,'decisions':decisions})
             if prices:
-                display = report(store,config,prices,status)
+                display = report(store,config,prices,status,decisions)
                 private_json(home/'status.json',display)
                 if config['display_file']:
                     try:
@@ -133,6 +148,15 @@ def main(argv=None):
     execute = commands.add_parser('run')
     execute.add_argument('--once',action='store_true')
     commands.add_parser('status')
+    commands.add_parser('doctor')
+    commands.add_parser('decisions')
+    save = commands.add_parser('backup')
+    save.add_argument('destination',type=Path)
+    verify = commands.add_parser('verify-backup')
+    verify.add_argument('file',type=Path)
+    recover = commands.add_parser('restore')
+    recover.add_argument('file',type=Path)
+    recover.add_argument('--confirm-original-stopped',action='store_true')
     args = parser.parse_args(argv)
     home = args.home.expanduser().resolve()
     try:
@@ -144,7 +168,29 @@ def main(argv=None):
                 private_json(home/'config.json',copy.deepcopy(DEFAULT))
                 print(f'Simulation configuration created at {home}/config.json. No live orders are enabled.')
             return 0
+        if args.command=='decisions':
+            print(json.dumps(read_private_json(home/'decisions.json'),indent=2))
+            return 0
+        if args.command=='doctor':
+            from .recovery import diagnose
+            checks = diagnose(home)
+            print(json.dumps(checks,indent=2))
+            return int(any(row['status']!='ok' for row in checks))
+        if args.command=='verify-backup':
+            from .recovery import verify_backup
+            print(json.dumps(verify_backup(args.file)))
+            return 0
         config = load(home)
+        if args.command=='restore':
+            from .recovery import restore
+            restore(args.file,home,config,args.confirm_original_stopped)
+            print('Journal restored. No service was started or order submitted. Reconcile exchange state before resuming.')
+            return 0
+        if args.command=='backup':
+            from .recovery import backup
+            backup(home/f"{config['venue']}-{config['mode']}.sqlite",args.destination)
+            print('Consistent journal backup created with checksum. Credentials and configuration require separate private backup.')
+            return 0
         if args.command=='configure-live':
             configure_live(home)
             return 0

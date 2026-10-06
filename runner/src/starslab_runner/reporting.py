@@ -30,7 +30,7 @@ def rpc(base, function, body):
         return json.loads(raw)
 
 
-def report(store, config, prices, status):
+def report(store, config, prices, status, decisions=None):
     positions = []
     equity = store.cash()
     for row in store.holdings():
@@ -57,7 +57,8 @@ def report(store, config, prices, status):
         'cash_usdt':max(0,store.cash()),'equity_usdt':max(0,equity),'funded_usdt':funded,
         'trend_available_usdt':store.budget('trend',now.strftime('%Y-%m-01')),
         'dca_available_usdt':store.budget('dca',now.strftime('%Y-%m-01')),
-        'fees_usdt':total_fee,'positions':positions,'fills':fills}
+        'fees_usdt':total_fee,'positions':positions,'fills':fills,
+        'decisions':[{key:row[key] for key in ('strategy','asset','reason')} for row in (decisions or [])]}
 
 
 def upload(path, data):

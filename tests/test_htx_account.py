@@ -118,3 +118,12 @@ def test_dispatcher_owner_me_does_not_read_public_follow_record():
         ad.poll_updates(None, state)
         assert send.call_args.args == (123, 'local report', ha.MENU)
         assert state['tg_offset'] == 1
+
+
+def test_account_decisions_show_safe_owner_explanations():
+    data = report()
+    data['decisions'] = [{'strategy':'trend','asset':'BTC','reason':'confirmed_budget_unavailable'}]
+    with patch.object(ha, 'latest_report', return_value=('id','Mine',NOW,data)):
+        text = ha.account_text(None, now=NOW, operator='123')
+    assert 'No confirmed budget' in text
+    assert 'Latest execution decisions' in text

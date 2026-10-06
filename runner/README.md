@@ -152,3 +152,48 @@ pointing to an empty disposable database named `starslab_runner_test`. They crea
 and remove fixture schemas and refuse any other database name. Tests exercise
 timeout recovery, duplicate signals, strategy isolation, fee reconciliation,
 anonymous upload permissions and cross-user display privacy.
+
+### Diagnose and back up
+
+`starslab-runner doctor` performs offline checks of private settings, account-bound
+journal integrity, pending intents and the latest heartbeat. It never submits an
+order or changes the journal. An attention result includes a recovery action;
+a stale report alone does not prove the service stopped.
+
+`starslab-runner backup /private/path/journal.sqlite` creates a consistent SQLite
+snapshot, including committed WAL changes, and a `.sha256` checksum. Both files
+are private. The command refuses to overwrite an existing backup. Validate with
+`starslab-runner verify-backup /private/path/journal.sqlite`.
+
+Back up configuration and credentials separately in private encrypted storage.
+To recover, first stop the original owner service and confirm that no executor
+for that account is running on another host. Verify the backup, restore it into
+the original private state directory with permission 600, and restore its matching
+configuration. Never replace a journal while its service is running. Run `doctor`
+before restarting; pending intents must be reconciled with existing HTX client
+IDs, never deleted or submitted again. A backup restores historical state; HTX
+may contain later fills, so reconcile against the exchange before resuming.
+
+`starslab-runner decisions` shows the last execution cycle's local decisions,
+with an observation timestamp. Reasons distinguish absent entry signals, targets
+already processed, disabled entries, unavailable confirmed budget, orders below
+exchange minimums, submitted entries/exits, and pending reconciliation. Feed or
+execution failures record only the failing stage and exception class; signed
+exchange URLs and credentials are never included. This local decision snapshot
+is written even when price fetching fails. Normalized reasons are included in private web reports and the owner Telegram account view. Deploy migration 047 before updating a live runner.
+
+Live execution also holds an account lock under the OS user's private state
+folder, independent of `--home` and journal location. A second process for the
+same HTX account under that OS user fails before exchange access. This lock does
+not coordinate different OS users or servers: keep exactly one owner service and
+stop the original host before migration or restore.
+
+For an empty destination with the original matching private configuration,
+`starslab-runner restore /private/path/journal.sqlite --confirm-original-stopped`
+verifies the checksum, SQLite integrity and account identity, then restores the
+journal without starting a service or submitting orders. It refuses any existing
+journal, WAL, shared-memory or lock file. The confirmation asserts that you have
+stopped the original executor on every host; the current machine's account lock
+also blocks a concurrently running local live executor. Resume only after checking
+for fills newer than the backup. Configuration, credentials and upload tokens
+are deliberately not copied by this command.
