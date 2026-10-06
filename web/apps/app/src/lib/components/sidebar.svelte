@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { MediaQuery } from 'svelte/reactivity';
 	import { t, type Lang } from '$lib/i18n';
 	import bearMark from '$lib/assets/bear-mark.svg';
 	import { BookOpen } from 'lucide-svelte';
@@ -12,6 +13,15 @@
 	}: { open?: boolean; collapsed?: boolean; onclose?: () => void } = $props();
 
 	const lang = $derived<Lang>($page.data.lang ?? 'zh');
+	const desktop = new MediaQuery('(min-width: 48rem)', true);
+	function handleKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape' && open && !desktop.current) {
+			onclose?.();
+			document
+				.querySelector<HTMLButtonElement>('button[aria-label="Toggle navigation menu"]')
+				?.focus();
+		}
+	}
 
 	// Single flat nav (tables in $lib/nav, shared with the topbar label), primary group then
 	// secondary group, separated by a divider.
@@ -25,6 +35,8 @@
 		}
 	]);
 </script>
+
+<svelte:window onkeydown={handleKeydown} />
 
 <!-- Mobile scrim -->
 {#if open}
@@ -44,6 +56,7 @@
 	class:translate-x-0={open}
 	class:-translate-x-full={!open}
 	aria-label="Primary navigation"
+	inert={!open && !desktop.current}
 >
 	<!-- Brand block -->
 	<a

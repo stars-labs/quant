@@ -23,7 +23,7 @@
 	<h1 class="text-2xl font-semibold tracking-tight">{t(lang, 'login.title')}</h1>
 	<p class="mt-2 text-sm text-muted-foreground">
 		{execution
-			? 'Sign in to connect your local runner and view your private account reports.'
+			? t(lang, 'web.sign_in_to_connect_your_local_runner_and_view_your_private_account_reports')
 			: en
 				? 'Sign in to view all strategy details.'
 				: '登录后查看全部策略详情。'}
@@ -32,9 +32,11 @@
 	{#if safeNext !== '/'}
 		<div class="mt-4 rounded-md border border-primary/50 bg-primary/5 p-3 text-xs">
 			{#if execution}
-				<div class="font-medium text-foreground">Your account reports are visible only to you.</div>
+				<div class="font-medium text-foreground">
+					{t(lang, 'web.your_account_reports_are_visible_only_to_you')}
+				</div>
 				<div class="mt-1 text-muted-foreground">
-					Trading and exchange credentials stay on your machine.
+					{t(lang, 'web.trading_and_exchange_credentials_stay_on_your_machine')}
 				</div>
 			{:else}
 				<div class="font-medium text-foreground">{fmt('login.why', { path: safeNext })}</div>
@@ -98,7 +100,7 @@
 
 	<p class="mt-4 text-xs text-muted-foreground">
 		{execution
-			? 'No exchange credentials are required here.'
+			? t(lang, 'web.no_exchange_credentials_are_required_here')
 			: en
 				? 'Most pages are browseable without login.'
 				: '未登录也能浏览大多数内容。'}

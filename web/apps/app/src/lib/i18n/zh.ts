@@ -29,7 +29,7 @@ export default {
 	'nav.more': '更多',
 	'nav.docs': '文档',
 	'nav.record': '策略战绩',
-	'nav.execution': 'Your accounts',
+	'nav.execution': '我的账户',
 	'nav.scan': '机会雷达',
 	'nav.method': '方法论',
 	'topbar.login': '登录',
@@ -54,65 +54,6 @@ export default {
 	'common.rows': '行数',
 	'common.load': '耗时',
 
-	// --- home ---
-	'home.title': '加密 + 美股量化',
-	'home.subtitle':
-		'两条腿都在 NautilusTrader 一套引擎上：加密货币(累积 + 趋势)实时在测试网执行，美股半导体趋势策略在回测验证中。策略代码、回测、实时执行全部公开。',
-	'home.kpi.apiStatus': 'API 状态',
-	'home.kpi.apiOnline': 'ONLINE',
-	'home.kpi.apiDown': 'DOWN',
-	'home.kpi.apiSub': '数据服务',
-	'home.kpi.totalRuns': '回测总数',
-	'home.kpi.totalRunsSub': '{n} 个策略',
-	'home.kpi.totalTrades': '累计 trades',
-	'home.kpi.totalTradesSub': '全部回测合计',
-	'home.kpi.dca': 'DCA 记录',
-	'home.kpi.dcaSub': '定时任务记录',
-	'home.kpi.bestProfit': '最佳利润',
-	'home.kpi.bestProfitSub': '其中大部分是 BTC 本身涨幅(持有不动也会涨)',
-	'home.kpi.bestCalmar': '最佳 Calmar',
-	'home.kpi.bestCalmarSub': 'profit / maxDD',
-	'home.kpi.bestSharpe': '最佳 Sharpe',
-	'home.kpi.bestSharpeSub': 'risk-adjusted',
-	'home.kpi.bestSortino': '最佳 Sortino',
-	'home.kpi.bestSortinoSub': 'downside-adjusted',
-	'home.kpi.bestWinRate': '最佳胜率',
-	'home.kpi.bestWinRateSub': 'win_rate_pct',
-	'home.kpi.minMaxDd': '最低 MaxDD',
-	'home.kpi.minMaxDdSub': '20% kill-switch',
-	'home.kpi.strategyCount': '策略数',
-	'home.kpi.strategyCountSub': '目录总览 /strategies',
-	'home.kpi.runCount': '总 runs',
-	'home.kpi.runCountSub': '档案 /archive',
-	'home.card.strategies.title': '策略目录',
-	'home.card.strategies.desc': '{n} 个策略的因子 + 机制 + 指标详情',
-	'home.card.dca.title': 'Smart DCA',
-	'home.card.dca.desc': 'Scheduled + Event 双通道，flash crash 自动加仓',
-	'home.card.chart.title': 'Multi-Granularity Chart',
-	'home.card.chart.desc': 'BTC / ETH / SOL 等 8 年 OHLC，服务端自动选颗粒度',
-	'home.card.wf.title': 'Walk-Forward',
-	'home.card.wf.desc': '多策略 × 8 regime 稳定性矩阵',
-	'home.recent.title': '最近 25 笔回测',
-	'home.filter.strategy': '策略:',
-	'home.filter.tf': 'TF:',
-	'home.table.started': 'Started',
-	'home.table.strategy': 'Strategy',
-	'home.table.tf': 'TF',
-	'home.table.factors': 'Factors',
-	'home.table.trades': 'Trades',
-	'home.table.winRate': 'Win%',
-	'home.table.profit': 'Profit%',
-	'home.table.maxDd': 'MaxDD%',
-	'home.table.calmar': 'Calmar',
-	'home.table.sharpe': 'Sharpe',
-	'home.filter.empty': '没有符合的回测，清除筛选或调整条件',
-	'home.anonGate.title': '登录后看全部 25 条回测详情',
-	'home.anonGate.body':
-		'未登录只能看聚合数据（左边的 KPI）。登录后解锁完整档案、策略因子、每次 trade、Walk-Forward 矩阵、实时 feed。',
-	'home.anonGate.cta': '去登录 →',
-	'home.footer': 'Built with SvelteKit · 实时数据 · 每日更新 · 部署于 Cloudflare Workers',
-
-	// --- strategies index ---
 	'strategies.title': '📚 策略目录',
 	'strategies.subtitle':
 		'每个策略都跑过全历史回测（2017–2026）和 walk-forward 8-regime 验证。点进详情看因子列表、指标分布、对应的 plotly 报告。',
@@ -633,5 +574,218 @@ export default {
 	'scan.mkt.why.commodity':
 		'我们把日线突破规则(收盘创 252 天新高买入、跌破 10 天低点卖出)在这 12 个品种上回测:参数只用 2017–2023 年挑,再看 2024 年至今。扣手续费后规则只赚了 +0.9%,一直拿着不动是 +51.8%,12 个品种没有一个跑赢持有。所以这里只列观察,不给买卖点。',
 	'scan.mkt.why.use':
-		'可以这样用:接近 52 周高点说明趋势强,但追高要想好退出;深度回撤只说明跌得多,不等于便宜,更不等于到了买点。'
+		'可以这样用:接近 52 周高点说明趋势强,但追高要想好退出;深度回撤只说明跌得多,不等于便宜,更不等于到了买点。',
+
+	'web.research_signals_trade_on_your_terms_starslab': '研究策略信号，自主执行交易 · Starslab',
+	'web.explore_transparent_strategy_research_review_recorded_signals_and_connect_an_owner_operate':
+		'探索透明的策略研究、查看历史信号，并接入自主运行的 HTX 执行器。密钥和交易始终保留在你的设备上。',
+	'web.public_research_visible_assumptions_and_private_account_reports_execution_stays_on_your_co':
+		'公开研究、透明假设和私有账户报告。执行器运行在你的电脑或服务器上。',
+	'web.open_research_owner_operated_execution': '公开研究 · 用户自主执行',
+	'web.understand_the_rules': '先理解策略规则。',
+	'web.trade_on_your_terms': '再自主决定交易。',
+	'web.explore_the_evidence_behind_a_strategy_test_your_own_ideas_and_review_your_account_in_one_':
+		'在这里查看策略依据、验证自己的想法并了解账户情况。实盘执行和交易所密钥始终保留在你的电脑或服务器上。',
+	'web.review_the_track_record': '查看策略战绩',
+	'web.connect_your_runner': '接入执行器',
+	'web.new_here_start_with_the_three_minute_guide': '第一次来？先看三分钟入门指南',
+	'web.choose_your_next_step': '选择下一步',
+	'web.understand_the_strategy': '理解策略',
+	'web.review_the_house_rules_recorded_signals_losses_and_historical_comparisons':
+		'查看策略规则、已记录的信号、亏损以及历史表现对照。',
+	'web.explore_the_track_record': '探索策略战绩',
+	'web.test_your_own_ideas': '验证自己的想法',
+	'web.explore_historical_backtests_and_inspect_assumptions_before_drawing_conclusions':
+		'先探索历史回测、检查研究假设，再得出结论。',
+	'web.open_the_research_playground': '打开回测实验室',
+	'web.connect_your_own_account': '接入自己的账户',
+	'web.run_the_open_source_htx_executor_on_your_device_and_keep_a_private_view_of_its_reports':
+		'在自己的设备上运行开源 HTX 执行器，并私密查看上报数据。',
+	'web.set_up_your_account_display': '设置账户展示',
+	'web.public_research_hourly_donchian_rule': '公开研究 · Donchian 小时级规则',
+	'web.the_current_house_rule_snapshot': '当前策略规则概览',
+	'web.refreshing': '刷新中…',
+	'web.refresh_data': '刷新数据',
+	'web.data_unavailable': '数据暂不可用',
+	'web.update_delayed': '数据更新延迟',
+	'web.hourly_data': '小时级数据',
+	'web.could_not_refresh_the_previous_snapshot_remains_visible_check_its_timestamp_before_using_i':
+		'刷新失败，当前仍显示上一次的数据；使用前请检查更新时间。',
+	'web.oldest_asset_close': '最早的资产收盘时间：',
+	'web.utc_historical_baseline': 'UTC。历史基准：',
+	'web.some_prices_are_over_three_hours_old_the_figures_below_are_historical_not_a_current_tradin':
+		'部分价格已超过三小时未更新。下方数据仅供历史参考，不是当前交易指令。',
+	'web.research_assets': '研究资产数',
+	'web.open_rule_signals': '尚未结束的规则信号',
+	'web.closed_rule_trades': '已结束的规则交易',
+	'web.model_return': '模型收益',
+	'web.equal_weight_buy_and_hold_comparison': '等权买入持有对照：',
+	'web.over_the_same_history': '，使用相同历史区间。',
+	'web.the_model_includes_reconstructed_history_and_assumes_0_1_fees_per_side_these_are_rule_base':
+		'模型包含历史重建，假设单边手续费为 0.1%。这是规则研究收益，并非真实账户收益。你的交易所费率和成交价格可能不同。',
+	'web.the_research_snapshot_could_not_be_loaded_missing_data_is_not_shown_as_zero_returns_or_no_':
+		'暂时无法加载研究数据。缺失数据不会被显示为零收益或没有信号。你仍可以阅读方法说明、设置私有账户展示。',
+	'web.full_history_and_live_recording_split': '完整历史与实时记录划分 →',
+	'web.rules_assumptions_and_costs': '规则、假设与成本 →',
+	'web.observe_the_market': '观察市场',
+	'web.delayed_reading': ' · 数据延迟',
+	'web.the_market_stress_reading_is_currently_unavailable': '市场压力读数暂不可用。',
+	'web.these_observations_provide_context_they_do_not_place_trades':
+		'这些观察仅提供背景信息，不会执行交易。',
+	'web.updated': '更新时间',
+	'web.market_context': '市场背景 →',
+	'web.opportunity_radar': '机会雷达 →',
+	'web.semiconductor_research': '半导体研究 →',
+	'web.a_private_view_not_a_managed_account': '私有展示，自主管理账户',
+	'web.connect_an_upload_only_display_token_to_review_positions_actual_fees_and_recent_fills_star':
+		'通过仅允许上报的令牌查看持仓、实扣手续费和最近成交。执行器的启动、停止和入金确认都在你自己的设备上完成。',
+	'web.read_the_open_source_setup_guide': '阅读开源执行器配置指南',
+	'web.historical_research_can_lose_money_and_does_not_predict_future_returns_public_testnet_and_':
+		'历史研究也可能亏损，无法预测未来收益。公开测试网和模拟盘成交仅用于演示；私有执行器报告由账户所有者自行上报。',
+	'web.getting_started_starslab': '入门指南 · Starslab',
+	'web.understand_starslab_research_test_strategies_and_connect_a_private_owner_operated_htx_runn':
+		'了解 Starslab 研究、验证策略并接入自主运行的 HTX 执行器。了解密钥存放、预算规则及如何停止交易。',
+	'web.research_first_execute_on_your_device_keep_your_account_reports_private':
+		'先做研究，再在自己的设备上执行，账户报告保持私密。',
+	'web.getting_started': '入门指南',
+	'web.a_clear_path_from_research_to_your_own_account': '从策略研究到自己的账户',
+	'web.starslab_publishes_research_and_displays_account_reports_you_decide_what_to_run_the_live_e':
+		'Starslab 发布研究、展示账户报告，由你决定运行哪些策略。实盘执行器运行在你的电脑或服务器上，交易凭证和订单恢复记录都保留在该设备上。',
+	'web.read_the_evidence': '阅读研究依据',
+	'web.start_with_the_public_house_rule_record_compare_the_strategy_with_buy_and_hold_check_the_h':
+		'先阅读公开策略战绩，对比买入持有表现，了解历史重建与实时记录的划分，并检查成本假设。',
+	'web.explore_before_committing': '行动之前先验证',
+	'web.use_the_backtest_playground_to_inspect_a_strategy_testnet_and_paper_fills_demonstrate_exec':
+		'使用回测实验室检查策略。测试网和模拟盘成交用于演示执行流程，与公开研究战绩和你的真实账户相互独立。',
+	'web.try_the_research_playground': '体验回测实验室',
+	'web.run_on_your_own_device': '在自己的设备上运行',
+	'web.if_you_choose_live_execution_install_the_open_source_htx_runner_on_your_computer_or_server':
+		'如果选择实盘，请在自己的电脑或服务器上安装开源 HTX 执行器。交易权限、预算、密钥和持久化账本均保留在该设备上。',
+	'web.connect_a_private_account_display': '接入私有账户展示',
+	'web.your_first_runner_connection': '首次接入执行器',
+	'web.step': '步骤',
+	'web.install_the_open_source_runner_using_the_official_setup_guide_a_fresh_installation_starts_':
+		'按照官方指南安装开源执行器。首次安装默认使用模拟模式。',
+	'web.run_a_simulation_and_inspect_its_local_status_review_the_strategy_budget_limits_and_order_':
+		'先运行模拟并检查本地状态，了解策略、预算上限和订单恢复规则。',
+	'web.sign_in_to_your_accounts_choose_the_report_type_matching_your_local_runner_and_download_th':
+		'登录“我的账户”，选择与本地执行器一致的报告类型，并下载上报配置。',
+	'web.attach_the_reporting_file_on_your_device_verify_that_the_account_display_receives_a_recent':
+		'在自己的设备上加载上报配置，确认账户页面收到最新报告。',
+	'web.if_you_choose_live_trading_configure_and_authorize_it_locally_confirm_deposited_funding_an':
+		'如果选择实盘，在本地配置并明确授权，确认已到账资金后启动服务，再创建对应的实盘展示连接。',
+	'web.open_your_accounts': '打开我的账户',
+	'web.install_and_operate_the_runner': '安装与运行执行器',
+	'web.questions_before_you_connect': '接入前的常见问题',
+	'web.want_to_understand_the_rule_before_using_it': '希望先了解规则，再决定是否使用？',
+	'web.read_the_methodology_and_cost_assumptions': '阅读方法说明与成本假设 →',
+	'web.is_the_public_track_record_my_actual_return': '公开战绩是我的真实收益吗？',
+	'web.no_it_models_the_published_rule_includes_reconstructed_history_and_assumes_0_1_fees_per_si':
+		'不是。公开战绩模拟已发布的规则，包含历史重建，假设单边手续费为 0.1%。你的实际费率、成交和仓位可能不同。“我的账户”显示自己的执行器上报的数据。',
+	'web.does_connecting_a_display_start_trading': '接入展示后会自动开始交易吗？',
+	'web.no_the_downloaded_configuration_contains_an_upload_only_token_it_lets_your_local_runner_se':
+		'不会。下载的配置只包含上报令牌，让本地执行器上传持仓、手续费和最近成交。实盘交易必须在自己的设备上明确授权。',
+	'web.where_do_i_put_my_exchange_keys': '交易所密钥放在哪里？',
+	'web.only_on_the_computer_or_server_running_your_executor_use_a_dedicated_spot_account_with_rea':
+		'只存放在运行执行器的电脑或服务器上。使用专用现货账户，只开启读取和交易权限，不开启提现；不要把密钥粘贴到网站、Telegram 或聊天中。',
+	'web.how_do_monthly_budgets_work': '月度预算如何运行？',
+	'web.choose_limits_locally_and_confirm_deposited_funding_with_the_runner_a_new_calendar_month_d':
+		'在本地设置上限，并通过执行器确认已到账资金。进入新月份不会自动增加入金。趋势卖出回款可以复用，当月定投资金独立计算。配置指南说明了停止、确认资金及重新启动的步骤。',
+	'web.how_do_i_stop_trading': '如何停止交易？',
+	'web.stop_the_executor_on_your_own_computer_or_server_disconnecting_the_display_only_stops_repo':
+		'在自己的电脑或服务器上停止执行器。断开展示只停止上报，不会停止本地交易。',
+	'web.what_does_an_old_or_missing_report_mean': '报告过期或缺失意味着什么？',
+	'web.it_means_the_website_has_no_recent_update_the_local_executor_may_still_be_running_check_th':
+		'这意味着网站没有收到最新更新，本地执行器可能仍在运行。请在自己的设备上检查服务；平台不会发送启动或停止交易的指令。',
+	'web.which_exchanges_are_supported': '支持哪些交易所？',
+	'web.the_public_runner_currently_supports_htx_spot_live_execution_and_simulation_gate_live_exec':
+		'公开执行器目前支持 HTX 现货实盘及模拟模式，不包含 Gate 实盘。公开执行演示页使用测试网或模拟账户。',
+	'web.are_fees_and_risk_hidden': '手续费和风险是否透明？',
+	'web.private_runner_reports_use_reconciled_fill_fees_including_base_asset_deductions_account_va':
+		'私有报告使用核对后的实扣手续费，包括从基础资产扣除的费用。账户估值使用小时研究收盘价，不包含未来卖出费用。历史结果不能预测未来收益。',
+	'web.your_accounts_starslab': '我的账户 · Starslab',
+	'web.private_displays_for_trading_runners_on_your_own_computer_or_server_your_exchange_keys_sta':
+		'私密查看运行在自己的电脑或服务器上的交易执行器。交易所密钥由你保管。',
+	'web.your_machine_your_keys': '自己的设备，自己的密钥。',
+	'web.your_accounts': '我的账户',
+	'web.run_the_open_source_executor_on_your_computer_or_server_starslab_displays_the_account_data':
+		'在自己的电脑或服务器上运行开源执行器。Starslab 仅展示执行器上报的账户数据，交易和交易所凭证保留在自己的设备上。',
+	'web.refresh_account_displays': '刷新账户展示',
+	'web.how_connection_works': '接入步骤',
+	'web.install_your_runner': '安装执行器',
+	'web.use_a_dedicated_spot_account_configure_exchange_permissions_and_trading_limits_locally':
+		'使用专用现货账户，在本地配置交易所权限和交易上限。',
+	'web.connect_the_display': '接入展示',
+	'web.download_a_reporting_configuration_here_it_contains_an_upload_token_never_an_exchange_key':
+		'在这里下载上报配置，其中仅包含上报令牌，不包含交易所密钥。',
+	'web.review_your_account': '查看账户',
+	'web.see_positions_actual_fees_and_recent_fills_start_and_stop_trading_on_your_own_machine':
+		'查看持仓、实扣手续费和最近成交；在自己的设备上启动或停止交易。',
+	'web.open_source_runner_and_setup_guide': '开源执行器与配置指南 ↗',
+	'web.loading_your_account_displays': '正在加载账户展示…',
+	'web.a_private_view_of_your_account': '私密查看自己的账户',
+	'web.sign_in_to_create_a_display_connection_account_reports_are_visible_only_to_you':
+		'登录后创建展示连接，账户报告仅自己可见。',
+	'web.sign_in': '登录',
+	'web.connect_your_htx_runner': '接入 HTX 执行器',
+	'web.choose_the_report_type_to_match_your_local_runner_this_does_not_enable_trading':
+		'选择与本地执行器一致的报告类型。此操作不会开启交易。',
+	'web.save_your_reporting_configuration': '保存上报配置',
+	'web.the_upload_token_is_shown_once_keep_the_file_on_your_runner_s_machine_it_permits_uploads_t':
+		'上报令牌仅显示一次。请把文件保存在执行器所在设备，它仅允许向这个展示连接上传数据。',
+	'web.save_display_json': '保存 display.json',
+	'web.i_saved_the_file': '我已保存文件',
+	'web.account_label': '账户名称',
+	'web.report_type': '报告类型',
+	'web.simulation': '模拟模式',
+	'web.live_spot_account': '现货实盘账户',
+	'web.creating': '创建中…',
+	'web.create_display_connection': '创建展示连接',
+	'web.no_accounts_connected_yet_your_first_report_will_appear_here_after_your_local_runner_start':
+		'尚未接入账户。本地执行器开始上报后，首份报告会出现在这里。',
+	'web.live_spot': '现货实盘',
+	'web.user_reported_data': '· 用户自行上报的数据',
+	'web.waiting_for_first_report': '等待首份报告',
+	'web.report_is_stale': '报告已过期',
+	'web.reporting': '上报正常',
+	'web.observed': '报告时间',
+	'web.valuation_uses_hourly_research_closes_these_figures_are_supplied_by_your_runner_and_are_no':
+		'。估值使用小时研究收盘价。这些数据由你的执行器提供，Starslab 未作独立核验。',
+	'web.tracked_equity': '账本估值',
+	'web.tracked_cash': '账本现金',
+	'web.confirmed_funding': '已确认资金',
+	'web.actual_fees': '实扣手续费',
+	'web.simulated_fees': '模拟手续费',
+	'web.estimated_net_p_l': '估算净盈亏',
+	'web.available_trend_budget': '· 可用趋势预算',
+	'web.current_month_dca': '· 当月定投预算',
+	'web.positions': '持仓',
+	'web.no_open_positions': '暂无持仓。',
+	'web.asset': '资产',
+	'web.strategy': '策略',
+	'web.quantity': '数量',
+	'web.value': '估值',
+	'web.realized_p_l': '已实现盈亏',
+	'web.btc_dca': 'BTC 定投',
+	'web.trend': '趋势',
+	'web.recent_fills': '最近成交',
+	'web.no_fills_reported_yet': '尚未上报成交。',
+	'web.time': '时间',
+	'web.trade': '交易',
+	'web.quote_value': '成交金额',
+	'web.fee': '手续费',
+	'web.buy': '买入',
+	'web.sell': '卖出',
+	'web.disconnect_reporting': '断开上报',
+	'web.disconnecting_stops_uploads_only_stop_trading_on_the_computer_or_server_running_your_execu':
+		'断开连接只停止上传。要停止交易，请在运行执行器的电脑或服务器上停止服务。',
+	'web.account_displays_are_temporarily_unavailable': '账户展示暂不可用。',
+	'web.could_not_create_the_display_connection': '暂时无法创建展示连接。',
+	'web.could_not_disconnect_reporting': '暂时无法断开上报。',
+	'web.sign_in_to_connect_your_local_runner_and_view_your_private_account_reports':
+		'登录以接入本地执行器，查看自己的私有账户报告。',
+	'web.your_account_reports_are_visible_only_to_you': '账户报告仅自己可见。',
+	'web.trading_and_exchange_credentials_stay_on_your_machine':
+		'交易和交易所凭证保留在自己的设备上。',
+	'web.no_exchange_credentials_are_required_here': '这里无需提供交易所凭证。'
 };

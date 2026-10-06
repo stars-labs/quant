@@ -26,7 +26,7 @@ export default {
 	'nav.hyperopt': 'Hyperopt',
 	'nav.factors': 'Factors',
 	'nav.graveyard': 'Graveyard',
-	'nav.more': 'More',
+	'nav.more': 'Research and tools',
 	'nav.docs': 'Docs',
 	'nav.record': 'Track record',
 	'nav.execution': 'Your accounts',
@@ -54,66 +54,6 @@ export default {
 	'common.rows': 'Rows',
 	'common.load': 'Load',
 
-	// --- home ---
-	'home.title': 'Crypto + Equities Quant',
-	'home.subtitle':
-		'Both legs on one engine — NautilusTrader. Crypto (accumulation + trend) trades live on testnet; the US-equity semiconductor trend strategy is in backtest validation. Strategy code, backtests, and live execution are all public.',
-	'home.kpi.apiStatus': 'API status',
-	'home.kpi.apiOnline': 'ONLINE',
-	'home.kpi.apiDown': 'DOWN',
-	'home.kpi.apiSub': 'data service',
-	'home.kpi.totalRuns': 'Backtest runs',
-	'home.kpi.totalRunsSub': '{n} strategies',
-	'home.kpi.totalTrades': 'Total trades',
-	'home.kpi.totalTradesSub': 'across all runs',
-	'home.kpi.dca': 'DCA records',
-	'home.kpi.dcaSub': 'scheduled log',
-	'home.kpi.bestProfit': 'Best profit',
-	'home.kpi.bestProfitSub': "mostly BTC's own appreciation (holding would gain too)",
-	'home.kpi.bestCalmar': 'Best Calmar',
-	'home.kpi.bestCalmarSub': 'profit / maxDD',
-	'home.kpi.bestSharpe': 'Best Sharpe',
-	'home.kpi.bestSharpeSub': 'risk-adjusted',
-	'home.kpi.bestSortino': 'Best Sortino',
-	'home.kpi.bestSortinoSub': 'downside-adjusted',
-	'home.kpi.bestWinRate': 'Best win rate',
-	'home.kpi.bestWinRateSub': 'win_rate_pct',
-	'home.kpi.minMaxDd': 'Min MaxDD',
-	'home.kpi.minMaxDdSub': '20% kill-switch',
-	'home.kpi.strategyCount': 'Strategies',
-	'home.kpi.strategyCountSub': 'Browse /strategies',
-	'home.kpi.runCount': 'Total runs',
-	'home.kpi.runCountSub': 'Archive /archive',
-	'home.card.strategies.title': 'Strategy catalog',
-	'home.card.strategies.desc': 'Factors, mechanics, and metrics for all {n} strategies',
-	'home.card.dca.title': 'Smart DCA',
-	'home.card.dca.desc': 'Scheduled + Event dual channel; auto-buys on flash crashes',
-	'home.card.chart.title': 'Multi-granularity chart',
-	'home.card.chart.desc': '8 years of OHLC for BTC / ETH / SOL; server auto-picks the bucket',
-	'home.card.wf.title': 'Walk-Forward',
-	'home.card.wf.desc': 'Strategies × 8 regime-window stability matrix',
-	'home.recent.title': 'Recent 25 backtests',
-	'home.filter.strategy': 'Strategy:',
-	'home.filter.tf': 'TF:',
-	'home.table.started': 'Started',
-	'home.table.strategy': 'Strategy',
-	'home.table.tf': 'TF',
-	'home.table.factors': 'Factors',
-	'home.table.trades': 'Trades',
-	'home.table.winRate': 'Win%',
-	'home.table.profit': 'Profit%',
-	'home.table.maxDd': 'MaxDD%',
-	'home.table.calmar': 'Calmar',
-	'home.table.sharpe': 'Sharpe',
-	'home.filter.empty': 'No backtests match. Clear filters or widen the search.',
-	'home.anonGate.title': 'Sign in to see all 25 backtests',
-	'home.anonGate.body':
-		'Aggregate stats (left) are public. Logging in unlocks the full archive, strategy factors, every trade, the Walk-Forward matrix, and the live feed.',
-	'home.anonGate.cta': 'Sign in →',
-	'home.footer':
-		'Built with SvelteKit · Live data · Updated daily · Deployed on Cloudflare Workers',
-
-	// --- strategies index ---
 	'strategies.title': '📚 Strategy catalog',
 	'strategies.subtitle':
 		'Every strategy is validated against the full 2017–2026 history and an 8-regime walk-forward. Click through for factor lists, metric distributions, and the matching plotly reports.',
@@ -663,5 +603,223 @@ export default {
 	'scan.mkt.why.commodity':
 		'We backtested a daily breakout rule on these 12 futures (buy on a 252-day closing high, sell below the 10-day low), picking its settings on 2017–2023 only and then checking 2024 to now. Net of fees the rule made +0.9%; simply holding made +51.8%, and not one of the 12 beat holding. So this tab shows observations, not buy or sell points.',
 	'scan.mkt.why.use':
-		'How to read it: near the 52-week high means a strong trend, but plan your exit before chasing it; a deep drawdown only means it fell a lot, not that it is cheap, let alone a buy.'
+		'How to read it: near the 52-week high means a strong trend, but plan your exit before chasing it; a deep drawdown only means it fell a lot, not that it is cheap, let alone a buy.',
+
+	'web.research_signals_trade_on_your_terms_starslab':
+		'Research signals. Trade on your terms. · Starslab',
+	'web.explore_transparent_strategy_research_review_recorded_signals_and_connect_an_owner_operate':
+		'Explore transparent strategy research, review recorded signals and connect an owner-operated HTX runner. Your keys and trading stay on your device.',
+	'web.public_research_visible_assumptions_and_private_account_reports_execution_stays_on_your_co':
+		'Public research, visible assumptions and private account reports. Execution stays on your computer or server.',
+	'web.open_research_owner_operated_execution': 'Open research · Owner-operated execution',
+	'web.understand_the_rules': 'Understand the rules.',
+	'web.trade_on_your_terms': 'Trade on your terms.',
+	'web.explore_the_evidence_behind_a_strategy_test_your_own_ideas_and_review_your_account_in_one_':
+		'Explore the evidence behind a strategy, test your own ideas and review your account in one place. Live execution and exchange keys stay on your computer or server.',
+	'web.review_the_track_record': 'Review the track record',
+	'web.connect_your_runner': 'Connect your runner',
+	'web.new_here_start_with_the_three_minute_guide': 'New here? Start with the three-minute guide',
+	'web.choose_your_next_step': 'Choose your next step',
+	'web.understand_the_strategy': 'Understand the strategy',
+	'web.review_the_house_rules_recorded_signals_losses_and_historical_comparisons':
+		'Review the house rules, recorded signals, losses and historical comparisons.',
+	'web.explore_the_track_record': 'Explore the track record',
+	'web.test_your_own_ideas': 'Test your own ideas',
+	'web.explore_historical_backtests_and_inspect_assumptions_before_drawing_conclusions':
+		'Explore historical backtests and inspect assumptions before drawing conclusions.',
+	'web.open_the_research_playground': 'Open the research playground',
+	'web.connect_your_own_account': 'Connect your own account',
+	'web.run_the_open_source_htx_executor_on_your_device_and_keep_a_private_view_of_its_reports':
+		'Run the open-source HTX executor on your device and keep a private view of its reports.',
+	'web.set_up_your_account_display': 'Set up your account display',
+	'web.public_research_hourly_donchian_rule': 'Public research · Hourly Donchian rule',
+	'web.the_current_house_rule_snapshot': 'The current house-rule snapshot',
+	'web.refreshing': 'Refreshing…',
+	'web.refresh_data': 'Refresh data',
+	'web.data_unavailable': 'Data unavailable',
+	'web.update_delayed': 'Update delayed',
+	'web.hourly_data': 'Hourly data',
+	'web.could_not_refresh_the_previous_snapshot_remains_visible_check_its_timestamp_before_using_i':
+		'Could not refresh. The previous snapshot remains visible; check its timestamp before using it.',
+	'web.oldest_asset_close': 'Oldest asset close:',
+	'web.utc_historical_baseline': 'UTC. Historical baseline:',
+	'web.some_prices_are_over_three_hours_old_the_figures_below_are_historical_not_a_current_tradin':
+		'Some prices are over three hours old. The figures below are historical, not a current trading instruction.',
+	'web.research_assets': 'Research assets',
+	'web.open_rule_signals': 'Open rule signals',
+	'web.closed_rule_trades': 'Closed rule trades',
+	'web.model_return': 'Model return',
+	'web.equal_weight_buy_and_hold_comparison': 'Equal-weight buy-and-hold comparison:',
+	'web.over_the_same_history': 'over the same history.',
+	'web.the_model_includes_reconstructed_history_and_assumes_0_1_fees_per_side_these_are_rule_base':
+		'The model includes reconstructed history and assumes 0.1% fees per side. These are rule-based research returns, not real-account returns. Your exchange fees and execution prices may differ.',
+	'web.the_research_snapshot_could_not_be_loaded_missing_data_is_not_shown_as_zero_returns_or_no_':
+		'The research snapshot could not be loaded. Missing data is not shown as zero returns or no signals. You can still explore the methodology and set up your private account display.',
+	'web.full_history_and_live_recording_split': 'Full history and live-recording split →',
+	'web.rules_assumptions_and_costs': 'Rules, assumptions and costs →',
+	'web.observe_the_market': 'Observe the market',
+	'web.delayed_reading': ' · delayed reading',
+	'web.the_market_stress_reading_is_currently_unavailable':
+		'The market stress reading is currently unavailable.',
+	'web.these_observations_provide_context_they_do_not_place_trades':
+		'These observations provide context; they do not place trades.',
+	'web.updated': 'Updated',
+	'web.market_context': 'Market context →',
+	'web.opportunity_radar': 'Opportunity radar →',
+	'web.semiconductor_research': 'Semiconductor research →',
+	'web.a_private_view_not_a_managed_account': 'A private view, not a managed account',
+	'web.connect_an_upload_only_display_token_to_review_positions_actual_fees_and_recent_fills_star':
+		'Connect an upload-only display token to review positions, actual fees and recent fills. Start, stop and fund the executor on your own device.',
+	'web.read_the_open_source_setup_guide': 'Read the open-source setup guide',
+	'web.historical_research_can_lose_money_and_does_not_predict_future_returns_public_testnet_and_':
+		'Historical research can lose money and does not predict future returns. Public testnet and paper fills are demonstrations; private runner reports come from each account owner.',
+	'web.getting_started_starslab': 'Getting started · Starslab',
+	'web.understand_starslab_research_test_strategies_and_connect_a_private_owner_operated_htx_runn':
+		'Understand Starslab research, test strategies and connect a private owner-operated HTX runner. Learn where keys stay, how budgets work and how to stop trading.',
+	'web.research_first_execute_on_your_device_keep_your_account_reports_private':
+		'Research first. Execute on your device. Keep your account reports private.',
+	'web.getting_started': 'Getting started',
+	'web.a_clear_path_from_research_to_your_own_account':
+		'A clear path from research to your own account',
+	'web.starslab_publishes_research_and_displays_account_reports_you_decide_what_to_run_the_live_e':
+		'Starslab publishes research and displays account reports. You decide what to run. The live executor runs on your computer or server and keeps exchange credentials and order recovery on that device.',
+	'web.read_the_evidence': 'Read the evidence',
+	'web.start_with_the_public_house_rule_record_compare_the_strategy_with_buy_and_hold_check_the_h':
+		'Start with the public house-rule record. Compare the strategy with buy-and-hold, check the historical versus live-recorded split and read the cost assumptions.',
+	'web.explore_before_committing': 'Explore before committing',
+	'web.use_the_backtest_playground_to_inspect_a_strategy_testnet_and_paper_fills_demonstrate_exec':
+		'Use the backtest playground to inspect a strategy. Testnet and paper fills demonstrate execution; they are separate from the public research record and your real account.',
+	'web.try_the_research_playground': 'Try the research playground',
+	'web.run_on_your_own_device': 'Run on your own device',
+	'web.if_you_choose_live_execution_install_the_open_source_htx_runner_on_your_computer_or_server':
+		'If you choose live execution, install the open-source HTX runner on your computer or server. Trading permissions, budgets, keys and the durable journal stay there.',
+	'web.connect_a_private_account_display': 'Connect a private account display',
+	'web.your_first_runner_connection': 'Your first runner connection',
+	'web.step': 'Step',
+	'web.install_the_open_source_runner_using_the_official_setup_guide_a_fresh_installation_starts_':
+		'Install the open-source runner using the official setup guide. A fresh installation starts in simulation.',
+	'web.run_a_simulation_and_inspect_its_local_status_review_the_strategy_budget_limits_and_order_':
+		'Run a simulation and inspect its local status. Review the strategy, budget limits and order recovery behavior.',
+	'web.sign_in_to_your_accounts_choose_the_report_type_matching_your_local_runner_and_download_th':
+		'Sign in to Your accounts, choose the report type matching your local runner and download the reporting configuration.',
+	'web.attach_the_reporting_file_on_your_device_verify_that_the_account_display_receives_a_recent':
+		'Attach the reporting file on your device. Verify that the account display receives a recent report.',
+	'web.if_you_choose_live_trading_configure_and_authorize_it_locally_confirm_deposited_funding_an':
+		'If you choose live trading, configure and authorize it locally, confirm deposited funding and start your own service. Create a live display connection to match it.',
+	'web.open_your_accounts': 'Open Your accounts',
+	'web.install_and_operate_the_runner': 'Install and operate the runner',
+	'web.questions_before_you_connect': 'Questions before you connect',
+	'web.want_to_understand_the_rule_before_using_it': 'Want to understand the rule before using it?',
+	'web.read_the_methodology_and_cost_assumptions': 'Read the methodology and cost assumptions →',
+	'web.is_the_public_track_record_my_actual_return': 'Is the public track record my actual return?',
+	'web.no_it_models_the_published_rule_includes_reconstructed_history_and_assumes_0_1_fees_per_si':
+		'No. It models the published rule, includes reconstructed history and assumes 0.1% fees per side. Your exchange fees, fills and position sizes may differ. Your accounts shows the data your own runner reports.',
+	'web.does_connecting_a_display_start_trading': 'Does connecting a display start trading?',
+	'web.no_the_downloaded_configuration_contains_an_upload_only_token_it_lets_your_local_runner_se':
+		'No. The downloaded configuration contains an upload-only token. It lets your local runner send positions, fees and recent fills. Live trading requires explicit authorization on your own device.',
+	'web.where_do_i_put_my_exchange_keys': 'Where do I put my exchange keys?',
+	'web.only_on_the_computer_or_server_running_your_executor_use_a_dedicated_spot_account_with_rea':
+		'Only on the computer or server running your executor. Use a dedicated spot account with read and trade permissions. Do not enable withdrawals or paste exchange keys into the website, Telegram or chat.',
+	'web.how_do_monthly_budgets_work': 'How do monthly budgets work?',
+	'web.choose_limits_locally_and_confirm_deposited_funding_with_the_runner_a_new_calendar_month_d':
+		'Choose limits locally and confirm deposited funding with the runner. A new calendar month does not invent a deposit. Trend sale proceeds can be reused; current-month DCA funding remains separate. The setup guide explains how to stop the runner, confirm funding and restart it.',
+	'web.how_do_i_stop_trading': 'How do I stop trading?',
+	'web.stop_the_executor_on_your_own_computer_or_server_disconnecting_the_display_only_stops_repo':
+		'Stop the executor on your own computer or server. Disconnecting the display only stops reporting and does not stop local trading.',
+	'web.what_does_an_old_or_missing_report_mean': 'What does an old or missing report mean?',
+	'web.it_means_the_website_has_no_recent_update_the_local_executor_may_still_be_running_check_th':
+		'It means the website has no recent update. The local executor may still be running. Check the service on your own device; the platform does not send stop or start commands.',
+	'web.which_exchanges_are_supported': 'Which exchanges are supported?',
+	'web.the_public_runner_currently_supports_htx_spot_live_execution_and_simulation_gate_live_exec':
+		'The public runner currently supports HTX spot live execution and simulation. Gate live execution is not included. The public demo execution pages use testnet or paper accounts.',
+	'web.are_fees_and_risk_hidden': 'Are fees and risk hidden?',
+	'web.private_runner_reports_use_reconciled_fill_fees_including_base_asset_deductions_account_va':
+		'Private runner reports use reconciled fill fees, including base-asset deductions. Account value is estimated using hourly research closes and excludes future sell fees. Historical results do not predict future returns.',
+	'web.your_accounts_starslab': 'Your accounts · Starslab',
+	'web.private_displays_for_trading_runners_on_your_own_computer_or_server_your_exchange_keys_sta':
+		'Private displays for trading runners on your own computer or server. Your exchange keys stay with you.',
+	'web.your_machine_your_keys': 'Your machine. Your keys.',
+	'web.your_accounts': 'Your accounts',
+	'web.run_the_open_source_executor_on_your_computer_or_server_starslab_displays_the_account_data':
+		'Run the open-source executor on your computer or server. Starslab displays the account data your runner uploads. Trading and exchange credentials stay on your machine.',
+	'web.refresh_account_displays': 'Refresh account displays',
+	'web.how_connection_works': 'How connection works',
+	'web.install_your_runner': 'Install your runner',
+	'web.use_a_dedicated_spot_account_configure_exchange_permissions_and_trading_limits_locally':
+		'Use a dedicated spot account. Configure exchange permissions and trading limits locally.',
+	'web.connect_the_display': 'Connect the display',
+	'web.download_a_reporting_configuration_here_it_contains_an_upload_token_never_an_exchange_key':
+		'Download a reporting configuration here. It contains an upload token, never an exchange key.',
+	'web.review_your_account': 'Review your account',
+	'web.see_positions_actual_fees_and_recent_fills_start_and_stop_trading_on_your_own_machine':
+		'See positions, actual fees and recent fills. Start and stop trading on your own machine.',
+	'web.open_source_runner_and_setup_guide': 'Open-source runner and setup guide ↗',
+	'web.loading_your_account_displays': 'Loading your account displays…',
+	'web.a_private_view_of_your_account': 'A private view of your account',
+	'web.sign_in_to_create_a_display_connection_account_reports_are_visible_only_to_you':
+		'Sign in to create a display connection. Account reports are visible only to you.',
+	'web.sign_in': 'Sign in',
+	'web.connect_your_htx_runner': 'Connect your HTX runner',
+	'web.choose_the_report_type_to_match_your_local_runner_this_does_not_enable_trading':
+		'Choose the report type to match your local runner. This does not enable trading.',
+	'web.save_your_reporting_configuration': 'Save your reporting configuration',
+	'web.the_upload_token_is_shown_once_keep_the_file_on_your_runner_s_machine_it_permits_uploads_t':
+		"The upload token is shown once. Keep the file on your runner's machine. It permits uploads to this display only.",
+	'web.save_display_json': 'Save display.json',
+	'web.i_saved_the_file': 'I saved the file',
+	'web.account_label': 'Account label',
+	'web.report_type': 'Report type',
+	'web.simulation': 'Simulation',
+	'web.live_spot_account': 'Live spot account',
+	'web.creating': 'Creating…',
+	'web.create_display_connection': 'Create display connection',
+	'web.no_accounts_connected_yet_your_first_report_will_appear_here_after_your_local_runner_start':
+		'No accounts connected yet. Your first report will appear here after your local runner starts uploading.',
+	'web.live_spot': 'Live spot',
+	'web.user_reported_data': '· User-reported data',
+	'web.waiting_for_first_report': 'Waiting for first report',
+	'web.report_is_stale': 'Report is stale',
+	'web.reporting': 'Reporting',
+	'web.observed': 'Observed',
+	'web.valuation_uses_hourly_research_closes_these_figures_are_supplied_by_your_runner_and_are_no':
+		'. Valuation uses hourly research closes. These figures are supplied by your runner and are not independently verified by Starslab.',
+	'web.tracked_equity': 'Tracked equity',
+	'web.tracked_cash': 'Tracked cash',
+	'web.confirmed_funding': 'Confirmed funding',
+	'web.actual_fees': 'Actual fees',
+	'web.simulated_fees': 'Simulated fees',
+	'web.estimated_net_p_l': 'Estimated net P&L',
+	'web.available_trend_budget': '· Available trend budget',
+	'web.current_month_dca': '· Current-month DCA',
+	'web.positions': 'Positions',
+	'web.no_open_positions': 'No open positions.',
+	'web.asset': 'Asset',
+	'web.strategy': 'Strategy',
+	'web.quantity': 'Quantity',
+	'web.value': 'Value',
+	'web.realized_p_l': 'Realized P&L',
+	'web.btc_dca': 'BTC DCA',
+	'web.trend': 'Trend',
+	'web.recent_fills': 'Recent fills',
+	'web.no_fills_reported_yet': 'No fills reported yet.',
+	'web.time': 'Time',
+	'web.trade': 'Trade',
+	'web.quote_value': 'Quote value',
+	'web.fee': 'Fee',
+	'web.buy': 'Buy',
+	'web.sell': 'Sell',
+	'web.disconnect_reporting': 'Disconnect reporting',
+	'web.disconnecting_stops_uploads_only_stop_trading_on_the_computer_or_server_running_your_execu':
+		'Disconnecting stops uploads only. Stop trading on the computer or server running your executor.',
+	'web.account_displays_are_temporarily_unavailable':
+		'Account displays are temporarily unavailable.',
+	'web.could_not_create_the_display_connection': 'Could not create the display connection.',
+	'web.could_not_disconnect_reporting': 'Could not disconnect reporting.',
+	'web.sign_in_to_connect_your_local_runner_and_view_your_private_account_reports':
+		'Sign in to connect your local runner and view your private account reports.',
+	'web.your_account_reports_are_visible_only_to_you':
+		'Your account reports are visible only to you.',
+	'web.trading_and_exchange_credentials_stay_on_your_machine':
+		'Trading and exchange credentials stay on your machine.',
+	'web.no_exchange_credentials_are_required_here': 'No exchange credentials are required here.'
 };

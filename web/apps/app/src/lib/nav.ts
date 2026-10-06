@@ -39,7 +39,11 @@ export const PRIMARY_NAV: NavItem[] = [
 	{ href: '/record', labelKey: 'nav.record', icon: Trophy },
 	{ href: '/execution', labelKey: 'nav.execution', icon: Wallet },
 	{ href: '/scan', labelKey: 'nav.scan', icon: Radar },
-	{ href: '/method', labelKey: 'nav.method', icon: BookOpen },
+	{ href: '/method', labelKey: 'nav.method', icon: BookOpen }
+];
+
+// The sidebar appends the Docs link (a static site with a per-language href).
+export const SECONDARY_NAV: NavItem[] = [
 	{ href: '/nautilus', labelKey: 'nav.nautilus', icon: Cpu },
 	{ href: '/signals', labelKey: 'nav.signals', icon: Radio },
 	{ href: '/market', labelKey: 'nav.market', icon: LineChart },
@@ -50,11 +54,7 @@ export const PRIMARY_NAV: NavItem[] = [
 	{ href: '/strategies', labelKey: 'nav.strategies', icon: Layers },
 	{ href: '/backtest', labelKey: 'nav.backtest', icon: FlaskConical },
 	{ href: '/quant-lab', labelKey: 'nav.quantLab', icon: Sparkles },
-	{ href: '/archive', labelKey: 'nav.archive', icon: Archive }
-];
-
-// The sidebar appends the Docs link (a static site with a per-language href).
-export const SECONDARY_NAV: NavItem[] = [
+	{ href: '/archive', labelKey: 'nav.archive', icon: Archive },
 	{ href: '/dca', labelKey: 'nav.dca', icon: Wallet },
 	{ href: '/chart', labelKey: 'nav.chart', icon: CandlestickChart },
 	{ href: '/wf', labelKey: 'nav.wf', icon: Repeat2 },

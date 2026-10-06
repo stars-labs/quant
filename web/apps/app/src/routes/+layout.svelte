@@ -3,14 +3,17 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import { ModeWatcher } from 'mode-watcher';
 	import { browser } from '$app/environment';
+	import { page } from '$app/stores';
 	import { afterNavigate } from '$app/navigation';
 	import Topbar from '$lib/components/topbar.svelte';
 	import Sidebar from '$lib/components/sidebar.svelte';
-	import OnboardingTour from '$lib/components/onboarding-tour.svelte';
 	import { track } from '$lib/track';
 
 	let { children } = $props();
 	let sidebarOpen = $state(false);
+	$effect(() => {
+		document.documentElement.lang = $page.data.lang === 'zh' ? 'zh-CN' : 'en';
+	});
 
 	// Desktop sidebar collapse (icon rail), persisted per browser.
 	const COLLAPSE_KEY = 'bdv:sidebar-collapsed';
@@ -18,7 +21,7 @@
 
 	function toggleSidebar() {
 		// One topbar button, two behaviors: drawer on mobile, collapse on desktop.
-		if (window.matchMedia('(min-width: 768px)').matches) {
+		if (window.matchMedia('(min-width: 48rem)').matches) {
 			sidebarCollapsed = !sidebarCollapsed;
 			localStorage.setItem(COLLAPSE_KEY, sidebarCollapsed ? '1' : '0');
 		} else {
@@ -49,4 +52,3 @@
 		{@render children()}
 	</div>
 </div>
-<OnboardingTour />

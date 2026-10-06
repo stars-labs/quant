@@ -1,19 +1,5 @@
 // Shared row types for the public API (mirrors migration 002 + 007 views).
 
-/** Aggregate snapshot exposed to anon via api.public_stats. */
-export interface PublicStats {
-	total_runs: number;
-	total_trades: number;
-	distinct_strategies: number;
-	best_profit_pct: number | null;
-	best_calmar: number | null;
-	best_sharpe: number | null;
-	best_sortino: number | null;
-	best_win_rate: number | null;
-	min_max_dd: number | null;
-	last_updated: string;
-}
-
 export interface BacktestRun {
 	id: number;
 	job_id: string | null;

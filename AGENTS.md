@@ -139,9 +139,11 @@ Web dashboard (`cd web/apps/app`, pnpm):
   (`dev`/`build` first run `scripts/sync-reports.mjs` — and `build` also `sync-starlight.mjs`,
   which copies the Astro docs build into `static/docs/`.)
 - `pnpm run lint` — prettier --check + eslint.   `pnpm run format` — prettier --write.
+- Lightweight frontend logic tests: `node --test src/lib/*.test.ts` (Node >= 22.18).
+- Language browser regression: `node scripts/check-language.mjs [URL]` (requires `agent-browser`; defaults to the local dev server).
 - `pnpm run deploy` — `vite build && wrangler deploy` (NOT `pnpm deploy`, which is a different pnpm
   builtin). Deploys to the tron.network Cloudflare account, host `starslab.qzz.io` (migrated 2026-07).
-- Svelte 5 runes (`$state`/`$derived`/`$props`); zh-default bilingual via `$lib/i18n` (`en.ts`/`zh.ts`).
+- Svelte 5 runes (`$state`/`$derived`/`$props`); English-default bilingual via `$lib/i18n` (`en.ts`/`zh.ts`).
 
 ## Web data flow (the load-bearing architecture)
 

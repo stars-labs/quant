@@ -21,8 +21,8 @@ export function isLang(v: unknown): v is Lang {
 }
 
 export function normalizeLang(v: string | null | undefined): Lang {
-	if (v === 'en') return 'en';
-	return 'zh';
+	if (v === 'zh') return 'zh';
+	return 'en';
 }
 
 /** Active bundle by lang. Always returns one of the maps, never null. */

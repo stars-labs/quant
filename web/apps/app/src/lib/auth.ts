@@ -221,7 +221,10 @@ async function redirectToLogin(next?: string, extra?: Record<string, string>) {
 	const c = await client();
 	await c.loginWithRedirect({
 		appState: { next: next ?? '/' },
-		authorizationParams: { ...extra, ...(next === '/execution' ? { ui_locales: 'en' } : {}) }
+		authorizationParams: {
+			...extra,
+			ui_locales: document.documentElement.lang.startsWith('zh') ? 'zh-CN' : 'en'
+		}
 	});
 }
 

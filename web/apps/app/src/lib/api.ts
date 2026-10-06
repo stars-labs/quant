@@ -12,7 +12,6 @@ import type {
 	HyperoptEpoch,
 	KolEvent,
 	DcaLogRow,
-	PublicStats,
 	NautilusBacktest,
 	SemiTicker,
 	SemiGroup,
@@ -64,13 +63,6 @@ function vpsAuth(explicit?: string): HeadersInit {
 
 export const vps = {
 	// ---- public-preview endpoints (anon-accessible) ----
-	publicStats: (f: Fetch = fetch) => req<PublicStats[]>(CONFIG.API_BASE, '/public_stats', {}, f),
-
-	// Honest current numbers: aggregates over quant.nautilus_backtests (re-run on Nautilus),
-	// NOT the retired freqtrade backtest_runs. Same shape as PublicStats (superset).
-	nautilusStats: (f: Fetch = fetch) =>
-		req<PublicStats[]>(CONFIG.API_BASE, '/nautilus_stats', {}, f),
-
 	nautilusBacktests: (f: Fetch = fetch) =>
 		req<NautilusBacktest[]>(CONFIG.API_BASE, '/nautilus_backtests', {}, f),
 
