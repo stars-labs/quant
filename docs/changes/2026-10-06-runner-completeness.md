@@ -242,3 +242,32 @@ completed ExecMainStatus=0, generation
 /nix/store/59r27gf8gbvr0m46jd0zf8cm6f7qmv20-nixos-system-oracle-arm-002-26.11.20261006.151fa4e.
 17:27:48Z live healthy pending=0. Patch release 0.2.1 is being prepared; existing
 0.2.0 release assets are kept immutable.
+
+## Completion audit (2026-10-07)
+
+| Requirement | Current evidence | Result |
+|---|---|---|
+| 1. Safe diagnostics | Offline/live doctor tests, fixed safe validation reasons, active Oracle doctor returned all checks ok | PASS |
+| 2. Backup and recovery | WAL/checksum/corruption/identity tests; real downloaded installer backup/restore into initialized private home and offline doctor passed; running-owner backup retained 7 orders | PASS |
+| 3. Explain decisions and blocked orders | Local/public normalized reasons, private pending IDs, no-new-order reconcile tests; rendered EN/Chinese desktop/mobile harness; 139 runner tests | PASS |
+| 4. Duplicate/foreign execution | Independent journal account locks; designated machine/user/home tests; real SSH active-account competition refusal; installation shared/exclusive lock tests | PASS |
+| 5. Confirmed cash and allocation | Deposit caps, withdrawal/profit, current transfer and cross-month carry tests; funding history SQL validation; unknown times preserved; private mobile funding cards | PASS |
+| 6. History, returns, attribution | Actual live upload has funding/return sections; observed return present; six attribution groups reconcile with account PnL; 19 Modified Dietz tests and withdrawal/fee/closed-position tests | PASS |
+| 7. Private Telegram | Bound-user isolation SQL + account/notification harnesses; opt-in subscriptions, sender/private-chat checks, isolated acknowledgements, production single dispatcher active | PASS |
+| 8. Owner setup/delivery | Guided setup and explicit legacy upgrade tests; public 0.2.1 installer fresh simulation setup/fund/offline doctor passed; 0.2.0 reinstall bytes and restore round trip passed; wheel/sdist/checksums published; CI 37504106228 passed | PASS |
+
+Source main 594621b and dotfiles e1e66c14 pushed; release runner-v0.2.1 published.
+Frontend: type check 0 errors / 12 pre-existing warnings, lint exit 0, 14 lightweight
+tests passed, production synthetic EN/Chinese account harness passed. Website
+version 401b43cd-f369-4543-a6c6-3d658469866a. Production owner doctor all checks ok;
+owner/dispatcher active. Latest owner decisions healthy / one below-minimum skip /
+no pending orders. Personal credentials and all limits were preserved. No live
+order was forced for verification and no other users were enrolled automatically.
+
+Boundaries: reports remain owner-provided estimates using research closes, and
+observed returns do not reconstruct missing inception history. Original-owner
+legacy attestations are explicit custody assertions; copied configured journals
+cannot execute elsewhere automatically. Ownership migrations require stopping and
+disabling the original service. Linux installation was verified; macOS machine
+identity was unit-tested against mocked platform UUID output, not a real Mac.
+Optional new liquidation/drawdown rules were not imposed on the existing strategy.
