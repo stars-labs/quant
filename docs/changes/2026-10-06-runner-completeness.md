@@ -49,3 +49,15 @@ withdrawals do not appear as losses. New deposits still use the existing monthly
 fund command; profit withdrawals, incremental deposits and prior-month DCA
 reclassification remain incomplete. Test coverage includes unchanged journal on
 unverified live balance, idempotence, allocation conservation and pending refusal.
+
+History increment: successful priced cycles persist private equity snapshots,
+including observation time, oldest valuation-price time, fees and net contributions.
+The history command reads while execution is active and returns latest observations
+per UTC hour. No historical points are fabricated. Tests verify a withdrawal and
+additional contribution leave investment PnL unchanged, latest hourly selection,
+and refusal of stale/nonfinite valuations. Public report schema is unchanged in
+this increment. Historical frontend integration and percentage return attribution
+remain pending.
+
+History validation: 76 runner tests passed, including the command reading snapshots
+while another Journal instance holds the executor lock. Deployment remains pending.

@@ -45,6 +45,11 @@ class Journal:
                 asset_delta REAL, cash_delta REAL, amount REAL, cost REAL,
                 created_at TEXT NOT NULL, finished_at TEXT
             );
+            CREATE TABLE IF NOT EXISTS equity_snapshots (
+                sequence INTEGER PRIMARY KEY, observed_at TEXT NOT NULL,
+                price_as_of TEXT NOT NULL, equity REAL NOT NULL,
+                cash REAL NOT NULL, net_funding REAL NOT NULL, fees REAL NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS cash_flows (
                 reference TEXT PRIMARY KEY, month TEXT NOT NULL,
                 trend_delta REAL NOT NULL, dca_delta REAL NOT NULL,

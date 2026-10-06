@@ -16,7 +16,7 @@ from .engine import tick
 from .exchange import HTX
 from .journal import Journal
 from .reporting import report, rpc, upload
-from .signals import validate_snapshot
+from .signals import validate_snapshot, timestamp
 
 
 def load(home):
@@ -119,7 +119,8 @@ def run(home, config, once=False):
             private_json(home/'decisions.json',{'observed_at':datetime.now(timezone.utc).isoformat(),
                 'status':status,'decisions':decisions})
             if prices:
-                display = report(store,config,prices,status,decisions)
+                price_as_of = min(timestamp(row['last_ts']) for row in snapshot['assets'] if row['asset'] in prices).isoformat()
+                display = report(store,config,prices,status,decisions,price_as_of)
                 private_json(home/'status.json',display)
                 if config['display_file']:
                     try:
@@ -151,6 +152,7 @@ def main(argv=None):
     commands.add_parser('status')
     commands.add_parser('doctor')
     commands.add_parser('decisions')
+    commands.add_parser('history')
     adjust = commands.add_parser('cash-flow')
     adjust.add_argument('--reference',required=True)
     adjust.add_argument('--trend',type=float,required=True)
@@ -186,6 +188,15 @@ def main(argv=None):
             print(json.dumps(verify_backup(args.file)))
             return 0
         config = load(home)
+        if args.command=='history':
+            import sqlite3
+            from types import SimpleNamespace
+            from .history import history
+            path = home/f"{config['venue']}-{config['mode']}.sqlite"
+            with sqlite3.connect(path.as_uri()+'?mode=ro',uri=True) as db:
+                db.row_factory = sqlite3.Row
+                print(json.dumps(history(SimpleNamespace(db=db)),indent=2,allow_nan=False))
+            return 0
         if args.command=='restore':
             from .recovery import restore
             restore(args.file,home,config,args.confirm_original_stopped)

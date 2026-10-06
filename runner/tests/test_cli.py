@@ -104,6 +104,18 @@ class CommandTest(unittest.TestCase):
             store.close()
         venue.submit.assert_not_called()
 
+    def test_history_reads_while_executor_holds_journal_lock(self):
+        from starslab_runner.history import record_snapshot
+        self.command('init')
+        store = Journal(self.home/'htx-dry_run.sqlite')
+        try:
+            now = datetime.now(timezone.utc).isoformat()
+            record_snapshot(store,1,now,now,200,100,200,.2)
+            self.assertEqual(self.command('history'),0)
+            self.assertIn('net_pnl_usdt',self.output.getvalue())
+        finally:
+            store.close()
+
     def test_status_available_while_executor_holds_journal_lock(self):
         self.command('init')
         private_json(self.home/'status.json',{'venue':'htx','environment':'dry_run',

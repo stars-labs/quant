@@ -214,3 +214,15 @@ adjustments. Positive net deposits still use the monthly `fund` command. These
 commands never transfer money or submit orders. Net confirmed funding in reports
 subtracts withdrawals so a withdrawal is not shown as a trading loss. Withdrawals
 of profits beyond net contributions are currently rejected.
+
+### Account valuation history
+
+`starslab-runner history` reads the latest observation from each of the last 168
+recorded UTC hours, even while execution holds the journal lock. Future execution
+cycles store timestamped valuations locally; no pre-installation history is
+fabricated. Each point identifies the hourly research-close price timestamp,
+tracked equity and cash, net contributions, actual fees and net investment PnL.
+Deposits and withdrawals change contributions alongside equity, so they do not
+create an investment profit or loss. These are estimated valuations, excluding
+future sell fees. Percentage returns and time-weighted attribution are not yet
+provided. History currently remains in the private local journal.

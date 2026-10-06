@@ -30,7 +30,7 @@ def rpc(base, function, body):
         return json.loads(raw)
 
 
-def report(store, config, prices, status, decisions=None):
+def report(store, config, prices, status, decisions=None, price_as_of=None):
     positions = []
     equity = store.cash()
     for row in store.holdings():
@@ -52,7 +52,11 @@ def report(store, config, prices, status, decisions=None):
                 'fee_usdt':fee,'fee_rate':rate,'finished_at':row['finished_at']})
     funded = store.net_funding()
     now = datetime.now(timezone.utc)
-    return {'version':1,'sequence':store.next_sequence(),'observed_at':now.isoformat(),
+    sequence = store.next_sequence()
+    if price_as_of is not None:
+        from .history import record_snapshot
+        record_snapshot(store,sequence,now.isoformat(),price_as_of,equity,store.cash(),funded,total_fee)
+    return {'version':1,'sequence':sequence,'observed_at':now.isoformat(),
         'status':status,'venue':config['venue'],'environment':config['mode'],
         'cash_usdt':max(0,store.cash()),'equity_usdt':max(0,equity),'funded_usdt':funded,
         'trend_available_usdt':store.budget('trend',now.strftime('%Y-%m-01')),
