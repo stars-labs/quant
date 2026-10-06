@@ -28,6 +28,16 @@ const report = {
 	positions: [],
 	fills: [],
 	decisions: [{ strategy: 'trend', asset: 'BTC', reason: 'confirmed_budget_unavailable' }],
+	attribution: [
+		{
+			strategy: 'trend',
+			asset: 'BTC',
+			realized_pnl_usdt: 0,
+			unrealized_pnl_usdt: -2,
+			net_pnl_usdt: -2,
+			fees_usdt: 0.2
+		}
+	],
 	history: [
 		{
 			observed_at: now,
@@ -81,6 +91,7 @@ try {
 		);
 		assert.ok(text.includes(lang === 'en' ? 'Net contributions' : '净投入'));
 		assert.ok(text.includes(lang === 'en' ? 'Private Telegram alerts' : '私有 Telegram 提醒'));
+		assert.ok(text.includes(lang === 'en' ? 'Live PnL attribution' : '实盘收益归因'));
 		assert.ok(text.includes(lang === 'en' ? 'Telegram connected' : 'Telegram 已绑定'));
 		const metrics = JSON.parse(
 			browser('eval', '({viewport:innerWidth,width:document.documentElement.scrollWidth})')

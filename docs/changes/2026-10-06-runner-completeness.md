@@ -159,3 +159,27 @@ installed lock helper separately passed duplicate refusal and active-real-accoun
 fencing. Running-owner backup verified integrity=ok, orders=7, funding=1.
 Private probe configurations and the sandbox lock were removed; real-account
 lock and private consistent backup were preserved.
+
+Attribution implementation: realized and unrealized net PnL and actual fee totals
+are grouped by strategy/asset, including closed positions. Net acquired quantity
+and net sale proceeds account for base/quote fees without double subtraction.
+Migration 050 validates bounded fields, unique asset/strategy groups, group math,
+and reconciliation with total account PnL and fees. Account UI displays each group;
+Telegram provides compact strategy summaries and caps long position/decision lists.
+Tests cover partial sales, both fee currencies, closed positions without prices,
+withdrawal-neutral PnL and rejected inconsistent uploads. 89 runner tests passed,
+13 Telegram account tests passed; frontend check 0 errors / 12 existing warnings
+and lint passed. Migration 050 applied to production. NUR c6195ae pushed; owner
+service deployment is running in owner-pnl-attribution.service, log
+/var/tmp/owner-pnl-attribution.log. Frontend deployment and rendered attribution
+verification are pending at this observation.
+
+Attribution deployment completed ExecMainStatus=0, generation
+/nix/store/dgiq600fg6dzja2c5q8ks5zgypc8270a-nixos-system-oracle-arm-002-26.11.20261006.151fa4e.
+Dotfiles 5890a24b pushed. Production private report healthy, attribution groups=6,
+aggregate net PnL matches account PnL within 0.000001 USDT. Owner and dispatcher
+active; 2026-10-06T16:09:25Z healthy pending=0. Website version
+43e866ac-82af-4ba6-950c-9aeacc6abf50 deployed. Synthetic production browser harness
+passed English desktop and Chinese mobile, now including attribution heading.
+Percentage return measurement, full funding-flow display, user setup/upgrade and
+package release verification remain pending; the overall objective is not complete.

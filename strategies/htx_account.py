@@ -43,10 +43,12 @@ def account_text(conn, now=None, operator=None):
               f"Actual fees: {report['fees_usdt']:.4f} USDT equivalent",
               f"Available: trend {report['trend_available_usdt']:.2f} / monthly BTC DCA {report['dca_available_usdt']:.2f} USDT",
               '\n<b>Reported positions</b>']
-    for position in report['positions']:
+    for position in report['positions'][:14]:
         value = position['quantity'] * position['price_usdt']
         lines.append(f"{escape(position['strategy'])} · {escape(position['asset'])} "
                      f"{position['quantity']:.10g} · estimated value {value:.2f} USDT")
+    if len(report['positions'])>14:
+        lines.append(f"{len(report['positions'])-14} more positions: review your private account page.")
     if not report['positions']:
         lines.append('No reported positions.')
     decisions = report.get('decisions') or []
@@ -60,8 +62,17 @@ def account_text(conn, now=None, operator=None):
             'reconciliation_failed':'Reconciliation failed','signal_feed_failed':'Signal feed unavailable',
             'execution_failed':'Execution checks failed'}
         lines.append('\n<b>Latest execution decisions</b>')
-        for decision in decisions[:20]:
+        for decision in decisions[:14]:
             lines.append(escape(decision.get('asset') or 'Account')+' · '+reasons.get(decision['reason'],'Check owner diagnostics'))
+    attribution = report.get('attribution') or []
+    if attribution:
+        lines.append('\n<b>Net PnL by strategy</b>')
+        for strategy in ('trend','dca'):
+            rows = [item for item in attribution if item['strategy']==strategy]
+            if rows:
+                realized = sum(item['realized_pnl_usdt'] for item in rows)
+                unrealized = sum(item['unrealized_pnl_usdt'] for item in rows)
+                lines.append(f'{strategy}: realized {realized:+.2f}, unrealized {unrealized:+.2f} USDT (fees included)')
     lines.append('User-reported local journal; hourly research close valuation. Unconfirmed deposits are excluded; future sell fees are excluded.')
     return '\n'.join(lines)
 

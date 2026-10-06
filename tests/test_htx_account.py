@@ -168,3 +168,12 @@ def test_alert_preferences_are_private_and_require_explicit_on_off():
     group={'chat':{'id':456,'type':'group'},'from':{'id':456}}
     assert ha.handle_account(db,group,'/livealerts',lambda *args:replies.append(args),'123','on')
     assert len(db.calls)==calls
+
+
+def test_strategy_attribution_is_net_and_keeps_fees_included():
+    db=DB()
+    db.rows[0][3]['attribution']=[{'strategy':'trend','asset':'BTC','realized_pnl_usdt':2,
+        'unrealized_pnl_usdt':3,'net_pnl_usdt':5,'fees_usdt':.04}]
+    text=ha.account_text(db,NOW,'123')
+    assert 'Net PnL by strategy' in text
+    assert 'trend: realized +2.00, unrealized +3.00 USDT (fees included)' in text

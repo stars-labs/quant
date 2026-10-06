@@ -357,6 +357,54 @@
 							</table>
 						</div>
 					{/if}
+					{#if connection.report.attribution?.length}
+						<h3 class="mt-6 font-medium">
+							{connection.environment === 'live'
+								? lang === 'zh'
+									? '实盘收益归因'
+									: 'Live PnL attribution'
+								: lang === 'zh'
+									? '模拟盘盈亏归因'
+									: 'Simulated PnL attribution'}
+						</h3>
+						<p class="mt-2 text-xs text-muted-foreground">
+							{lang === 'zh'
+								? '手续费已包含在成本和净卖出回款中，不再重复扣除。未实现盈亏使用研究收盘价，未扣未来卖出费用。'
+								: 'Fees are already included in cost basis and net sale proceeds. Unrealized PnL uses research closes and excludes future sale fees.'}
+						</p>
+						<div class="mt-3 overflow-x-auto">
+							<table class="w-full text-left text-sm">
+								<thead
+									><tr
+										><th class="py-2 pr-4">{lang === 'zh' ? '策略 / 币种' : 'Strategy / asset'}</th
+										><th class="pr-4">{lang === 'zh' ? '已实现' : 'Realized'}</th><th class="pr-4"
+											>{lang === 'zh' ? '未实现' : 'Unrealized'}</th
+										><th class="pr-4">{lang === 'zh' ? '净盈亏' : 'Net PnL'}</th><th
+											>{lang === 'zh' ? '手续费' : 'Fees'}</th
+										></tr
+									></thead
+								>
+								<tbody
+									>{#each connection.report.attribution as item (item.strategy + ':' + item.asset)}<tr
+											class="border-t border-border"
+											><td class="py-2 pr-4 whitespace-nowrap"
+												>{item.strategy === 'trend'
+													? lang === 'zh'
+														? '趋势'
+														: 'Trend'
+													: lang === 'zh'
+														? '定投'
+														: 'DCA'} / {item.asset}</td
+											><td class="pr-4">{money(item.realized_pnl_usdt)}</td><td class="pr-4"
+												>{money(item.unrealized_pnl_usdt)}</td
+											><td class="pr-4">{money(item.net_pnl_usdt)}</td><td
+												>{money(item.fees_usdt)}</td
+											></tr
+										>{/each}</tbody
+								>
+							</table>
+						</div>
+					{/if}
 					<h3 class="mt-6 font-medium">{t(lang, 'web.positions')}</h3>
 					{#if connection.report.positions.length === 0}<p
 							class="mt-2 text-sm text-muted-foreground"

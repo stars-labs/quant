@@ -34,6 +34,14 @@ export interface RunnerHistoryPoint {
 	fees_usdt: number;
 	net_pnl_usdt: number;
 }
+export interface RunnerAttribution {
+	strategy: 'trend' | 'dca';
+	asset: string;
+	realized_pnl_usdt: number;
+	unrealized_pnl_usdt: number;
+	net_pnl_usdt: number;
+	fees_usdt: number;
+}
 export interface RunnerReport {
 	version: number;
 	sequence: number;
@@ -51,6 +59,7 @@ export interface RunnerReport {
 	fills: RunnerFill[];
 	decisions?: RunnerDecision[];
 	history?: RunnerHistoryPoint[];
+	attribution?: RunnerAttribution[];
 }
 export interface RunnerConnection {
 	id: string;

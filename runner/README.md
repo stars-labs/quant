@@ -257,3 +257,10 @@ of the local machine ID. A normal init records the current owner; the personal
 account designates oracle-arm-002. SSH uses existing owner authentication and
 never sends exchange keys or display tokens. Lock helpers only hold a file lock
 and answer nonce checks. They have no hosted control endpoint and submit no orders.
+
+Private reports attribute realized and unrealized PnL to each strategy/asset pair,
+including closed positions. Cost basis uses net acquired quantity and cash paid;
+sales use net proceeds. Actual fill fees are shown separately for transparency
+and are already included in PnL. Attribution totals reconcile to tracked equity
+minus net contributions. Unrealized PnL uses research closes and excludes future
+sale fees. Migration 050 must be applied before runners upload attribution.
