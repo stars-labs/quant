@@ -317,6 +317,37 @@
 							{/each}
 						</ul>
 					{/if}
+					{#if connection.report.history?.length}
+						<h3 class="mt-6 font-medium">{lang === 'zh' ? '账户历史' : 'Account history'}</h3>
+						<p class="mt-2 text-xs text-muted-foreground">
+							{lang === 'zh'
+								? '充值和提款不计入盈亏。按小时保留最新观测，估值使用研究收盘价。'
+								: 'Deposits and withdrawals are excluded from PnL. Latest observation per hour; valuations use research closes.'}
+						</p>
+						<div class="mt-3 overflow-x-auto">
+							<table class="w-full text-left text-sm">
+								<thead
+									><tr
+										><th class="py-2 pr-4">{lang === 'zh' ? '观测时间' : 'Observed'}</th><th
+											class="pr-4">{lang === 'zh' ? '估值时间' : 'Price time'}</th
+										><th class="pr-4">{lang === 'zh' ? '权益' : 'Equity'}</th><th class="pr-4"
+											>{lang === 'zh' ? '净投入' : 'Net contributions'}</th
+										><th>{lang === 'zh' ? '估计盈亏' : 'Estimated PnL'}</th></tr
+									></thead
+								>
+								<tbody
+									>{#each [...connection.report.history].reverse() as point (point.observed_at)}<tr
+											class="border-t border-border"
+											><td class="py-2 pr-4 whitespace-nowrap">{time(point.observed_at)}</td><td
+												class="pr-4 whitespace-nowrap">{time(point.price_as_of)}</td
+											><td class="pr-4">{money(point.equity_usdt)}</td><td class="pr-4"
+												>{money(point.net_contributions_usdt)}</td
+											><td>{money(point.net_pnl_usdt)}</td></tr
+										>{/each}</tbody
+								>
+							</table>
+						</div>
+					{/if}
 					<h3 class="mt-6 font-medium">{t(lang, 'web.positions')}</h3>
 					{#if connection.report.positions.length === 0}<p
 							class="mt-2 text-sm text-muted-foreground"

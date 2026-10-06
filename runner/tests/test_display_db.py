@@ -41,6 +41,7 @@ class DisplayDatabaseTest(unittest.TestCase):
             cur.execute(migration.read_text())
             cur.execute((migration.parent / '045_runner_telegram_reports.sql').read_text())
             cur.execute((migration.parent / '047_runner_decisions.sql').read_text())
+            cur.execute((migration.parent / '048_runner_history.sql').read_text())
 
     @classmethod
     def tearDownClass(cls):
@@ -84,6 +85,21 @@ class DisplayDatabaseTest(unittest.TestCase):
         from psycopg2.extras import Json
         return self.sql('SELECT api.upload_runner_report(%s,%s)',
             (token or self.first['upload_token'], Json(self.report if report is None else report)))[0][0]
+
+    def test_history_rejects_secrets_and_inconsistent_pnl(self):
+        import psycopg2
+        now = datetime.now(timezone.utc).isoformat()
+        point = {'observed_at':now,'price_as_of':now,'equity_usdt':198,'cash_usdt':100,
+            'net_contributions_usdt':200,'fees_usdt':.2,'net_pnl_usdt':-2}
+        self.anonymous()
+        for change in ({'api_key':'secret'}, {'net_pnl_usdt':100}, {'cash_usdt':None}):
+            report = copy.deepcopy(self.report)
+            report['history'] = [{**point,**change}]
+            with self.assertRaises(psycopg2.Error):
+                self.upload(report)
+        report = copy.deepcopy(self.report)
+        report['history'] = [point]
+        self.assertEqual(self.upload(report),'accepted')
 
     def test_decisions_allow_only_safe_normalized_reasons(self):
         import psycopg2

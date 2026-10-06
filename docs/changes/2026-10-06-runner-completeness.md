@@ -61,3 +61,10 @@ remain pending.
 
 History validation: 76 runner tests passed, including the command reading snapshots
 while another Journal instance holds the executor lock. Deployment remains pending.
+
+History display integration adds migration 048 with capped private history points,
+strict timestamp/amount fields and PnL arithmetic validation. Account UI displays
+price and observation times, equity, net contributions and estimated PnL in the
+selected language. 77 runner tests passed without skips; frontend check reports
+0 errors / 12 existing warnings, full lint exit 0. Migrations 047/048 applied to
+Oracle, and a private consistent pre-upgrade journal backup was created.

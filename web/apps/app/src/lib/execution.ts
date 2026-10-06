@@ -25,6 +25,15 @@ export interface RunnerDecision {
 	asset: string | null;
 	reason: string;
 }
+export interface RunnerHistoryPoint {
+	observed_at: string;
+	price_as_of: string;
+	equity_usdt: number;
+	cash_usdt: number;
+	net_contributions_usdt: number;
+	fees_usdt: number;
+	net_pnl_usdt: number;
+}
 export interface RunnerReport {
 	version: number;
 	sequence: number;
@@ -41,6 +50,7 @@ export interface RunnerReport {
 	positions: RunnerPosition[];
 	fills: RunnerFill[];
 	decisions?: RunnerDecision[];
+	history?: RunnerHistoryPoint[];
 }
 export interface RunnerConnection {
 	id: string;
