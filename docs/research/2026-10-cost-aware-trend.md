@@ -108,3 +108,32 @@ Generated outputs are `/tmp/quant-cost-research-{2024,2025,2026}.json` and
 `/tmp/quant-cost-research-download.log`. These files are local research artifacts,
 not deployed private account reports. No live orders, credits or settings were
 written by this research.
+
+## Frozen prospective evaluation on Oracle
+
+`research/trend-shadow-plan.json` registers the same three candidates at the
+reference cost and the higher-cost stress before 2026-10-07 18:00 UTC. The
+research process refuses first registration at or after that time. The plan
+includes the replay source SHA256; changing its rules, costs, asset order or
+implementation after registration aborts rather than rewriting the experiment.
+
+`quant-trend-shadow.timer` runs hourly at :05 UTC on oracle-arm-002 under a
+separate systemd DynamicUser. It has no account credentials, exchange order
+adapter, private journal access or Telegram polling. State lives under
+`/var/lib/quant-trend-shadow/`. `latest.json` is the current research status;
+`checkpoints/` preserves each completed hourly evaluation. Repeating a checkpoint
+returns its original result. Previously observed bar prefixes are hashed; a
+subsequent upstream revision aborts instead of silently changing past evidence.
+
+This is **prospective hourly OHLC replay with simulated fills**, not exchange
+paper execution or an HTX quotation test. It starts flat with simulated funding;
+it does not replicate the owner's existing holdings. During an outage it can
+catch up from historical bars; this does not establish that an order could have
+been executed at the assumed price in real time. The first complete-hour report
+is expected at 19:05 UTC (03:05 Singapore on October 8). Until then, `waiting` is
+the correct status. Candidate evaluation cannot change the live rule.
+
+The replay also now matches the owner's engine when an old position is below
+the minimum sell value: that residual position does not block a new target in
+the same asset. Separate target holdings retain their own basis and proceeds.
+A focused regression covers that case.

@@ -91,3 +91,9 @@ def test_baseline_signal_times_match_public_state_machine():
     assert len(events)==len(r['fills'])==2
     for event,fill in zip(events,r['fills']):
         assert pd.Timestamp(fill['time']).value//1000000==event['ts']+1
+
+
+def test_untradeable_old_position_does_not_block_a_new_target():
+    d=frame([10,10,10,12,12,1,1,1,1,2,2])
+    r=replay({'BTC':d},Rule('tiny',2,1),d.index[3],d.index[-1]+pd.Timedelta(hours=1))
+    assert r['sells']==0 and r['buys']==2 and r['open_positions']==2

@@ -63,7 +63,7 @@ def replay(frames, rule, start, end, *, fee=.002, slippage=.0005,
     history=[];target_counter=0
     for i,ts in enumerate(index):
         opens={a:p[i,0] for a,p in prepared.items()}
-        before=cash+sum(v['quantity']*opens[a] for a,v in held.items())
+        before=cash+sum(v['quantity']*opens[v['asset']] for v in held.values())
         nav=before/units
         if ts.strftime('%Y-%m')!=last_month:
             units+=monthly/nav;cash+=monthly;funded+=monthly
@@ -74,32 +74,33 @@ def replay(frames, rule, start, end, *, fee=.002, slippage=.0005,
                 if previous<exit: del target[a]
             elif previous>entry*(1+rule.buffer):
                 target_counter+=1;target[a]=target_counter
-        for a in list(held):
-            h=held[a]
+        for position in list(held):
+            h=held[position]
+            a=h['asset']
             if target.get(a)!=h['target']:
                 price=opens[a]*(1-slippage);gross=h['quantity']*price
                 if gross<minimum: continue
                 proceeds=gross*(1-fee);cash+=proceeds;fee_total+=gross*fee
                 fills.append({'asset':a,'side':'sell','time':ts.isoformat(),
                               'price':price,'cash':proceeds,'pnl':proceeds-h['cost']})
-                del held[a]
+                del held[position]
         for a in prepared:
             tid=target.get(a)
-            if tid is None or tid in processed or a in held: continue
+            if tid is None or tid in processed: continue
             allocation=min(order_cap,cash)
             # Match the live adapter's conservative 0.3% fee reservation.
             cost=allocation/1.003
             if cost<minimum: continue
             price=opens[a]*(1+slippage);gross_qty=cost/price
             quantity=gross_qty*(1-fee);cash-=cost;fee_total+=cost*fee
-            held[a]={'target':tid,'quantity':quantity,'cost':cost};processed.add(tid)
+            held[tid]={'asset':a,'target':tid,'quantity':quantity,'cost':cost};processed.add(tid)
             fills.append({'asset':a,'side':'buy','time':ts.isoformat(),'price':price,'cash':-cost})
-        equity=cash+sum(v['quantity']*prepared[a][i,1] for a,v in held.items())
+        equity=cash+sum(v['quantity']*prepared[v['asset']][i,1] for v in held.values())
         nav=equity/units;peak=max(peak,nav);drawdown=min(drawdown,nav/peak-1)
         if cash < -1e-8: raise AssertionError('Replay spent unavailable cash')
         if ts.hour==23 or i==len(index)-1:
             history.append({'time':(ts+pd.Timedelta(hours=1)).isoformat(),'nav':nav,'equity':equity,'cash':cash,'funded':funded})
-    liquidation=cash+sum(v['quantity']*prepared[a][-1,1]*(1-slippage)*(1-fee) for a,v in held.items())
+    liquidation=cash+sum(v['quantity']*prepared[v['asset']][-1,1]*(1-slippage)*(1-fee) for v in held.values())
     sells=[f for f in fills if f['side']=='sell']
     return {'rule':rule.name,'entry_lookback':rule.entry,'exit_lookback':rule.exit,'buffer':rule.buffer,
             'start':index[0].isoformat(),'end_exclusive':end.isoformat(),'assets':list(prepared),
