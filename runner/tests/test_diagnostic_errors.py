@@ -40,6 +40,25 @@ class DiagnosticTests(unittest.TestCase):
                 wallet_values(balance, 'total')
             self.assertNotIn('secret', str(caught.exception))
 
+    def test_large_sale_dust_accepts_only_float_cancellation_error(self):
+        bought = 4407427.200926308
+        expected = bought - 4407427.2
+        store = SimpleNamespace(cash=lambda:10, holdings=lambda:[
+            {'asset':'PEPE','quantity':expected,'bought':bought}])
+        adapter = self.adapter({'total':{'USDT':10,'PEPE':0.00092630714754}})
+        adapter.mode = 'live'
+        adapter.check(store)
+        adapter.ex.fetch_balance = lambda params:{'total':{'USDT':10,'PEPE':expected-1e-7}}
+        with self.assertRaises(WalletHoldingsMismatch):
+            adapter.check(store)
+
+    def test_untracked_asset_still_pauses(self):
+        store = SimpleNamespace(cash=lambda:10, holdings=lambda:[])
+        adapter = self.adapter({'total':{'USDT':10,'PEPE':0.001}})
+        adapter.mode = 'live'
+        with self.assertRaises(WalletHoldingsMismatch):
+            adapter.check(store)
+
     def test_bad_fee_quote_refuses_before_intent(self):
         for fee in (None, {'symbol':'BTC/USDT','taker':.0031},
                     {'symbol':'BTC/USDT','taker':'secret signed URL'},
