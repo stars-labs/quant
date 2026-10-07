@@ -137,3 +137,16 @@ The replay also now matches the owner's engine when an old position is below
 the minimum sell value: that residual position does not block a new target in
 the same asset. Separate target holdings retain their own basis and proceeds.
 A focused regression covers that case.
+
+Deployment verification (2026-10-07 16:46 UTC): NixOS switch completed with
+exit status 0. `quant-trend-shadow.timer` is active. The first service run returned
+`Result=success`, `ExecMainStatus=0`, `DynamicUser=yes`, `ProtectHome=yes` and
+wrote `latest.json` with status `waiting`, no results and the registered start.
+Plan hash: `3ae8fc883281d0d41e42efabc074a799f7e07f95d39a1d5a737622a6b55dcba4`.
+The owner executor continued logging `healthy, pending=0`.
+
+Eighteen focused research tests passed; the owner runner regression suite ran
+141 tests successfully with 22 database-dependent tests skipped. All 45
+historical comparisons were rerun after the residual-position correction.
+Future results remain unverified until the first completed-hour checkpoint.
+Deployment log: `/var/tmp/quant-trend-shadow-deploy.log` on Oracle.

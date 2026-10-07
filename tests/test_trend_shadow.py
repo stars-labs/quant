@@ -43,3 +43,9 @@ def test_checkpoint_idempotence_and_prefix_preservation(tmp_path):
     with pytest.raises(ValueError,match='Previously observed'):
         evaluate(tmp_path,PLAN,START+timedelta(hours=2),revised)
     assert not (tmp_path/'checkpoints'/'20261007T19.json').exists()
+
+
+def test_changed_implementation_refused_before_registration(tmp_path):
+    with pytest.raises(ValueError,match='implementation changed'):
+        evaluate(tmp_path,{**PLAN,'implementation_sha256':'0'*64},START-timedelta(minutes=1),download)
+    assert not (tmp_path/'plan.json').exists()

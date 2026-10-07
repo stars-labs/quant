@@ -198,6 +198,16 @@ closes the stale row as `exit_reason='superseded'`, no price/PnL).
   computed. Telegram `/me` = personal share card (`share_card.render_personal`). Web: `/record` 我的跟单 +
   live block, `/method` (rules, costs, rejected ideas, changelog — add a line when a rule changes).
 
+## Prospective trend research
+
+`quant-trend-shadow.timer` on oracle-arm-002 evaluates the frozen plan in
+`research/trend-shadow-plan.json` hourly at :05 UTC, using public OHLC and simulated
+fills only. State and immutable checkpoints are in `/var/lib/quant-trend-shadow/`.
+It has no private HTX credentials or trading authority. Source is vendored in the
+dotfiles host module `trend-shadow.nix`; keep its copies in sync. Registered plan
+and replay fingerprints cannot change in place. See
+`docs/research/2026-10-cost-aware-trend.md` for commands and limitations.
+
 ## Health checks (operator alerts)
 
 `strategies/health_check.py` runs every 10 min in two roles that watch each other via
