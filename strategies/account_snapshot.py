@@ -55,7 +55,7 @@ def snapshot_ib() -> dict | None:
         def accountSummaryEnd(self, reqId):
             self.done.set()
 
-    host = os.environ.get("IB_HOST", "172.22.240.97")
+    host = os.environ.get("IB_HOST", "172.22.240.104")
     port = int(os.environ.get("IB_PORT", "4002"))
     app = S()
     app.connect(host, port, 9)

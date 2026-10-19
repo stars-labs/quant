@@ -41,11 +41,11 @@ Binance data through the 2026-06 dip (smart DCA: -9.56% cost basis, +44 pts ROI 
 
 ## Stage 2 — Equity real data + validation — IB paper account READY 2026-06-09
 Paper account live (user `xiongchenyu6`). Headless Gateway path chosen: **x86_64 sidecar**
-on `oracle-amd-002` (aarch64 oracle-arm-002 can't run the x86 Java Gateway), as a
-`gnzsnz/ib-gateway` podman container, API on wg mesh `172.22.240.97:4002`. Config in
-`dotfiles/.../oracle-amd-002/ib-gateway.nix`; runbook `nautilus_equity/deploy/ib-gateway-headless.md`.
+on `oracle-amd-001` (aarch64 oracle-arm-002 can't run the x86 Java Gateway), as a
+`gnzsnz/ib-gateway` podman container, API on wg mesh `172.22.240.104:4002`. Config in
+`dotfiles/.../oracle-amd-001/ib-gateway.nix`; runbook `nautilus_equity/deploy/ib-gateway-headless.md`.
 `download_ib.py` now defaults to port 4002 (Gateway paper).
-TODO: (1) disable 2FA on paper login, add creds to sops, `nixos-rebuild` amd-002; (2) run
+TODO: (1) disable 2FA on paper login, add creds to sops, `nixos-rebuild` amd-001; (2) run
 `download_ib.py` for NVDA/AMD/QQQ adjusted bars → ParquetDataCatalog; (3) feed real KellyStats;
 (4) validate ADX/indicators vs talib; (5) NVDA 2024 10:1 split data-integrity check.
 
@@ -59,14 +59,13 @@ Do this with REAL data only (don't pollute prod DB with synthetic trades).
 **Equity half: DONE & LIVE 2026-06-10** — `HonestTrendEquity` hooks
 `on_position_opened/changed/closed` → `TradeLedger(asset_class="equity")`. Migration
 `013_nautilus_trades_asset_class.sql` APPLIED (column + `api.nautilus_trades` view). The
-equity node now runs as **`quant-equity.service` on the GAME BOX** (not amd-002) — the
-amd-002 nix node `nautilus-equity-trend` traded but never persisted (stale nur copy) +
-under-sized, so it was stopped; amd-002 = IB Gateway only. The game-box node connects to the
-Gateway over wg (172.22.240.97:4002, client id 8) and persists in-process. Sizing fix: IB
+equity node now runs as **`quant-equity.service` on the GAME BOX** — the old amd-002 nix node
+`nautilus-equity-trend` traded but never persisted (stale nur copy) + under-sized, so it was
+retired and its module deleted from dotfiles; the Gateway now lives on amd-001. The game-box node connects to the
+Gateway over wg (172.22.240.104:4002, client id 8) and persists in-process. Sizing fix: IB
 margin account reports `base_currency=None` → `balance_total()` no-arg RAISES → `_equity_usd`
 reads `balances_total()` × `EQ_QUOTE_PER_BASE_FX=0.74`. Migration 016 APPLIED (DELETE grant).
-REMAINING: set `services.nautilus-equity-trend.enable=false` in dotfiles (amd-002) before its
-next rebuild; verify the first live round-trip persists when US market opens.
+REMAINING: verify the first live round-trip persists when US market opens.
 
 ## Stage 4 — Crypto live execution on Nautilus — DEPLOYED TO PROD (testnet) 2026-06-07
 Packaged nautilus-trader (aarch64 wheel) + a nautilus-accumulator NixOS service in

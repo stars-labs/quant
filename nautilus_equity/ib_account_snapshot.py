@@ -4,7 +4,7 @@ Answers "does the IB paper account have any trades / open positions?" straight f
 (not our DB). Places NO orders. Connects with a dedicated client id so it can't collide
 with a running node. Asserts the account is paper (DU...) and bails otherwise.
 
-  IB_HOST (default 172.22.240.97)  IB_PORT (default 4002)  IB_CLIENT_ID (default 9)
+  IB_HOST (default 172.22.240.104)  IB_PORT (default 4002)  IB_CLIENT_ID (default 9)
 """
 
 from __future__ import annotations
@@ -56,7 +56,7 @@ class Snapshot(EWrapper, EClient):
 
 
 def main() -> int:
-    host = os.environ.get("IB_HOST", "172.22.240.97")
+    host = os.environ.get("IB_HOST", "172.22.240.104")
     port = int(os.environ.get("IB_PORT", "4002"))
     cid = int(os.environ.get("IB_CLIENT_ID", "9"))
 

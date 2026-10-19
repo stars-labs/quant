@@ -288,7 +288,7 @@ def collect(role: str, host: str, write: bool = True) -> dict:
     except Exception as e:
         results["probe:units"] = (False, "systemd 查询", repr(e))
     if role == "desk":
-        results.update(probe_ib(os.environ.get("IB_HOST", "172.22.240.97"),
+        results.update(probe_ib(os.environ.get("IB_HOST", "172.22.240.104"),
                                 int(os.environ.get("IB_PORT", "4002"))))
         try:
             results.update(probe_equity_session(now))

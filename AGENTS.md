@@ -261,20 +261,19 @@ new service/table to its lists when you add one. `--dry-run` prints results and 
   (binance-api-key/secret, telegram-bot-token/chat-id, quant-password). Repo secrets in
   `secrets.env`/`secrets.yaml` (sops-encrypted; safe to commit). DB-touching services wrap the
   command in `sops exec-env secrets.env "<single quoted cmd>"` (quoting avoids a flag-eating bug).
-- **Equity IB Gateway sidecar (oracle-amd-002, x86_64):** Gateway is x86-only + unpackaged in
+- **Equity IB Gateway sidecar (oracle-amd-001, x86_64):** Gateway is x86-only + unpackaged in
   nixpkgs, so it runs as a `gnzsnz/ib-gateway` podman container (paper) on the AMD box, API bound
-  to the wg mesh IP `172.22.240.97:4002` (wg0 is trusted; never public). The equity node connects
-  over WireGuard (`IB_HOST=172.22.240.97 IB_PORT=4002`). Config:
-  `dotfiles/nixos-configurations/oracle-amd-002/ib-gateway.nix`; runbook + 2FA/sops steps:
+  to the wg mesh IP `172.22.240.104:4002` (wg0 is trusted; never public). The equity node connects
+  over WireGuard (`IB_HOST=172.22.240.104 IB_PORT=4002`). Config:
+  `dotfiles/nixos-configurations/oracle-amd-001/ib-gateway.nix`; runbook + 2FA/sops steps:
   `nautilus_equity/deploy/ib-gateway-headless.md`. Disable 2FA on the paper login first.
   Known failure: the nightly 23:59 auto-restart can stall at a "Gateway" dialog (LOGGED_OUT; port
   4002 refused inside the container, node logs "Failed to receive server version") — fix with
-  `sudo systemctl restart podman-ib-gateway` on amd-002 (cold start does a full login, ~40 s).
-- **Equity EXECUTION runs on the game box, NOT amd-002** (decided 2026-06-10). The amd-002 nix
-  node `services.nautilus-equity-trend` traded but didn't persist (stale nur copy) + under-sized;
-  it is **RETIRED** (`enable = false`). amd-002 hosts ONLY the IB Gateway now. The single equity
-  node is `quant-equity.service` on the game box (see Local services). They must never both run —
-  they share IB client id 8 on the one paper account.
+  `sudo systemctl restart podman-ib-gateway` on amd-001 (cold start does a full login, ~40 s).
+- **Equity EXECUTION runs on the game box** (decided 2026-06-10). The old amd-002 nix node
+  `services.nautilus-equity-trend` traded but didn't persist (stale nur copy) + under-sized; its
+  module is now **DELETED** from dotfiles. amd-001 hosts ONLY the IB Gateway. The single equity
+  node is `quant-equity.service` on the game box (see Local services; IB client id 8).
 
 ## Local services (game box, `~/.config/systemd/user/quant-*`)
 

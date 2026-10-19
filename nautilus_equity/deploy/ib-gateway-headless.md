@@ -1,15 +1,15 @@
-# Headless IB Gateway sidecar (oracle-amd-002)
+# Headless IB Gateway sidecar (oracle-amd-001)
 
 The US-equity engine needs a logged-in **IB Gateway** to pull data and (later) trade paper.
 Gateway is an x86_64 GUI Java app with **no real headless mode** and no nixpkgs package, so we
 run it as a container on the fleet's existing x86_64 box and reach it over the WireGuard mesh.
 
 ```
-oracle-amd-002 (x86_64, NixOS)                         oracle-arm-002 / local box
+oracle-amd-001 (x86_64, NixOS)                         oracle-arm-002 / local box
 ┌──────────────────────────────────────┐
 │ podman: ghcr.io/gnzsnz/ib-gateway     │   wg0 (trusted)   nautilus_equity
 │   Gateway + IBC + Xvfb + VNC          │◄─────────────────  download_ib.py (now)
-│   API bound 172.22.240.97:4002 only   │   172.22.240.97    live equity node (later)
+│   API bound 172.22.240.104:4002 only  │   172.22.240.104   live equity node (later)
 └──────────────────────────────────────┘      :4002
 ```
 
@@ -19,7 +19,7 @@ installer URL+hash rotates every release, so a hand-rolled `buildFHSEnv` breaks 
 + sops on NixOS via `virtualisation.oci-containers`.
 
 ## Files
-- `dotfiles/nixos-configurations/oracle-amd-002/ib-gateway.nix` — the podman service + sops env.
+- `dotfiles/nixos-configurations/oracle-amd-001/ib-gateway.nix` — the podman service + sops env.
 - imported from that host's `default.nix`.
 
 ## One-time setup (you — these can't be automated)
@@ -35,21 +35,20 @@ installer URL+hash rotates every release, so a hand-rolled `buildFHSEnv` breaks 
    #     password: <paper password>
    ```
    ⚠️ The password shared in chat should be **rotated** in the IBKR portal before going live.
-3. **Deploy** (the standard fleet loop):
+3. **Deploy** (build locally — amd-001 has only ~1 GB RAM, never build on it):
    ```
    cd ~/dotfiles
-   nixos-rebuild switch --flake .#oracle-amd-002 \
-     --build-host root@oracle-amd-002 --target-host root@oracle-amd-002
+   nixos-rebuild switch --flake .#oracle-amd-001 --target-host root@oracle-amd-001
    ```
 4. **Verify login** (first run): temporarily uncomment the VNC port line in `ib-gateway.nix`,
-   set `VNC_SERVER_PASSWORD` in the sops env, redeploy, and VNC to `172.22.240.97:5900` over the
+   set `VNC_SERVER_PASSWORD` in the sops env, redeploy, and VNC to `172.22.240.104:5900` over the
    mesh to watch IBC log in. Re-comment when green.
 
 ## Verify the API is reachable (from any mesh host)
 ```
-nc -vz 172.22.240.97 4002          # socket open?
+nc -vz 172.22.240.104 4002          # socket open?
 P=nautilus_equity/.venv/bin/python
-IB_HOST=172.22.240.97 IB_PORT=4002 $P nautilus_equity/download_ib.py
+IB_HOST=172.22.240.104 IB_PORT=4002 $P nautilus_equity/download_ib.py
 # → 3y adjusted daily+hourly bars for NVDA/AMD/QQQ into nautilus_equity/catalog/
 ```
 `download_ib.py` defaults to `IB_PORT=4002` already; set `IB_HOST` to the mesh IP when running

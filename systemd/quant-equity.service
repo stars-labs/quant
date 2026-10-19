@@ -1,11 +1,10 @@
 [Unit]
 # US-equity LIVE execution (IB PAPER) — game-box USER service. Runs the HonestTrendEquity
 # TradingNode (live_honest_equity.py) on the nautilus venv, connecting to the IB Gateway on
-# oracle-amd-002 over the WireGuard mesh (172.22.240.97:4002), and persisting fills/closed
+# oracle-amd-001 over the WireGuard mesh (172.22.240.104:4002), and persisting fills/closed
 # positions to quant.nautilus_trades (asset_class='equity', environment='paper') via the
-# in-node TradeLedger. This is the SINGLE equity execution node — the older amd-002 nix node
-# (services.nautilus-equity-trend) must be DISABLED so they don't both trade the one paper
-# account (they share IB client id 8).
+# in-node TradeLedger. This is the SINGLE equity execution node (IB client id 8) — the older
+# amd-002 nix node (services.nautilus-equity-trend) has been deleted from dotfiles.
 #
 # HARD GUARDRAIL: PAPER ONLY. equity.env sets IB_TRADING_MODE=paper + IB_ACCOUNT=DU*; the node
 # refuses to build otherwise. Never set IB_ALLOW_LIVE.
