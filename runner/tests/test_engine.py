@@ -153,6 +153,26 @@ class EngineTest(unittest.TestCase):
         self.assertIn('confirmed_budget_unavailable',[row['reason'] for row in decisions])
         self.assertEqual(self.ex.created,0)
 
+    def test_untradeable_allocations_skip_private_requests(self):
+        from unittest.mock import Mock
+        self.ex.fetch_trading_fee=Mock(side_effect=AssertionError('unnecessary fee request'))
+        self.ex.fetch_balance=Mock(side_effect=AssertionError('unnecessary balance request'))
+        for side,allocation in [('buy',.3),('sell',.000001),('sell',.005)]:
+            self.assertFalse(self.venue.submit(self.store,'trend','BTC',side,'tiny','tiny',allocation))
+        self.ex.fetch_trading_fee.assert_not_called()
+        self.ex.fetch_balance.assert_not_called()
+        self.assertEqual(self.store.pending(),[])
+
+    def test_tradeable_sale_keeps_live_fee_and_balance_checks(self):
+        from unittest.mock import Mock
+        self.ex.fetch_trading_fee=Mock(wraps=self.ex.fetch_trading_fee)
+        self.ex.fetch_balance=Mock(wraps=self.ex.fetch_balance)
+        # The allocation passes market minima but the wallet has no BTC.
+        self.assertFalse(self.venue.submit(self.store,'trend','BTC','sell','empty','empty',.1))
+        self.ex.fetch_trading_fee.assert_called_once_with('BTC/USDT')
+        self.ex.fetch_balance.assert_called_once()
+        self.assertEqual(self.store.pending(),[])
+
     def test_tiny_remainder_skips_before_precision_can_raise(self):
         def precision(symbol,amount): raise AssertionError('Below minimum must skip first')
         self.ex.amount_to_precision=precision

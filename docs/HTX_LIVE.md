@@ -77,3 +77,19 @@ From another computer, SSH to Oracle and use the same private home and journal.
 A copied configuration cannot directly execute on another machine or OS user.
 Private owner lock routing is preserved during backup; ownership migration
 requires stopping and disabling the original service before reassignment.
+
+### Minimum-size checks and transient signal failures
+
+The owner runner rejects allocations below the market's quantity minimum before
+requesting a ticker. Once a fresh bid/ask is available, allocations below the
+notional minimum are rejected before private fee and wallet requests. These
+checks do not discard residual holdings: wallet reconciliation still includes
+them, and a residual is reconsidered on each cycle. Tradeable allocations still
+require current authenticated fees, available balances and final precision checks.
+
+Only the public `runner_signals` read RPC retries a transient connection failure
+or HTTP 429/502/503/504 once, after one second. Authentication failures, certificate
+verification failures and invalid responses fail immediately. Every successful
+response still passes freshness validation. Exchange submission and reporting
+uploads are not retried by this helper. Pause logs identify the failed stage
+without printing exception messages or signed URLs.
